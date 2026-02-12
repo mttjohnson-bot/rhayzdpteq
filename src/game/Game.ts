@@ -6,6 +6,7 @@ import { Player } from './Player';
 import { createHubScene, PortalInfo } from './Hub';
 import { MenuScreen } from '../ui/MenuScreen';
 import { HUD } from '../ui/HUD';
+import { InstructionsPanel } from '../ui/InstructionsPanel';
 import {
   TILE_SIZE,
   HUB_WIDTH,
@@ -23,6 +24,7 @@ export class Game {
   private player: Player;
   private menuScreen: MenuScreen;
   private hud: HUD;
+  private instructions: InstructionsPanel;
 
   private state: GameState = 'menu';
   private clock = new THREE.Clock();
@@ -42,6 +44,7 @@ export class Game {
     this.player = new Player();
     this.menuScreen = new MenuScreen();
     this.hud = new HUD();
+    this.instructions = new InstructionsPanel();
 
     window.addEventListener('resize', () => {
       this.camera.resize(window.innerWidth / window.innerHeight);
@@ -59,6 +62,7 @@ export class Game {
   private enterMenu(): void {
     this.state = 'menu';
     this.hud.hide();
+    this.instructions.hide();
     this.menuScreen.show(() => this.enterHub());
   }
 
@@ -96,6 +100,7 @@ export class Game {
 
     this.camera.snapTo(this.player.position);
     this.hud.show();
+    this.instructions.show();
   }
 
   private enterDungeon(): void {

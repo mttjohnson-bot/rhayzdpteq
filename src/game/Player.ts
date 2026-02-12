@@ -34,8 +34,8 @@ export class Player {
     const move = input.getMovement();
     if (move.x === 0 && move.z === 0) return;
 
-    // Rotate movement to match isometric camera orientation (45° rotated)
-    const angle = Math.PI / 4;
+    // Rotate movement to match isometric camera orientation (-45° to align screen axes to world)
+    const angle = -Math.PI / 4;
     const cos = Math.cos(angle);
     const sin = Math.sin(angle);
     const worldX = move.x * cos - move.z * sin;
