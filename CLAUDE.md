@@ -97,7 +97,7 @@ Target: Chromebook-playable (60 FPS mid-range, 30 FPS minimum low-end)
 
 ## Git Workflow
 
-- Default branch: `master`
+- Default branch: `main`
 - Write clear, descriptive commit messages
 - Keep commits atomic and focused on a single change
 - Feature branches for major milestones
