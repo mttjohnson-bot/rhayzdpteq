@@ -4,7 +4,9 @@ This document captures all design decisions and serves as the reference for buil
 
 ## Concept Summary
 
-A browser-based 3D dungeon crawler RPG with a voxel art style. The player navigates procedurally generated dungeon floors from a top-down isometric perspective, fighting enemies in real-time action combat. Instead of descending into a dungeon, the player **ascends** — climbing upward floor by floor, defeating a boss on each level to unlock the exit to the next.
+A browser-based 3D dungeon crawler RPG with a voxel art style. The player begins in a fixed **hub area** (a small camp, base, or temple) that serves as a safe starting point between runs. From the hub, the player selects a dungeon floor to enter. Dungeon floors are procedurally generated and played from a top-down isometric perspective with real-time action combat. Instead of descending into a dungeon, the player **ascends** — climbing upward floor by floor, defeating a boss on each level to unlock the next.
+
+After completing (or dying on) a floor, the player returns to the hub where they can manage inventory, spend skill points, and select the next floor to attempt.
 
 The game is built to run on modest hardware (Chromebooks) via modern browsers and will be hosted on GitHub Pages.
 
@@ -32,11 +34,23 @@ The game is built to run on modest hardware (Chromebooks) via modern browsers an
 - Responsive and snappy — prioritize game feel
 - Enemies have telegraphed attacks with readable patterns
 
+### Hub Area
+- **Fixed, hand-built scene** — a small camp/base/temple that serves as the safe zone between dungeon runs
+- Player spawns here on game start and returns here after completing or dying on a floor
+- Contains interactive elements for:
+  - **Floor selection:** portal, staircase, or similar mechanism to choose which unlocked floor to enter
+  - **Inventory management:** access equipment, sort loot
+  - **Skill tree access:** spend skill points earned from dungeon runs
+  - **Save point:** explicit save interaction (or auto-save on return)
+- Hub is always the same layout — no procedural generation
+- Can be expanded later with NPCs, shops, or upgrade stations
+
 ### Level Design
-- **Procedural generation**
+- **Procedural generation** for dungeon floors (hub is hand-built)
 - Each floor is algorithmically generated with rooms, corridors, traps, and enemy placements
 - Each floor ends with a boss room that gates progression to the next floor
 - Floors should feel distinct as the player ascends (vary room density, enemy types, environmental elements)
+- Defeating a floor's boss **unlocks the next floor** in the hub's floor selection
 
 ### RPG Progression
 - **Skill tree + loot system**
@@ -49,7 +63,7 @@ The game is built to run on modest hardware (Chromebooks) via modern browsers an
 - **Persistent save** (not roguelike)
 - Player saves progress between sessions
 - Save data stored in browser `localStorage` (with potential IndexedDB upgrade later)
-- Save includes: current floor, character stats, inventory, skill tree state, explored map data
+- Save includes: highest unlocked floor, character stats, inventory, skill tree state
 
 ### Input
 - **Keyboard + mouse** (primary)
@@ -82,7 +96,8 @@ The game is built to run on modest hardware (Chromebooks) via modern browsers an
 │   │   ├── Player.ts       # Player entity, stats, inventory
 │   │   ├── Camera.ts       # Isometric camera controller
 │   │   ├── InputManager.ts # Keyboard, mouse, and gamepad input
-│   │   └── SaveManager.ts  # Save/load to localStorage
+│   │   ├── SaveManager.ts  # Save/load to localStorage
+│   │   └── Hub.ts          # Hub scene setup, floor selection, NPC interactions
 │   ├── combat/
 │   │   ├── CombatSystem.ts # Hit detection, damage calculation
 │   │   ├── Enemy.ts        # Base enemy class
@@ -117,25 +132,29 @@ The game is built to run on modest hardware (Chromebooks) via modern browsers an
 
 - **Entity-Component pattern** for game objects (player, enemies, items)
 - **Game loop** with fixed-timestep update and variable-rate rendering
-- **State machine** for game states (menu, playing, paused, inventory, cutscene)
-- **Event system** for decoupled communication between systems (e.g., enemy dies → drop loot → grant XP)
+- **State machine** for game states: `Menu → Hub → Dungeon → Hub → ...` (plus paused, inventory, skill tree overlays)
+- **Scene management** must handle two scene types: the persistent hub scene (hand-built, always in memory) and disposable dungeon scenes (procedurally generated, loaded/unloaded per run)
+- **Event system** for decoupled communication between systems (e.g., enemy dies → drop loot → grant XP, boss defeated → unlock next floor)
 
 ## Milestones
 
 These are ordered to deliver playable increments as early as possible.
 
-### Milestone 1: Walking Around
+### Milestone 1: Hub & Movement
 - Project scaffolding (Vite + TypeScript + Three.js)
-- Render a simple voxel floor
+- Build the fixed hub scene (small voxel room/area with floor, walls, lighting)
 - Player character (placeholder cube) with WASD movement
 - Isometric camera following the player
-- Basic lighting
+- Basic game state machine: Menu → Hub
+- A portal/door in the hub that transitions to a dungeon floor (placeholder)
 
-### Milestone 2: Dungeon Generation
+### Milestone 2: Dungeon Generation & Transitions
 - Procedural room and corridor generation
 - Walls, floors, doors between rooms
 - Minimap showing explored areas
-- Stairs/exit tile to represent floor transitions
+- Exit tile that returns the player to the hub
+- Scene loading/unloading: hub scene persists, dungeon scenes are created and destroyed per run
+- Floor selection UI or interaction in the hub
 
 ### Milestone 3: Combat
 - Basic melee attack with hit detection
@@ -182,5 +201,6 @@ These should be resolved as development progresses:
 - [ ] Skill tree node design and balance
 - [ ] Sound effects and music (what tools/assets to use)
 - [ ] Specific voxel palette and visual theme per floor
-- [ ] How to handle player death (respawn at floor start? lose items?)
+- [ ] How to handle player death (return to hub? lose items? lose XP? retry same floor?)
+- [ ] Hub features: NPC vendors, upgrade stations, cosmetic unlocks?
 - [ ] Multiplayer potential (future scope?)

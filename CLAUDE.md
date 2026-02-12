@@ -64,9 +64,11 @@ Once the project is scaffolded:
 
 ## Key Design Decisions
 
+- **Hub:** Fixed hand-built safe zone (camp/temple); player starts here and returns after each dungeon run
+- **Game flow:** Menu → Hub → Dungeon Floor → Hub (loop); hub persists, dungeon scenes are disposable
 - **Camera:** Top-down isometric, follows player
 - **Combat:** Real-time action (attack, dodge, block)
-- **Levels:** Procedurally generated, player ascends upward
+- **Levels:** Procedurally generated, player ascends upward; floor selection from hub
 - **Progression:** XP/leveling with skill tree + loot drops
 - **Saves:** Persistent via localStorage
 - **Input:** Keyboard + mouse (primary), gamepad (secondary)
