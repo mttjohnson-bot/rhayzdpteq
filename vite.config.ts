@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 
 export default defineConfig({
+  base: '/rhayzdpteq/',
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
