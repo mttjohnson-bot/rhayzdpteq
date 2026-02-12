@@ -1,0 +1,122 @@
+import * as THREE from 'three';
+import {
+  TILE_SIZE,
+  WALL_HEIGHT,
+  HUB_WIDTH,
+  HUB_DEPTH,
+  COLORS,
+} from '../utils/constants';
+
+export interface PortalInfo {
+  x: number;
+  z: number;
+  mesh: THREE.Mesh;
+}
+
+/**
+ * Builds the fixed hub scene geometry.
+ * Returns a group containing all hub meshes and the portal location.
+ */
+export function createHubScene(): { group: THREE.Group; portal: PortalInfo } {
+  const group = new THREE.Group();
+
+  const halfW = (HUB_WIDTH * TILE_SIZE) / 2;
+  const halfD = (HUB_DEPTH * TILE_SIZE) / 2;
+
+  // --- Floor ---
+  const floorGeo = new THREE.BoxGeometry(HUB_WIDTH * TILE_SIZE, 0.2, HUB_DEPTH * TILE_SIZE);
+  const floorMat = new THREE.MeshLambertMaterial({ color: COLORS.hub_floor });
+  const floor = new THREE.Mesh(floorGeo, floorMat);
+  floor.receiveShadow = true;
+  floor.position.y = -0.1;
+  group.add(floor);
+
+  // --- Floor accent tiles (checkerboard pattern) ---
+  const accentGeo = new THREE.BoxGeometry(TILE_SIZE * 0.95, 0.05, TILE_SIZE * 0.95);
+  const accentMat = new THREE.MeshLambertMaterial({ color: COLORS.hub_accent });
+  for (let x = 0; x < HUB_WIDTH; x++) {
+    for (let z = 0; z < HUB_DEPTH; z++) {
+      if ((x + z) % 2 === 0) continue;
+      const tile = new THREE.Mesh(accentGeo, accentMat);
+      tile.position.set(
+        (x - HUB_WIDTH / 2 + 0.5) * TILE_SIZE,
+        0.01,
+        (z - HUB_DEPTH / 2 + 0.5) * TILE_SIZE,
+      );
+      tile.receiveShadow = true;
+      group.add(tile);
+    }
+  }
+
+  // --- Walls ---
+  const wallMat = new THREE.MeshLambertMaterial({ color: COLORS.wall });
+
+  const buildWall = (width: number, depth: number, x: number, z: number) => {
+    const geo = new THREE.BoxGeometry(width, WALL_HEIGHT, depth);
+    const wall = new THREE.Mesh(geo, wallMat);
+    wall.position.set(x, WALL_HEIGHT / 2, z);
+    wall.castShadow = true;
+    wall.receiveShadow = true;
+    group.add(wall);
+  };
+
+  // North wall
+  buildWall(HUB_WIDTH * TILE_SIZE + TILE_SIZE, TILE_SIZE, 0, -halfD - TILE_SIZE / 2);
+  // South wall
+  buildWall(HUB_WIDTH * TILE_SIZE + TILE_SIZE, TILE_SIZE, 0, halfD + TILE_SIZE / 2);
+  // West wall
+  buildWall(TILE_SIZE, HUB_DEPTH * TILE_SIZE, -halfW - TILE_SIZE / 2, 0);
+  // East wall
+  buildWall(TILE_SIZE, HUB_DEPTH * TILE_SIZE, halfW + TILE_SIZE / 2, 0);
+
+  // --- Decorative pillars at corners ---
+  const pillarGeo = new THREE.BoxGeometry(TILE_SIZE * 0.8, WALL_HEIGHT * 1.3, TILE_SIZE * 0.8);
+  const pillarMat = new THREE.MeshLambertMaterial({ color: COLORS.wallTop });
+  const pillarPositions = [
+    [-halfW + TILE_SIZE, 0, -halfD + TILE_SIZE],
+    [halfW - TILE_SIZE, 0, -halfD + TILE_SIZE],
+    [-halfW + TILE_SIZE, 0, halfD - TILE_SIZE],
+    [halfW - TILE_SIZE, 0, halfD - TILE_SIZE],
+  ];
+  for (const [px, , pz] of pillarPositions) {
+    const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+    pillar.position.set(px, WALL_HEIGHT * 1.3 / 2, pz);
+    pillar.castShadow = true;
+    group.add(pillar);
+  }
+
+  // --- Portal (north center) ---
+  const portalX = 0;
+  const portalZ = -halfD + TILE_SIZE * 1.5;
+
+  // Portal base
+  const portalBaseGeo = new THREE.CylinderGeometry(TILE_SIZE * 0.8, TILE_SIZE * 0.9, 0.3, 8);
+  const portalBaseMat = new THREE.MeshLambertMaterial({ color: COLORS.hub_accent });
+  const portalBase = new THREE.Mesh(portalBaseGeo, portalBaseMat);
+  portalBase.position.set(portalX, 0.15, portalZ);
+  group.add(portalBase);
+
+  // Portal glow column
+  const portalGeo = new THREE.CylinderGeometry(TILE_SIZE * 0.5, TILE_SIZE * 0.5, WALL_HEIGHT * 1.5, 8);
+  const portalMat = new THREE.MeshBasicMaterial({
+    color: COLORS.portal,
+    transparent: true,
+    opacity: 0.4,
+  });
+  const portalMesh = new THREE.Mesh(portalGeo, portalMat);
+  portalMesh.position.set(portalX, WALL_HEIGHT * 0.75, portalZ);
+  group.add(portalMesh);
+
+  // Portal top ring
+  const ringGeo = new THREE.TorusGeometry(TILE_SIZE * 0.55, 0.08, 8, 16);
+  const ringMat = new THREE.MeshBasicMaterial({ color: COLORS.portalGlow });
+  const ring = new THREE.Mesh(ringGeo, ringMat);
+  ring.position.set(portalX, WALL_HEIGHT * 1.5, portalZ);
+  ring.rotation.x = Math.PI / 2;
+  group.add(ring);
+
+  return {
+    group,
+    portal: { x: portalX, z: portalZ, mesh: portalMesh },
+  };
+}
