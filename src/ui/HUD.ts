@@ -1,6 +1,7 @@
 export class HUD {
   private container: HTMLDivElement;
   private promptEl: HTMLDivElement;
+  private floorEl: HTMLDivElement;
 
   constructor() {
     this.container = document.createElement('div');
@@ -15,6 +16,23 @@ export class HUD {
       color: '#eee',
       pointerEvents: 'none',
     });
+
+    // Floor indicator (top-center)
+    this.floorEl = document.createElement('div');
+    Object.assign(this.floorEl.style, {
+      position: 'absolute',
+      top: '10px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      padding: '0.3rem 1rem',
+      background: 'rgba(0, 0, 0, 0.6)',
+      border: '1px solid rgba(170, 68, 255, 0.4)',
+      borderRadius: '4px',
+      fontSize: '0.9rem',
+      letterSpacing: '0.1em',
+      display: 'none',
+    });
+    this.container.appendChild(this.floorEl);
 
     // Interaction prompt (shows "Press E to enter portal" etc.)
     this.promptEl = document.createElement('div');
@@ -50,5 +68,14 @@ export class HUD {
 
   hidePrompt(): void {
     this.promptEl.style.display = 'none';
+  }
+
+  showFloorIndicator(floor: number): void {
+    this.floorEl.textContent = `Floor ${floor}`;
+    this.floorEl.style.display = 'block';
+  }
+
+  hideFloorIndicator(): void {
+    this.floorEl.style.display = 'none';
   }
 }
