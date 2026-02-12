@@ -7,12 +7,14 @@ import { createHubScene, PortalInfo } from './Hub';
 import { MenuScreen } from '../ui/MenuScreen';
 import { HUD } from '../ui/HUD';
 import { InstructionsPanel } from '../ui/InstructionsPanel';
+import { Minimap } from '../ui/Minimap';
+import { FloorSelectUI } from '../ui/FloorSelectUI';
+import { generateDungeon, DungeonData } from '../dungeon/DungeonGenerator';
+import { buildDungeonMesh, DungeonMeshData } from '../dungeon/FloorRenderer';
 import {
   TILE_SIZE,
   HUB_WIDTH,
   HUB_DEPTH,
-  COLORS,
-  WALL_HEIGHT,
 } from '../utils/constants';
 
 export type GameState = 'menu' | 'hub' | 'dungeon';
@@ -25,6 +27,8 @@ export class Game {
   private menuScreen: MenuScreen;
   private hud: HUD;
   private instructions: InstructionsPanel;
+  private minimap: Minimap;
+  private floorSelectUI: FloorSelectUI;
 
   private state: GameState = 'menu';
   private clock = new THREE.Clock();
@@ -34,8 +38,13 @@ export class Game {
   private portal: PortalInfo | null = null;
   private portalAnimTime = 0;
 
-  // Dungeon state (placeholder)
+  // Dungeon state
   private dungeonGroup: THREE.Group | null = null;
+  private dungeonData: DungeonData | null = null;
+  private dungeonMeshData: DungeonMeshData | null = null;
+  private currentFloor = 1;
+  private maxUnlockedFloor = 1;
+  private floorSelectOpen = false;
 
   constructor() {
     this.sceneManager = new SceneManager();
@@ -45,6 +54,8 @@ export class Game {
     this.menuScreen = new MenuScreen();
     this.hud = new HUD();
     this.instructions = new InstructionsPanel();
+    this.minimap = new Minimap();
+    this.floorSelectUI = new FloorSelectUI();
 
     window.addEventListener('resize', () => {
       this.camera.resize(window.innerWidth / window.innerHeight);
@@ -63,18 +74,26 @@ export class Game {
     this.state = 'menu';
     this.hud.hide();
     this.instructions.hide();
+    this.minimap.hide();
     this.menuScreen.show(() => this.enterHub());
   }
 
   private enterHub(): void {
     this.state = 'hub';
     this.menuScreen.hide();
+    this.minimap.hide();
+    this.floorSelectOpen = false;
 
     // Clean up dungeon if returning from one
     if (this.dungeonGroup) {
       this.sceneManager.removeGroup(this.dungeonGroup);
       this.dungeonGroup = null;
+      this.dungeonData = null;
+      this.dungeonMeshData = null;
     }
+
+    // Clear dungeon collision
+    this.player.setDungeonCollision(null);
 
     // Build hub if first time
     if (!this.hubGroup) {
@@ -103,64 +122,44 @@ export class Game {
     this.instructions.show();
   }
 
-  private enterDungeon(): void {
+  private enterDungeon(floor: number): void {
     this.state = 'dungeon';
+    this.currentFloor = floor;
     this.hud.hidePrompt();
+    this.floorSelectOpen = false;
 
     // Hide hub (but keep in memory)
     if (this.hubGroup) {
       this.sceneManager.scene.remove(this.hubGroup);
     }
 
-    // Create placeholder dungeon floor
-    this.dungeonGroup = this.createPlaceholderDungeon();
+    // Generate dungeon
+    this.dungeonData = generateDungeon(floor);
+    this.dungeonMeshData = buildDungeonMesh(this.dungeonData);
+    this.dungeonGroup = this.dungeonMeshData.group;
     this.sceneManager.addGroup(this.dungeonGroup);
 
-    // Place player at dungeon entrance
-    this.player.teleportTo(0, 3);
-    this.player.setBounds(-4.5, 4.5, -4.5, 4.5);
+    // Set up player collision and position
+    this.player.setDungeonCollision(this.dungeonData);
+    this.player.teleportTo(
+      this.dungeonMeshData.entranceWorldPos.x,
+      this.dungeonMeshData.entranceWorldPos.z,
+    );
+    this.player.setBounds(
+      this.dungeonMeshData.bounds.minX,
+      this.dungeonMeshData.bounds.maxX,
+      this.dungeonMeshData.bounds.minZ,
+      this.dungeonMeshData.bounds.maxZ,
+    );
     this.camera.snapTo(this.player.position);
-  }
 
-  /** Temporary: a simple room to prove the scene transition works */
-  private createPlaceholderDungeon(): THREE.Group {
-    const group = new THREE.Group();
-    const size = 10;
-    const half = size / 2;
+    // Set up minimap
+    this.minimap.setDungeon(this.dungeonData);
+    this.minimap.show();
+    this.minimap.updatePlayerPosition(this.player.position.x, this.player.position.z);
 
-    // Floor
-    const floorGeo = new THREE.BoxGeometry(size, 0.2, size);
-    const floorMat = new THREE.MeshLambertMaterial({ color: COLORS.floor });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.receiveShadow = true;
-    floor.position.y = -0.1;
-    group.add(floor);
-
-    // Walls
-    const wallMat = new THREE.MeshLambertMaterial({ color: COLORS.wall });
-    const wallPositions: [number, number, number, number][] = [
-      [size + TILE_SIZE, TILE_SIZE, 0, -half - TILE_SIZE / 2],
-      [size + TILE_SIZE, TILE_SIZE, 0, half + TILE_SIZE / 2],
-      [TILE_SIZE, size, -half - TILE_SIZE / 2, 0],
-      [TILE_SIZE, size, half + TILE_SIZE / 2, 0],
-    ];
-    for (const [w, d, x, z] of wallPositions) {
-      const geo = new THREE.BoxGeometry(w, WALL_HEIGHT, d);
-      const wall = new THREE.Mesh(geo, wallMat);
-      wall.position.set(x, WALL_HEIGHT / 2, z);
-      wall.castShadow = true;
-      wall.receiveShadow = true;
-      group.add(wall);
-    }
-
-    // Exit marker (south center)
-    const exitGeo = new THREE.BoxGeometry(TILE_SIZE, 0.1, TILE_SIZE);
-    const exitMat = new THREE.MeshBasicMaterial({ color: 0x44ff44, transparent: true, opacity: 0.5 });
-    const exit = new THREE.Mesh(exitGeo, exitMat);
-    exit.position.set(0, 0.05, half - TILE_SIZE / 2);
-    group.add(exit);
-
-    return group;
+    // Update HUD
+    this.hud.showFloorIndicator(floor);
   }
 
   // --- Game loop ---
@@ -180,8 +179,10 @@ export class Game {
         break;
 
       case 'hub':
-        this.player.update(dt, this.input);
-        this.camera.follow(this.player.position, dt);
+        if (!this.floorSelectOpen) {
+          this.player.update(dt, this.input);
+          this.camera.follow(this.player.position, dt);
+        }
         this.updateHub(dt);
         break;
 
@@ -204,20 +205,41 @@ export class Game {
 
     // Check proximity to portal
     if (this.player.isNear(this.portal.x, this.portal.z)) {
-      this.hud.showPrompt('Press E to enter the dungeon');
-      if (this.input.wasPressed('KeyE')) {
-        this.enterDungeon();
+      if (!this.floorSelectOpen) {
+        this.hud.showPrompt('Press E to select a dungeon floor');
+      }
+      if (this.input.wasPressed('KeyE') && !this.floorSelectOpen) {
+        this.floorSelectOpen = true;
+        this.hud.hidePrompt();
+        this.floorSelectUI.show(this.maxUnlockedFloor, (floor: number) => {
+          this.floorSelectOpen = false;
+          this.enterDungeon(floor);
+        });
       }
     } else {
-      this.hud.hidePrompt();
+      if (!this.floorSelectOpen) {
+        this.hud.hidePrompt();
+      }
     }
   }
 
   private updateDungeon(): void {
-    // Check if player reaches the exit tile (south center of placeholder dungeon)
-    if (this.player.isNear(0, 4)) {
-      this.hud.showPrompt('Press E to return to hub');
+    if (!this.dungeonMeshData) return;
+
+    // Update minimap with player position
+    this.minimap.updatePlayerPosition(this.player.position.x, this.player.position.z);
+
+    // Check if player reaches the exit tile
+    const exit = this.dungeonMeshData.exitWorldPos;
+    if (this.player.isNear(exit.x, exit.z)) {
+      this.hud.showPrompt('Press E to ascend to hub');
       if (this.input.wasPressed('KeyE')) {
+        // Unlock next floor
+        if (this.currentFloor >= this.maxUnlockedFloor && this.currentFloor < 5) {
+          this.maxUnlockedFloor = this.currentFloor + 1;
+        }
+        this.hud.hideFloorIndicator();
+        this.minimap.hide();
         this.enterHub();
       }
     } else {
