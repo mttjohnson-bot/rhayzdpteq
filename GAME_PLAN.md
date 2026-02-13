@@ -184,6 +184,54 @@ These are ordered to deliver playable increments as early as possible.
 - Performance optimization for Chromebook targets
 - README with screenshots and play link
 
+#### Issue 6.1 Much Bigger Levels
+- The halls between rooms on the levels are a bit narrow make halls wider and longer
+- Make rooms bigger with different shapes, variations, and obstructions
+- Make it easier to see player and enemies so they are not hidden by wall
+  - maybe some outline of enemy or player when covered by wall
+  - make walls slant more from angle of viewer so there is less that a character could hide behind
+    - maybe this could be done by increasing margin on the side that would hide them from the viewers perspective so chatracters would not be completely hidden by walls
+- Make total map size much bigger, which might mean scrolling the mini map
+
+#### Issue 6.2 Combat Improvements
+- Auto face enemy in reach of attack
+  - If already facing enemy in reach of attack don't auto change
+- do not allow enemy to enter space of player character or go through player
+- More enemies per level
+- two tiers for enemies with captiain for each mob
+- 5 enemy types with different characteristics, shapes, and colors
+- make boss harder and bigger
+- make boss room much larger than most rooms
+- sometimes allow some knock back of character when hit
+
+#### Issue 6.3: Control Support Improvements
+- allow gamepad support on home page to highlight and select continue or start new game
+- Allow level selection using gamepad
+- allow item equip/use with gamepad
+- allow selecting skill tree with gamepad
+- allow keyboard to highlight and select level from menu
+- when a menu appears provide instructions for interacting with menu
+- detect if gamepad is in use
+  - if in use add hud overlay along some edge to indicate gamepad is active
+  - if in use change help panels to display gamepad button instead of keyboard key
+
+#### Issue 6.4 Multiple Save Slots
+- Allow four save slots on game start page
+  - Allow selecting a slot and then be able to select and activate continue or start new game
+
+#### Issue 6.5 Inventory Item Improvements
+- Allow highlight of an item and then once select option to equip/use or drop the item
+  - if drop item is choosen another prompt must make you confirm you want to drop
+- more inventory slots as a separate upgrade using skill points
+- Larger variety of weapons, armor, and rings
+  - different weapons types introduce different visual annimation or effects during attack
+  - Area affect 
+  - Attack speed changes for weapons
+  - lingering effects of weapon attack (poison, debuff)
+- Several other use potion types
+  - timed buffs
+  - timed bonus effects / modifiers
+
 ## Performance Targets
 
 Since the game must run on Chromebooks:
