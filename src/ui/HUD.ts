@@ -3,6 +3,7 @@ export class HUD {
   private promptEl: HTMLDivElement;
   private floorEl: HTMLDivElement;
   private levelInfoEl: HTMLDivElement;
+  private gamepadEl: HTMLDivElement;
 
   constructor() {
     this.container = document.createElement('div');
@@ -68,6 +69,23 @@ export class HUD {
       display: 'none',
     });
     this.container.appendChild(this.promptEl);
+
+    // Gamepad indicator (bottom-right)
+    this.gamepadEl = document.createElement('div');
+    Object.assign(this.gamepadEl.style, {
+      position: 'absolute',
+      bottom: '10px',
+      right: '10px',
+      padding: '0.2rem 0.6rem',
+      background: 'rgba(0, 0, 0, 0.5)',
+      border: '1px solid rgba(100, 200, 100, 0.3)',
+      borderRadius: '4px',
+      fontSize: '0.7rem',
+      color: '#88cc88',
+      display: 'none',
+    });
+    this.gamepadEl.textContent = 'Gamepad Connected';
+    this.container.appendChild(this.gamepadEl);
   }
 
   show(): void {
@@ -106,5 +124,9 @@ export class HUD {
 
   hideLevelInfo(): void {
     this.levelInfoEl.style.display = 'none';
+  }
+
+  setGamepadConnected(connected: boolean): void {
+    this.gamepadEl.style.display = connected ? 'block' : 'none';
   }
 }

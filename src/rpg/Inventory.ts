@@ -3,13 +3,14 @@
  *
  * The player has 3 equipment slots (weapon, armor, ring) and a bag with limited capacity.
  * Equipping an item swaps it into the slot, placing any existing item back in the bag.
+ * Items can be dropped (destroyed) from the bag.
  */
 
 import { Item, ItemSlot } from './LootTable';
 import { StatModifier } from './Stats';
 import { events } from '../utils/EventBus';
 
-const MAX_BAG_SIZE = 20;
+const BASE_BAG_SIZE = 24;
 
 export interface EquipmentSlots {
   weapon: Item | null;
@@ -20,16 +21,15 @@ export interface EquipmentSlots {
 export class Inventory {
   equipped: EquipmentSlots = { weapon: null, armor: null, ring: null };
   bag: Item[] = [];
+  private bonusBagSlots: number = 0;
 
-  /** Add item to bag. Returns false if bag is full. */
   addItem(item: Item): boolean {
-    if (this.bag.length >= MAX_BAG_SIZE) return false;
+    if (this.bag.length >= this.maxBagSize) return false;
     this.bag.push(item);
     events.emit('inventoryChanged');
     return true;
   }
 
-  /** Remove item from bag by id */
   removeItem(itemId: string): Item | null {
     const idx = this.bag.findIndex(i => i.id === itemId);
     if (idx < 0) return null;
@@ -38,7 +38,15 @@ export class Inventory {
     return item;
   }
 
-  /** Equip an item from the bag. If slot is occupied, old item goes to bag. */
+  /** Drop (destroy) an item from the bag */
+  dropItem(itemId: string): boolean {
+    const idx = this.bag.findIndex(i => i.id === itemId);
+    if (idx < 0) return false;
+    this.bag.splice(idx, 1);
+    events.emit('inventoryChanged');
+    return true;
+  }
+
   equip(itemId: string): boolean {
     const item = this.bag.find(i => i.id === itemId);
     if (!item || item.type !== 'equipment' || !item.slot) return false;
@@ -46,10 +54,8 @@ export class Inventory {
     const slot = item.slot;
     const old = this.equipped[slot];
 
-    // Remove from bag
     this.bag.splice(this.bag.indexOf(item), 1);
 
-    // Put old item back in bag if present
     if (old) {
       this.bag.push(old);
     }
@@ -60,11 +66,10 @@ export class Inventory {
     return true;
   }
 
-  /** Unequip a slot, putting the item in the bag. Returns false if bag is full. */
   unequip(slot: ItemSlot): boolean {
     const item = this.equipped[slot];
     if (!item) return false;
-    if (this.bag.length >= MAX_BAG_SIZE) return false;
+    if (this.bag.length >= this.maxBagSize) return false;
 
     this.equipped[slot] = null;
     this.bag.push(item);
@@ -73,7 +78,6 @@ export class Inventory {
     return true;
   }
 
-  /** Use a consumable from the bag. Returns the item if consumed, null otherwise. */
   useConsumable(itemId: string): Item | null {
     const item = this.bag.find(i => i.id === itemId);
     if (!item || item.type !== 'consumable') return null;
@@ -82,7 +86,6 @@ export class Inventory {
     return item;
   }
 
-  /** Get all stat modifiers from equipped items */
   getEquipmentModifiers(): StatModifier[] {
     const mods: StatModifier[] = [];
     for (const item of Object.values(this.equipped)) {
@@ -93,15 +96,19 @@ export class Inventory {
     return mods;
   }
 
+  /** Add bonus bag slots (from skills, etc.) */
+  addBagSlots(count: number): void {
+    this.bonusBagSlots += count;
+  }
+
   get bagSize(): number {
     return this.bag.length;
   }
 
   get maxBagSize(): number {
-    return MAX_BAG_SIZE;
+    return BASE_BAG_SIZE + this.bonusBagSlots;
   }
 
-  /** Serialize for save */
   toJSON(): { equipped: Record<string, Item | null>; bag: Item[] } {
     return {
       equipped: { ...this.equipped },
@@ -109,7 +116,6 @@ export class Inventory {
     };
   }
 
-  /** Restore from save */
   fromJSON(data: { equipped: Record<string, Item | null>; bag: Item[] }): void {
     this.equipped = {
       weapon: data.equipped.weapon ?? null,

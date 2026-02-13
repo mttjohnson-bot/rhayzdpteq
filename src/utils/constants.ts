@@ -23,6 +23,8 @@ export const PLAYER_ATTACK_RANGE = 1.2;
 export const PLAYER_ATTACK_ARC = Math.PI / 2; // 90° swing arc
 export const PLAYER_ATTACK_COOLDOWN = 0.4; // seconds between attacks
 export const PLAYER_INVINCIBILITY_TIME = 0.5; // seconds of i-frames after hit
+export const KNOCKBACK_FORCE = 2.0;
+export const KNOCKBACK_CHANCE = 0.35;
 
 export const ENEMY_HP = 40;
 export const ENEMY_SPEED = 2.0;
@@ -33,6 +35,60 @@ export const ENEMY_CHASE_RANGE = 8;
 export const ENEMY_PATROL_RANGE = 3;
 export const ENEMY_SIZE = 0.5;
 export const ENEMY_HEIGHT = 0.8;
+
+// Enemy type definitions
+export type EnemyTypeId = 'grunt' | 'brute' | 'archer' | 'mage' | 'assassin';
+
+export interface EnemyTypeConfig {
+  id: EnemyTypeId;
+  name: string;
+  color: number;
+  bodyScale: number;
+  heightScale: number;
+  hpMult: number;
+  dmgMult: number;
+  speedMult: number;
+  attackRange: number;
+  attackCooldown: number;
+}
+
+export const ENEMY_TYPES: Record<EnemyTypeId, EnemyTypeConfig> = {
+  grunt: {
+    id: 'grunt', name: 'Grunt', color: 0xcc3333,
+    bodyScale: 1.0, heightScale: 1.0,
+    hpMult: 1.0, dmgMult: 1.0, speedMult: 1.0,
+    attackRange: 1.0, attackCooldown: 1.0,
+  },
+  brute: {
+    id: 'brute', name: 'Brute', color: 0x884422,
+    bodyScale: 1.4, heightScale: 1.3,
+    hpMult: 2.0, dmgMult: 1.5, speedMult: 0.7,
+    attackRange: 1.2, attackCooldown: 1.5,
+  },
+  archer: {
+    id: 'archer', name: 'Archer', color: 0x44aa44,
+    bodyScale: 0.85, heightScale: 1.1,
+    hpMult: 0.7, dmgMult: 1.2, speedMult: 1.1,
+    attackRange: 5.0, attackCooldown: 1.8,
+  },
+  mage: {
+    id: 'mage', name: 'Mage', color: 0x6644cc,
+    bodyScale: 0.9, heightScale: 1.0,
+    hpMult: 0.6, dmgMult: 1.8, speedMult: 0.9,
+    attackRange: 4.0, attackCooldown: 2.0,
+  },
+  assassin: {
+    id: 'assassin', name: 'Assassin', color: 0x222222,
+    bodyScale: 0.8, heightScale: 0.9,
+    hpMult: 0.8, dmgMult: 2.0, speedMult: 1.5,
+    attackRange: 1.0, attackCooldown: 0.7,
+  },
+};
+
+// Captain variants
+export const CAPTAIN_SCALE = 1.3;
+export const CAPTAIN_HP_MULT = 1.5;
+export const CAPTAIN_DMG_MULT = 1.3;
 
 // Colors (voxel palette)
 export const COLORS = {

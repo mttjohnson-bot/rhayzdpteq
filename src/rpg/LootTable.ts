@@ -1,7 +1,7 @@
 /**
  * Item definitions, loot tables, and drop-rate logic.
  *
- * Items are equipment (weapon, armor, ring) or consumables (health potion).
+ * Items are equipment (weapon, armor, ring) or consumables.
  * Rarity tiers affect stat ranges. Higher floors drop better loot.
  */
 
@@ -10,17 +10,19 @@ import { StatModifier } from './Stats';
 export type ItemSlot = 'weapon' | 'armor' | 'ring';
 export type ItemRarity = 'common' | 'uncommon' | 'rare' | 'epic';
 export type ItemType = 'equipment' | 'consumable';
+export type ConsumeEffect = 'heal' | 'manaShield' | 'speedBoost' | 'strengthBoost';
 
 export interface Item {
   id: string;
   name: string;
   type: ItemType;
-  slot?: ItemSlot;           // only for equipment
+  slot?: ItemSlot;
   rarity: ItemRarity;
-  level: number;             // item level (roughly = floor it dropped on)
-  modifier: StatModifier;    // stat bonuses (empty for consumables)
-  consumeEffect?: 'heal';    // only for consumables
-  consumeValue?: number;     // heal amount
+  level: number;
+  modifier: StatModifier;
+  consumeEffect?: ConsumeEffect;
+  consumeValue?: number;
+  consumeDuration?: number;
 }
 
 const RARITY_WEIGHTS: Record<ItemRarity, number> = {
@@ -49,14 +51,21 @@ export function rarityColor(rarity: ItemRarity): string {
 }
 
 // --- Name pools ---
-const WEAPON_NAMES = ['Sword', 'Axe', 'Mace', 'Dagger', 'Halberd', 'Cleaver'];
-const ARMOR_NAMES = ['Chestplate', 'Chainmail', 'Tunic', 'Brigandine', 'Cuirass'];
-const RING_NAMES = ['Band', 'Ring', 'Signet', 'Loop', 'Circle'];
+const WEAPON_NAMES: Record<string, string[]> = {
+  sword: ['Sword', 'Blade', 'Falchion', 'Sabre'],
+  axe: ['Axe', 'Hatchet', 'Cleaver', 'Tomahawk'],
+  mace: ['Mace', 'Hammer', 'Flail', 'Morningstar'],
+  dagger: ['Dagger', 'Shiv', 'Stiletto', 'Dirk'],
+  spear: ['Halberd', 'Pike', 'Spear', 'Glaive'],
+};
+const WEAPON_CATEGORIES = Object.keys(WEAPON_NAMES);
+const ARMOR_NAMES = ['Chestplate', 'Chainmail', 'Tunic', 'Brigandine', 'Cuirass', 'Plate'];
+const RING_NAMES = ['Band', 'Ring', 'Signet', 'Loop', 'Circle', 'Seal'];
 const PREFIXES: Record<ItemRarity, string[]> = {
-  common: ['Worn', 'Old', 'Simple'],
-  uncommon: ['Sturdy', 'Polished', 'Fine'],
-  rare: ['Enchanted', 'Gleaming', 'Masterwork'],
-  epic: ['Legendary', 'Radiant', 'Mythic'],
+  common: ['Worn', 'Old', 'Simple', 'Crude'],
+  uncommon: ['Sturdy', 'Polished', 'Fine', 'Solid'],
+  rare: ['Enchanted', 'Gleaming', 'Masterwork', 'Runic'],
+  epic: ['Legendary', 'Radiant', 'Mythic', 'Divine'],
 };
 
 let nextItemId = 1;
@@ -66,7 +75,6 @@ function pickRandom<T>(arr: T[]): T {
 }
 
 function rollRarity(floorBonus: number): ItemRarity {
-  // Floor bonus shifts weights toward rarer items
   const weights = { ...RARITY_WEIGHTS };
   weights.uncommon += floorBonus * 5;
   weights.rare += floorBonus * 3;
@@ -93,17 +101,39 @@ function generateEquipment(floor: number, slot?: ItemSlot): Item {
 
   switch (actualSlot) {
     case 'weapon': {
-      name = `${prefix} ${pickRandom(WEAPON_NAMES)}`;
+      // Pick weapon category for variety
+      const category = pickRandom(WEAPON_CATEGORIES);
+      const baseName = pickRandom(WEAPON_NAMES[category]);
+      name = `${prefix} ${baseName}`;
       modifier.flatDamage = Math.round((3 + floor * 2) * mult);
-      // secondary stat based on rarity
-      if (rarity !== 'common') {
-        modifier.strength = Math.round((1 + floor * 0.5) * (mult - 0.5));
+
+      // Category-specific bonuses
+      switch (category) {
+        case 'sword': // balanced
+          if (rarity !== 'common') modifier.strength = Math.round((1 + floor * 0.5) * (mult - 0.5));
+          break;
+        case 'axe': // high damage
+          modifier.flatDamage = Math.round(modifier.flatDamage * 1.15);
+          if (rarity !== 'common') modifier.critChance = 0.01 * mult;
+          break;
+        case 'mace': // defense bonus
+          if (rarity !== 'common') modifier.flatDefense = Math.round((1 + floor * 0.3) * (mult - 0.5));
+          break;
+        case 'dagger': // speed + crit
+          modifier.flatDamage = Math.round(modifier.flatDamage * 0.85);
+          modifier.attackSpeed = 0.03 * mult;
+          if (rarity !== 'common') modifier.critChance = 0.02 * mult;
+          break;
+        case 'spear': // range feel (extra strength)
+          if (rarity !== 'common') modifier.strength = Math.round((2 + floor * 0.4) * (mult - 0.5));
+          break;
       }
+
       if (rarity === 'rare' || rarity === 'epic') {
-        modifier.critChance = 0.02 * mult;
+        modifier.critChance = (modifier.critChance ?? 0) + 0.02 * mult;
       }
       if (rarity === 'epic') {
-        modifier.attackSpeed = 0.05;
+        modifier.attackSpeed = (modifier.attackSpeed ?? 0) + 0.05;
       }
       break;
     }
@@ -121,7 +151,6 @@ function generateEquipment(floor: number, slot?: ItemSlot): Item {
     }
     case 'ring': {
       name = `${prefix} ${pickRandom(RING_NAMES)}`;
-      // Rings give mixed utility stats
       const statType = pickRandom(['agility', 'luck', 'strength', 'vitality'] as const);
       (modifier as Record<string, number>)[statType] = Math.round((2 + floor * 0.5) * mult);
       if (rarity !== 'common') {
@@ -146,45 +175,95 @@ function generateEquipment(floor: number, slot?: ItemSlot): Item {
 }
 
 function generatePotion(floor: number): Item {
-  const healAmount = 30 + floor * 10;
-  return {
-    id: `item_${nextItemId++}`,
-    name: 'Health Potion',
-    type: 'consumable',
-    rarity: 'common',
-    level: floor,
-    modifier: {},
-    consumeEffect: 'heal',
-    consumeValue: healAmount,
-  };
+  const roll = Math.random();
+
+  if (roll < 0.55) {
+    // Health potion (most common)
+    const healAmount = 30 + floor * 10;
+    return {
+      id: `item_${nextItemId++}`,
+      name: 'Health Potion',
+      type: 'consumable',
+      rarity: 'common',
+      level: floor,
+      modifier: {},
+      consumeEffect: 'heal',
+      consumeValue: healAmount,
+    };
+  } else if (roll < 0.75) {
+    // Speed potion
+    return {
+      id: `item_${nextItemId++}`,
+      name: 'Speed Elixir',
+      type: 'consumable',
+      rarity: 'uncommon',
+      level: floor,
+      modifier: {},
+      consumeEffect: 'speedBoost',
+      consumeValue: 50, // 50% speed boost
+      consumeDuration: 10,
+    };
+  } else if (roll < 0.9) {
+    // Strength potion
+    return {
+      id: `item_${nextItemId++}`,
+      name: 'Might Tonic',
+      type: 'consumable',
+      rarity: 'uncommon',
+      level: floor,
+      modifier: {},
+      consumeEffect: 'strengthBoost',
+      consumeValue: 10 + floor * 3, // flat damage boost
+      consumeDuration: 15,
+    };
+  } else {
+    // Shield potion (absorbs damage)
+    return {
+      id: `item_${nextItemId++}`,
+      name: 'Shield Draught',
+      type: 'consumable',
+      rarity: 'rare',
+      level: floor,
+      modifier: {},
+      consumeEffect: 'manaShield',
+      consumeValue: 40 + floor * 15, // shield HP
+      consumeDuration: 20,
+    };
+  }
 }
 
-/** Roll loot for a killed enemy on a given floor. May return empty array. */
 export function rollEnemyLoot(floor: number): Item[] {
   const items: Item[] = [];
 
-  // 30% chance to drop equipment
   if (Math.random() < 0.3) {
     items.push(generateEquipment(floor));
   }
 
-  // 20% chance to drop a potion
-  if (Math.random() < 0.2) {
+  if (Math.random() < 0.25) {
     items.push(generatePotion(floor));
   }
 
   return items;
 }
 
-/** Generate loot for a treasure chest (always drops something) */
 export function rollChestLoot(floor: number): Item[] {
   const items: Item[] = [];
-  // Always 1 equipment, sometimes 2
   items.push(generateEquipment(floor));
   if (Math.random() < 0.4) {
     items.push(generateEquipment(floor));
   }
-  // Always a potion
+  items.push(generatePotion(floor));
+  return items;
+}
+
+/** Roll special loot for boss kills */
+export function rollBossLoot(floor: number): Item[] {
+  const items: Item[] = [];
+  // Boss always drops 1-2 equipment and a potion
+  items.push(generateEquipment(floor));
+  if (Math.random() < 0.7) {
+    items.push(generateEquipment(floor));
+  }
   items.push(generatePotion(floor));
   return items;
 }

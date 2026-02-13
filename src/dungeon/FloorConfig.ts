@@ -2,8 +2,10 @@
  * Floor-specific configurations for the 5 dungeon floors.
  *
  * Each floor has a distinct visual theme (colors), difficulty scaling,
- * room layout parameters, and boss definition.
+ * room layout parameters, boss definition, and available enemy types.
  */
+
+import { EnemyTypeId } from '../utils/constants';
 
 export interface FloorTheme {
   name: string;
@@ -22,16 +24,22 @@ export interface FloorDifficulty {
   enemyDmgScale: number;
   enemySpeedScale: number;
   enemyCountMin: number;
-  enemyCountExtra: number;  // random additional enemies per room
+  enemyCountExtra: number;
   roomCountBase: number;
   gridSize: number;
+  minRoomSize: number;
+  maxRoomSize: number;
+  corridorWidth: number;
+  bossRoomSize: number;
+  enemyTypes: EnemyTypeId[];
+  captainChance: number;  // chance a mob group has a captain
 }
 
 export interface BossConfig {
   name: string;
   color: number;
-  scale: number;         // size multiplier
-  hpMultiplier: number;  // relative to floor's enemy HP
+  scale: number;
+  hpMultiplier: number;
   dmgMultiplier: number;
   speed: number;
   attackCooldown: number;
@@ -66,16 +74,22 @@ const FLOOR_CONFIGS: FloorConfig[] = [
       enemyHpScale: 1.0,
       enemyDmgScale: 1.0,
       enemySpeedScale: 1.0,
-      enemyCountMin: 1,
-      enemyCountExtra: 1,
-      roomCountBase: 7,
-      gridSize: 45,
+      enemyCountMin: 2,
+      enemyCountExtra: 2,
+      roomCountBase: 10,
+      gridSize: 80,
+      minRoomSize: 6,
+      maxRoomSize: 12,
+      corridorWidth: 3,
+      bossRoomSize: 16,
+      enemyTypes: ['grunt', 'grunt', 'brute'],
+      captainChance: 0.15,
     },
     boss: {
       name: 'Crypt Guardian',
       color: 0x8844aa,
-      scale: 1.8,
-      hpMultiplier: 5,
+      scale: 2.2,
+      hpMultiplier: 6,
       dmgMultiplier: 1.5,
       speed: 1.8,
       attackCooldown: 1.2,
@@ -101,16 +115,22 @@ const FLOOR_CONFIGS: FloorConfig[] = [
       enemyHpScale: 1.3,
       enemyDmgScale: 1.2,
       enemySpeedScale: 1.05,
-      enemyCountMin: 1,
-      enemyCountExtra: 2,
-      roomCountBase: 9,
-      gridSize: 50,
+      enemyCountMin: 2,
+      enemyCountExtra: 3,
+      roomCountBase: 12,
+      gridSize: 90,
+      minRoomSize: 6,
+      maxRoomSize: 14,
+      corridorWidth: 3,
+      bossRoomSize: 18,
+      enemyTypes: ['grunt', 'brute', 'archer'],
+      captainChance: 0.2,
     },
     boss: {
       name: 'Fungal Brute',
       color: 0x44aa44,
-      scale: 2.0,
-      hpMultiplier: 6,
+      scale: 2.4,
+      hpMultiplier: 7,
       dmgMultiplier: 1.6,
       speed: 1.5,
       attackCooldown: 1.0,
@@ -136,16 +156,22 @@ const FLOOR_CONFIGS: FloorConfig[] = [
       enemyHpScale: 1.6,
       enemyDmgScale: 1.4,
       enemySpeedScale: 1.1,
-      enemyCountMin: 2,
-      enemyCountExtra: 2,
-      roomCountBase: 11,
-      gridSize: 55,
+      enemyCountMin: 3,
+      enemyCountExtra: 3,
+      roomCountBase: 14,
+      gridSize: 100,
+      minRoomSize: 7,
+      maxRoomSize: 14,
+      corridorWidth: 4,
+      bossRoomSize: 20,
+      enemyTypes: ['grunt', 'brute', 'archer', 'mage'],
+      captainChance: 0.25,
     },
     boss: {
       name: 'Forge Titan',
       color: 0xcc6622,
-      scale: 2.2,
-      hpMultiplier: 7,
+      scale: 2.6,
+      hpMultiplier: 8,
       dmgMultiplier: 1.8,
       speed: 2.0,
       attackCooldown: 0.9,
@@ -171,16 +197,22 @@ const FLOOR_CONFIGS: FloorConfig[] = [
       enemyHpScale: 2.0,
       enemyDmgScale: 1.6,
       enemySpeedScale: 1.2,
-      enemyCountMin: 2,
-      enemyCountExtra: 3,
-      roomCountBase: 13,
-      gridSize: 60,
+      enemyCountMin: 3,
+      enemyCountExtra: 4,
+      roomCountBase: 16,
+      gridSize: 110,
+      minRoomSize: 7,
+      maxRoomSize: 15,
+      corridorWidth: 4,
+      bossRoomSize: 22,
+      enemyTypes: ['grunt', 'brute', 'archer', 'mage', 'assassin'],
+      captainChance: 0.3,
     },
     boss: {
       name: 'Frost Wyrm',
       color: 0x4488cc,
-      scale: 2.4,
-      hpMultiplier: 8,
+      scale: 2.8,
+      hpMultiplier: 9,
       dmgMultiplier: 2.0,
       speed: 2.5,
       attackCooldown: 0.8,
@@ -206,16 +238,22 @@ const FLOOR_CONFIGS: FloorConfig[] = [
       enemyHpScale: 2.5,
       enemyDmgScale: 2.0,
       enemySpeedScale: 1.3,
-      enemyCountMin: 2,
-      enemyCountExtra: 3,
-      roomCountBase: 15,
-      gridSize: 65,
+      enemyCountMin: 3,
+      enemyCountExtra: 4,
+      roomCountBase: 18,
+      gridSize: 120,
+      minRoomSize: 8,
+      maxRoomSize: 16,
+      corridorWidth: 4,
+      bossRoomSize: 24,
+      enemyTypes: ['grunt', 'brute', 'archer', 'mage', 'assassin'],
+      captainChance: 0.35,
     },
     boss: {
       name: 'Shadow Lord',
       color: 0x6622aa,
-      scale: 2.6,
-      hpMultiplier: 10,
+      scale: 3.0,
+      hpMultiplier: 12,
       dmgMultiplier: 2.5,
       speed: 2.2,
       attackCooldown: 0.7,

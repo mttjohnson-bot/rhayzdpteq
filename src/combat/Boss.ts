@@ -1,19 +1,12 @@
-/**
- * Boss enemy with special abilities.
- *
- * Bosses appear in the exit room of each floor. They are larger, tougher,
- * and have unique abilities based on their BossConfig.
- */
-
 import * as THREE from 'three';
 import {
-  ENEMY_HP, ENEMY_ATTACK_DAMAGE, TILE_SIZE,
+  ENEMY_HP, ENEMY_ATTACK_DAMAGE,
+  ENEMY_CHASE_RANGE,
+  COLORS, TILE_SIZE,
 } from '../utils/constants';
 import { events } from '../utils/EventBus';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { BossConfig, BossAbility } from '../dungeon/FloorConfig';
-
-export type BossState = 'idle' | 'chase' | 'attack' | 'ability' | 'dead';
 
 export class Boss {
   readonly mesh: THREE.Group;
@@ -22,106 +15,110 @@ export class Boss {
   hp: number;
   maxHp: number;
   alive: boolean = true;
-  state: BossState = 'idle';
-  readonly isBoss = true;
-
-  // Config
-  private config: BossConfig;
+  readonly config: BossConfig;
   private floor: number;
-  private speed: number;
-  damage: number;
 
   // AI
-  private attackCooldown: number = 0;
-  private abilityCooldown: number = 0;
-  private abilityTimer: number = 0;
+  private abilityCooldowns: Map<BossAbility, number> = new Map();
   private currentAbility: BossAbility | null = null;
-  private enraged: boolean = false;
+  private abilityTimer = 0;
+  private attackCooldown = 0;
 
-  // Charge state
-  private chargeDirection = new THREE.Vector3();
-  private chargeTimer: number = 0;
+  // Charge
+  private chargeDir = { x: 0, z: 0 };
+  private chargeTimer = 0;
 
-  // Slam state
-  private slamTimer: number = 0;
+  // Slam
+  private slamPhase: 'rise' | 'fall' = 'rise';
+  private slamTimer = 0;
 
-  // Summon tracking
-  private summonCount: number = 0;
+  // Enrage
+  private enraged = false;
+  private enrageBonus = 1;
+  private enrageDamageBonus = 1;
+
+  // Summon count
+  private summonCount = 0;
+
+  // Death
+  private deathTimer = 0;
+  private readonly deathDuration = 1.0;
 
   // Visual
   private bodyMaterial: THREE.MeshLambertMaterial;
-  private hitFlashTimer: number = 0;
-  private deathTimer: number = 0;
-  private readonly deathDuration = 1.0;
-  private nameTag: THREE.Mesh | null = null;
-
-  // Health bar
+  private hitFlashTimer = 0;
   private healthBarFg: THREE.Mesh;
-  private healthBarBg: THREE.Mesh;
 
   // Collision
   private dungeonData: DungeonData | null = null;
   private dungeonOffsetX = 0;
   private dungeonOffsetZ = 0;
+  readonly collisionRadius: number;
 
   constructor(x: number, z: number, floor: number, config: BossConfig) {
     this.config = config;
     this.floor = floor;
-    this.speed = config.speed;
-    this.damage = Math.round(ENEMY_ATTACK_DAMAGE * config.dmgMultiplier);
-
-    const baseHp = ENEMY_HP * config.hpMultiplier;
-    this.maxHp = Math.round(baseHp * (1 + (floor - 1) * 0.3));
+    const hpBase = ENEMY_HP * config.hpMultiplier * (1 + (floor - 1) * 0.3);
+    this.maxHp = Math.round(hpBase);
     this.hp = this.maxHp;
+    this.collisionRadius = config.scale * 0.3;
 
     this.mesh = new THREE.Group();
-    const size = 0.5 * config.scale;
-    const height = 0.8 * config.scale;
 
     // Body
-    const bodyGeo = new THREE.BoxGeometry(size, height, size);
+    const size = config.scale;
+    const height = size * 1.2;
+    const bodyGeo = new THREE.BoxGeometry(size * 0.7, height, size * 0.7);
     this.bodyMaterial = new THREE.MeshLambertMaterial({ color: config.color });
     const body = new THREE.Mesh(bodyGeo, this.bodyMaterial);
     body.castShadow = true;
     body.position.y = height / 2;
     this.mesh.add(body);
 
-    // Crown/horns to distinguish from regular enemies
-    const crownGeo = new THREE.ConeGeometry(size * 0.3, size * 0.5, 4);
-    const crownMat = new THREE.MeshLambertMaterial({ color: 0xffcc00 });
-    const crown = new THREE.Mesh(crownGeo, crownMat);
-    crown.position.y = height + size * 0.2;
-    this.mesh.add(crown);
+    // Boss horns
+    const hornGeo = new THREE.ConeGeometry(size * 0.1, size * 0.4, 4);
+    const hornMat = new THREE.MeshLambertMaterial({ color: 0xdddddd });
+    const leftHorn = new THREE.Mesh(hornGeo, hornMat);
+    leftHorn.position.set(-size * 0.25, height + size * 0.15, 0);
+    leftHorn.rotation.z = 0.3;
+    this.mesh.add(leftHorn);
+    const rightHorn = new THREE.Mesh(hornGeo, hornMat);
+    rightHorn.position.set(size * 0.25, height + size * 0.15, 0);
+    rightHorn.rotation.z = -0.3;
+    this.mesh.add(rightHorn);
 
-    // Eyes (larger, glowing)
-    const eyeGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff3333 });
+    // Eyes (larger, menacing)
+    const eyeSize = size * 0.08;
+    const eyeGeo = new THREE.BoxGeometry(eyeSize, eyeSize * 1.5, eyeSize);
+    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
     const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-    leftEye.position.set(-size * 0.25, height * 0.75, -size / 2 - 0.01);
+    leftEye.position.set(-size * 0.15, height * 0.75, -size * 0.35 - 0.01);
     this.mesh.add(leftEye);
     const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-    rightEye.position.set(size * 0.25, height * 0.75, -size / 2 - 0.01);
+    rightEye.position.set(size * 0.15, height * 0.75, -size * 0.35 - 0.01);
     this.mesh.add(rightEye);
 
-    // Health bar (wider for bosses)
-    const barWidth = 1.2;
-    const hbBgGeo = new THREE.BoxGeometry(barWidth, 0.08, 0.08);
-    const hbBgMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
-    this.healthBarBg = new THREE.Mesh(hbBgGeo, hbBgMat);
-    this.healthBarBg.position.y = height + size * 0.6;
-    this.mesh.add(this.healthBarBg);
+    // Health bar
+    const barWidth = size * 0.8;
+    const hbBgGeo = new THREE.BoxGeometry(barWidth, 0.1, 0.1);
+    const hbBgMat = new THREE.MeshBasicMaterial({ color: COLORS.healthBarBg });
+    const healthBarBg = new THREE.Mesh(hbBgGeo, hbBgMat);
+    healthBarBg.position.y = height + size * 0.4;
+    this.mesh.add(healthBarBg);
 
-    const hbFgGeo = new THREE.BoxGeometry(barWidth, 0.08, 0.08);
-    const hbFgMat = new THREE.MeshBasicMaterial({ color: 0xcc2222 });
+    const hbFgGeo = new THREE.BoxGeometry(barWidth, 0.1, 0.1);
+    const hbFgMat = new THREE.MeshBasicMaterial({ color: 0xff4444 });
     this.healthBarFg = new THREE.Mesh(hbFgGeo, hbFgMat);
-    this.healthBarFg.position.y = height + size * 0.6;
+    this.healthBarFg.position.y = height + size * 0.4;
     this.mesh.add(this.healthBarFg);
 
     this.mesh.position.set(x, 0, z);
     this.position = this.mesh.position;
 
-    // Initial ability cooldown
-    this.abilityCooldown = 3;
+    // Initialize cooldowns
+    for (const ability of config.abilities) {
+      this.abilityCooldowns.set(ability, 2); // initial delay
+    }
   }
 
   setDungeonCollision(dungeon: DungeonData): void {
@@ -138,17 +135,15 @@ export class Boss {
 
     events.emit('enemyDamaged', this.position.x, this.position.z, amount);
 
-    // Enrage at low HP if ability available
+    // Enrage trigger at 30% HP
     if (!this.enraged && this.hp < this.maxHp * 0.3 && this.config.abilities.includes('enrage')) {
-      this.enrage();
+      this.triggerEnrage();
     }
 
     if (this.hp <= 0) {
       this.alive = false;
-      this.state = 'dead';
       this.deathTimer = this.deathDuration;
       events.emit('bossKilled', this.position.x, this.position.z, this.floor);
-      events.emit('enemyKilled', this.position.x, this.position.z);
     }
   }
 
@@ -169,169 +164,163 @@ export class Boss {
       this.deathTimer -= dt;
       const t = Math.max(0, this.deathTimer / this.deathDuration);
       this.mesh.scale.set(t, t, t);
-      this.mesh.position.y = (1 - t) * -0.5;
+      this.mesh.position.y = (1 - t) * -1;
       return;
     }
 
+    // Update cooldowns
     if (this.attackCooldown > 0) this.attackCooldown -= dt;
-    if (this.abilityCooldown > 0) this.abilityCooldown -= dt;
-
-    const dx = playerX - this.position.x;
-    const dz = playerZ - this.position.z;
-    const distToPlayer = Math.sqrt(dx * dx + dz * dz);
-
-    // Face player
-    if (distToPlayer > 0.1) {
-      this.mesh.rotation.y = Math.atan2(dx, dz);
+    for (const [ability, cd] of this.abilityCooldowns) {
+      if (cd > 0) this.abilityCooldowns.set(ability, cd - dt);
     }
-
-    // Handle active ability
-    if (this.state === 'ability') {
-      this.updateAbility(dt, playerX, playerZ);
-      return;
-    }
-
-    // Try to use ability
-    if (this.abilityCooldown <= 0 && distToPlayer < 10) {
-      const ability = this.pickAbility(distToPlayer);
-      if (ability) {
-        this.startAbility(ability, playerX, playerZ);
-        return;
-      }
-    }
-
-    // Standard combat AI
-    if (distToPlayer <= 1.2) {
-      // Attack
-      if (this.attackCooldown <= 0) {
-        this.attackCooldown = this.config.attackCooldown * (this.enraged ? 0.6 : 1);
-        events.emit('enemyAttack', this, this.damage * (this.enraged ? 1.3 : 1));
-      }
-    } else if (distToPlayer < 12) {
-      // Chase
-      const spd = this.speed * (this.enraged ? 1.4 : 1);
-      const moveX = (dx / distToPlayer) * spd * dt;
-      const moveZ = (dz / distToPlayer) * spd * dt;
-      this.tryMove(moveX, moveZ);
-    }
-  }
-
-  private pickAbility(distToPlayer: number): BossAbility | null {
-    const available = this.config.abilities.filter(a => {
-      if (a === 'enrage') return false; // triggered automatically
-      if (a === 'charge' && distToPlayer < 3) return false; // need distance to charge
-      if (a === 'summon' && this.summonCount >= 3) return false; // limit summons
-      return true;
-    });
-    if (available.length === 0) return null;
-    return available[Math.floor(Math.random() * available.length)];
-  }
-
-  private startAbility(ability: BossAbility, playerX: number, playerZ: number): void {
-    this.state = 'ability';
-    this.currentAbility = ability;
 
     const dx = playerX - this.position.x;
     const dz = playerZ - this.position.z;
     const dist = Math.sqrt(dx * dx + dz * dz);
 
+    // Face player
+    this.mesh.rotation.y = Math.atan2(dx, dz);
+
+    // Execute current ability
+    if (this.currentAbility) {
+      this.updateAbility(dt, playerX, playerZ);
+      return;
+    }
+
+    // Try to use an ability
+    const availableAbilities = this.config.abilities.filter(a => {
+      if (a === 'enrage') return false; // passive
+      const cd = this.abilityCooldowns.get(a) ?? 0;
+      return cd <= 0;
+    });
+
+    if (availableAbilities.length > 0 && Math.random() < 0.02) {
+      const ability = availableAbilities[Math.floor(Math.random() * availableAbilities.length)];
+      this.startAbility(ability, dx, dz, dist);
+      return;
+    }
+
+    // Standard melee behavior
+    const speed = this.config.speed * this.enrageBonus;
+    if (dist > 1.5) {
+      // Chase
+      const moveX = (dx / dist) * speed * dt;
+      const moveZ = (dz / dist) * speed * dt;
+      this.tryMove(moveX, moveZ);
+    } else if (this.attackCooldown <= 0) {
+      // Melee attack
+      const dmg = Math.round(ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * this.enrageDamageBonus);
+      this.attackCooldown = this.config.attackCooldown * (this.enraged ? 0.6 : 1);
+      events.emit('enemyAttack', this, dmg);
+    }
+  }
+
+  private startAbility(ability: BossAbility, dx: number, dz: number, dist: number): void {
+    this.currentAbility = ability;
+
     switch (ability) {
-      case 'charge':
-        this.chargeDirection.set(dx / dist, 0, dz / dist);
+      case 'charge': {
+        const len = Math.sqrt(dx * dx + dz * dz) || 1;
+        this.chargeDir = { x: dx / len, z: dz / len };
         this.chargeTimer = 0.6;
-        this.abilityCooldown = 4;
+        this.abilityTimer = 0.6;
+        this.abilityCooldowns.set('charge', 4);
         break;
-      case 'slam':
+      }
+      case 'slam': {
+        this.slamPhase = 'rise';
         this.slamTimer = 0.5;
-        this.abilityCooldown = 5;
+        this.abilityTimer = 0.5;
+        this.abilityCooldowns.set('slam', 5);
         break;
-      case 'summon':
-        this.summonCount++;
-        this.abilityCooldown = 8;
-        events.emit('bossSummon', this.position.x, this.position.z, this.floor);
-        this.abilityTimer = 0.5; // brief pause
+      }
+      case 'summon': {
+        if (this.summonCount < 3) {
+          events.emit('bossSummon', this.position.x, this.position.z, this.floor);
+          this.summonCount++;
+        }
+        this.abilityTimer = 0.5;
+        this.abilityCooldowns.set('summon', 8);
         break;
-      case 'teleport':
-        // Teleport near player
+      }
+      case 'teleport': {
         const angle = Math.random() * Math.PI * 2;
-        const teleportDist = 2 + Math.random() * 2;
-        const newX = playerX + Math.cos(angle) * teleportDist;
-        const newZ = playerZ + Math.sin(angle) * teleportDist;
+        const tpDist = 2 + Math.random() * 2;
+        const newX = this.position.x + Math.cos(angle) * tpDist;
+        const newZ = this.position.z + Math.sin(angle) * tpDist;
         if (this.isWalkable(newX, newZ)) {
           this.position.x = newX;
           this.position.z = newZ;
         }
-        this.abilityCooldown = 6;
         this.abilityTimer = 0.3;
+        this.abilityCooldowns.set('teleport', 6);
         break;
+      }
     }
   }
 
   private updateAbility(dt: number, playerX: number, playerZ: number): void {
+    this.abilityTimer -= dt;
+
     switch (this.currentAbility) {
       case 'charge': {
         this.chargeTimer -= dt;
-        if (this.chargeTimer <= 0) {
-          this.state = 'chase';
-          this.currentAbility = null;
-          break;
-        }
-        // Rush forward fast
-        const chargeSpeed = this.speed * 4;
-        const mx = this.chargeDirection.x * chargeSpeed * dt;
-        const mz = this.chargeDirection.z * chargeSpeed * dt;
-        this.tryMove(mx, mz);
+        const speed = this.config.speed * 4 * this.enrageBonus;
+        this.tryMove(this.chargeDir.x * speed * dt, this.chargeDir.z * speed * dt);
 
-        // Check if hitting player during charge
-        const cdx = playerX - this.position.x;
-        const cdz = playerZ - this.position.z;
-        if (Math.sqrt(cdx * cdx + cdz * cdz) < 1.2) {
-          events.emit('enemyAttack', this, Math.round(this.damage * 1.5));
-          this.chargeTimer = 0;
-          this.state = 'chase';
-          this.currentAbility = null;
+        // Damage on contact
+        const dx = playerX - this.position.x;
+        const dz = playerZ - this.position.z;
+        const dist = Math.sqrt(dx * dx + dz * dz);
+        if (dist < 1.5) {
+          const dmg = Math.round(ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * 1.5 * this.enrageDamageBonus);
+          events.emit('enemyAttack', this, dmg);
         }
         break;
       }
       case 'slam': {
         this.slamTimer -= dt;
-        if (this.slamTimer <= 0) {
-          // AoE damage around boss
-          const sdx = playerX - this.position.x;
-          const sdz = playerZ - this.position.z;
-          const slamRange = 2.5;
-          if (Math.sqrt(sdx * sdx + sdz * sdz) < slamRange) {
-            events.emit('enemyAttack', this, Math.round(this.damage * 2));
+        if (this.slamPhase === 'rise') {
+          this.position.y += dt * 3;
+          if (this.slamTimer <= 0) {
+            this.slamPhase = 'fall';
+            this.slamTimer = 0.15;
           }
-          events.emit('bossSlam', this.position.x, this.position.z);
-          this.state = 'chase';
-          this.currentAbility = null;
         } else {
-          // Visual: boss rises up before slamming
-          this.mesh.position.y = this.slamTimer * 2;
+          this.position.y = Math.max(0, this.position.y - dt * 20);
+          if (this.position.y <= 0) {
+            this.position.y = 0;
+            // AoE damage
+            const dx = playerX - this.position.x;
+            const dz = playerZ - this.position.z;
+            const dist = Math.sqrt(dx * dx + dz * dz);
+            if (dist < 3) {
+              const dmg = Math.round(ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * 2 * this.enrageDamageBonus);
+              events.emit('enemyAttack', this, dmg);
+            }
+            events.emit('bossSlam', this.position.x, this.position.z);
+          }
         }
         break;
       }
-      case 'summon':
-      case 'teleport':
-        this.abilityTimer -= dt;
-        if (this.abilityTimer <= 0) {
-          this.state = 'chase';
-          this.currentAbility = null;
-        }
-        break;
+    }
+
+    if (this.abilityTimer <= 0) {
+      this.currentAbility = null;
     }
   }
 
-  private enrage(): void {
+  private triggerEnrage(): void {
     this.enraged = true;
-    this.bodyMaterial.color.setHex(0xff2200);
+    this.enrageBonus = 1.4;
+    this.enrageDamageBonus = 1.3;
     events.emit('bossEnrage', this.config.name);
   }
 
   private tryMove(dx: number, dz: number): void {
     const newX = this.position.x + dx;
     const newZ = this.position.z + dz;
+
     if (this.isWalkable(newX, this.position.z)) {
       this.position.x = newX;
     }
@@ -342,32 +331,38 @@ export class Boss {
 
   private isWalkable(worldX: number, worldZ: number): boolean {
     if (!this.dungeonData) return true;
-    const half = 0.5 * this.config.scale / 2;
+
+    const half = this.collisionRadius;
     const corners = [
       [worldX - half, worldZ - half],
       [worldX + half, worldZ - half],
       [worldX - half, worldZ + half],
       [worldX + half, worldZ + half],
     ];
+
     for (const [cx, cz] of corners) {
       const tileX = Math.floor((cx - this.dungeonOffsetX) / TILE_SIZE);
       const tileZ = Math.floor((cz - this.dungeonOffsetZ) / TILE_SIZE);
+
       if (tileX < 0 || tileX >= this.dungeonData.width ||
           tileZ < 0 || tileZ >= this.dungeonData.height) {
         return false;
       }
+
       const tile = this.dungeonData.tiles[tileZ][tileX];
       if (tile === TileType.Empty || tile === TileType.Wall) {
         return false;
       }
     }
+
     return true;
   }
 
   private updateHealthBar(): void {
     const ratio = this.hp / this.maxHp;
     this.healthBarFg.scale.x = Math.max(0.001, ratio);
-    this.healthBarFg.position.x = -0.6 * (1 - ratio);
+    const barOffset = -this.config.scale * 0.4 * (1 - ratio);
+    this.healthBarFg.position.x = barOffset;
   }
 
   dispose(): void {

@@ -9,11 +9,12 @@ export class SceneManager {
   private directionalLight: THREE.DirectionalLight;
 
   constructor() {
-    this.renderer = new THREE.WebGLRenderer({ antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer = new THREE.WebGLRenderer({ antialias: false }); // disable AA for perf
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); // cap lower for Chromebooks
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap; // faster than PCFSoft
+
     document.body.prepend(this.renderer.domElement);
 
     this.scene = new THREE.Scene();
@@ -35,12 +36,19 @@ export class SceneManager {
     this.directionalLight.shadow.mapSize.width = 1024;
     this.directionalLight.shadow.mapSize.height = 1024;
     this.directionalLight.shadow.camera.near = 0.5;
-    this.directionalLight.shadow.camera.far = 40;
-    this.directionalLight.shadow.camera.left = -15;
-    this.directionalLight.shadow.camera.right = 15;
-    this.directionalLight.shadow.camera.top = 15;
-    this.directionalLight.shadow.camera.bottom = -15;
+    this.directionalLight.shadow.camera.far = 50;
+    this.directionalLight.shadow.camera.left = -18;
+    this.directionalLight.shadow.camera.right = 18;
+    this.directionalLight.shadow.camera.top = 18;
+    this.directionalLight.shadow.camera.bottom = -18;
     this.scene.add(this.directionalLight);
+  }
+
+  /** Make directional light shadow follow the player for large dungeons */
+  updateLightPosition(playerX: number, playerZ: number): void {
+    this.directionalLight.position.set(playerX + 8, 12, playerZ + 8);
+    this.directionalLight.target.position.set(playerX, 0, playerZ);
+    this.directionalLight.target.updateMatrixWorld();
   }
 
   /** Apply floor-specific lighting and fog theme */
@@ -60,6 +68,9 @@ export class SceneManager {
     this.ambientLight.intensity = 0.6;
     this.directionalLight.color.setHex(COLORS.directional);
     this.directionalLight.intensity = 0.8;
+    this.directionalLight.position.set(8, 12, 8);
+    this.directionalLight.target.position.set(0, 0, 0);
+    this.directionalLight.target.updateMatrixWorld();
   }
 
   render(camera: THREE.Camera): void {
@@ -73,7 +84,7 @@ export class SceneManager {
   /** Remove all objects from the scene except lights */
   clearScene(): void {
     const toRemove: THREE.Object3D[] = [];
-    this.scene.traverse((child) => {
+    this.scene.traverse((child: THREE.Object3D) => {
       if (child instanceof THREE.Mesh) {
         toRemove.push(child);
       }
@@ -83,7 +94,7 @@ export class SceneManager {
       if (obj instanceof THREE.Mesh) {
         obj.geometry.dispose();
         if (Array.isArray(obj.material)) {
-          obj.material.forEach((m) => m.dispose());
+          obj.material.forEach((m: THREE.Material) => m.dispose());
         } else {
           obj.material.dispose();
         }
@@ -98,11 +109,11 @@ export class SceneManager {
 
   /** Remove a group from the scene and dispose its geometry */
   removeGroup(group: THREE.Group): void {
-    group.traverse((child) => {
+    group.traverse((child: THREE.Object3D) => {
       if (child instanceof THREE.Mesh) {
         child.geometry.dispose();
         if (Array.isArray(child.material)) {
-          child.material.forEach((m) => m.dispose());
+          child.material.forEach((m: THREE.Material) => m.dispose());
         } else {
           child.material.dispose();
         }

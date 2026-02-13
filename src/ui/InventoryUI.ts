@@ -2,8 +2,8 @@
  * Inventory screen UI.
  *
  * Shows equipped items on the left, bag items on the right.
- * Click a bag item to equip it, click an equipped item to unequip it.
- * Right-click a consumable to use it.
+ * Click a bag item to equip it, right-click consumables to use them.
+ * Middle-click or shift-click to drop items (with confirmation).
  */
 
 import { Inventory } from '../rpg/Inventory';
@@ -113,7 +113,7 @@ export class InventoryUI {
 
     // Keyboard hint
     const hint = document.createElement('div');
-    hint.textContent = 'Press I or Escape to close. Right-click potions to use.';
+    hint.textContent = 'I/Esc: close | Click: equip | Right-click: use | Shift+click: drop';
     Object.assign(hint.style, { marginTop: '0.8rem', fontSize: '0.7rem', color: '#777', textAlign: 'center' });
     this.container.appendChild(hint);
 
@@ -213,19 +213,50 @@ export class InventoryUI {
       });
       row.title = this.itemTooltip(item);
 
+      const leftPart = document.createElement('div');
+      Object.assign(leftPart.style, { display: 'flex', alignItems: 'center', gap: '0.3rem' });
+
       const nameEl = document.createElement('span');
       nameEl.textContent = item.name;
       nameEl.style.color = rarityColor(item.rarity);
-      row.appendChild(nameEl);
+      leftPart.appendChild(nameEl);
+      row.appendChild(leftPart);
+
+      const rightPart = document.createElement('div');
+      Object.assign(rightPart.style, { display: 'flex', alignItems: 'center', gap: '0.3rem' });
 
       const typeTag = document.createElement('span');
       typeTag.textContent = item.type === 'equipment' ? (item.slot ?? '') : 'use';
       Object.assign(typeTag.style, { fontSize: '0.65rem', color: '#777' });
-      row.appendChild(typeTag);
+      rightPart.appendChild(typeTag);
 
-      // Left click to equip, right click to use consumable
-      row.addEventListener('click', () => {
-        if (item.type === 'equipment') {
+      // Drop button
+      const dropBtn = document.createElement('span');
+      dropBtn.textContent = 'x';
+      Object.assign(dropBtn.style, {
+        fontSize: '0.65rem', color: '#664444', cursor: 'pointer',
+        padding: '0 0.2rem', borderRadius: '2px',
+      });
+      dropBtn.addEventListener('mouseenter', () => { dropBtn.style.color = '#ff4444'; });
+      dropBtn.addEventListener('mouseleave', () => { dropBtn.style.color = '#664444'; });
+      dropBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm(`Drop "${item.name}"? It will be destroyed.`)) {
+          this.inventory!.dropItem(item.id);
+          this.refresh();
+        }
+      });
+      rightPart.appendChild(dropBtn);
+      row.appendChild(rightPart);
+
+      // Left click to equip, shift+click to drop, right click to use consumable
+      row.addEventListener('click', (e) => {
+        if ((e as MouseEvent).shiftKey) {
+          if (confirm(`Drop "${item.name}"? It will be destroyed.`)) {
+            this.inventory!.dropItem(item.id);
+            this.refresh();
+          }
+        } else if (item.type === 'equipment') {
           this.inventory!.equip(item.id);
           this.refresh();
         }
@@ -281,6 +312,9 @@ export class InventoryUI {
     if (m.critChance) lines.push(`+${(m.critChance * 100).toFixed(1)}% Crit Chance`);
     if (m.hpRegen) lines.push(`+${m.hpRegen.toFixed(1)} HP/s`);
     if (item.consumeEffect === 'heal') lines.push(`Heals ${item.consumeValue} HP`);
+    if (item.consumeEffect === 'speedBoost') lines.push(`+${item.consumeValue}% Speed for ${item.consumeDuration}s`);
+    if (item.consumeEffect === 'strengthBoost') lines.push(`+${item.consumeValue} ATK for ${item.consumeDuration}s`);
+    if (item.consumeEffect === 'manaShield') lines.push(`${item.consumeValue} HP shield for ${item.consumeDuration}s`);
     return lines.join('\n');
   }
 }
