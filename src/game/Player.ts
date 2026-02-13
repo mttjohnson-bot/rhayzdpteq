@@ -200,7 +200,7 @@ export class Player {
 
     // Attack input
     const adjustedCooldown = PLAYER_ATTACK_COOLDOWN / this.attackSpeedMultiplier;
-    if ((input.wasMousePressed() || input.wasPressed('Space')) && this.attackCooldown <= 0) {
+    if ((input.wasMousePressed() || input.wasPressed('Space') || input.isMouseDown() || input.isDown('Space')) && this.attackCooldown <= 0) {
       // Auto-face nearest enemy when attacking
       if (this.autoFaceCallback) {
         const target = this.autoFaceCallback(this.position.x, this.position.z);

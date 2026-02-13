@@ -169,6 +169,11 @@ export class InputManager {
     return this.mousePressed;
   }
 
+  /** True while the mouse button is held down */
+  isMouseDown(): boolean {
+    return this.mouseDown;
+  }
+
   /** Normalized mouse position (-1 to 1) */
   get mouseX(): number { return this._mouseX; }
   get mouseY(): number { return this._mouseY; }
