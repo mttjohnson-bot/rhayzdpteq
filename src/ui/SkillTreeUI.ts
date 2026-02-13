@@ -20,6 +20,8 @@ const BRANCH_LABELS: Record<string, string> = {
   scout: 'Scout',
 };
 
+const BRANCHES = ['warrior', 'guardian', 'scout'] as const;
+
 export class SkillTreeUI {
   private container: HTMLDivElement;
   private branchesEl: HTMLDivElement;
@@ -28,6 +30,11 @@ export class SkillTreeUI {
   private levelSystem: LevelSystem | null = null;
   private onClose: (() => void) | null = null;
   private visible = false;
+
+  // Gamepad / keyboard navigation state
+  private selectedBranch = 0;  // 0=warrior, 1=guardian, 2=scout
+  private selectedNode = 0;    // index within sorted branch nodes
+  private _keyHandler: (e: KeyboardEvent) => void;
 
   constructor() {
     this.container = document.createElement('div');
@@ -81,12 +88,15 @@ export class SkillTreeUI {
 
     // Hint
     const hint = document.createElement('div');
-    hint.textContent = 'Press K or Escape to close. Click a node to spend a skill point.';
-    Object.assign(hint.style, { marginTop: '0.8rem', fontSize: '0.7rem', color: '#777', textAlign: 'center' });
+    hint.innerHTML = 'K/Esc: close | Click: allocate point'
+      + '<br>Gamepad: D-pad navigate | A: allocate | B: close';
+    Object.assign(hint.style, { marginTop: '0.8rem', fontSize: '0.7rem', color: '#777', textAlign: 'center', lineHeight: '1.4' });
     this.container.appendChild(hint);
 
     const overlay = document.getElementById('ui-overlay');
     overlay?.appendChild(this.container);
+
+    this._keyHandler = this.handleKey.bind(this);
   }
 
   show(skillTree: SkillTree, levelSystem: LevelSystem, onClose: () => void): void {
@@ -94,13 +104,17 @@ export class SkillTreeUI {
     this.levelSystem = levelSystem;
     this.onClose = onClose;
     this.visible = true;
+    this.selectedBranch = 0;
+    this.selectedNode = 0;
     this.container.style.display = 'block';
     this.refresh();
+    window.addEventListener('keydown', this._keyHandler);
   }
 
   hide(): void {
     this.visible = false;
     this.container.style.display = 'none';
+    window.removeEventListener('keydown', this._keyHandler);
     this.onClose?.();
   }
 
@@ -112,6 +126,98 @@ export class SkillTreeUI {
     if (!this.skillTree || !this.levelSystem) return;
     this.pointsEl.textContent = `Skill Points: ${this.levelSystem.skillPoints}`;
     this.renderBranches();
+    this.updateSelectionHighlight();
+  }
+
+  private handleKey(e: KeyboardEvent): void {
+    if (!this.skillTree) return;
+
+    switch (e.key) {
+      case 'ArrowLeft': {
+        e.preventDefault();
+        this.selectedBranch = (this.selectedBranch - 1 + BRANCHES.length) % BRANCHES.length;
+        const maxNode = this.getBranchNodeCount(BRANCHES[this.selectedBranch]);
+        if (this.selectedNode >= maxNode) this.selectedNode = maxNode - 1;
+        this.updateSelectionHighlight();
+        break;
+      }
+      case 'ArrowRight': {
+        e.preventDefault();
+        this.selectedBranch = (this.selectedBranch + 1) % BRANCHES.length;
+        const maxNode = this.getBranchNodeCount(BRANCHES[this.selectedBranch]);
+        if (this.selectedNode >= maxNode) this.selectedNode = maxNode - 1;
+        this.updateSelectionHighlight();
+        break;
+      }
+      case 'ArrowUp': {
+        e.preventDefault();
+        const max = this.getBranchNodeCount(BRANCHES[this.selectedBranch]);
+        if (max > 0) {
+          this.selectedNode = (this.selectedNode - 1 + max) % max;
+          this.updateSelectionHighlight();
+        }
+        break;
+      }
+      case 'ArrowDown': {
+        e.preventDefault();
+        const max = this.getBranchNodeCount(BRANCHES[this.selectedBranch]);
+        if (max > 0) {
+          this.selectedNode = (this.selectedNode + 1) % max;
+          this.updateSelectionHighlight();
+        }
+        break;
+      }
+      case ' ':
+      case 'Enter': {
+        e.preventDefault();
+        this.activateSelected();
+        break;
+      }
+      case 'e': {
+        // B button on gamepad dispatches 'e' — treat as close/back
+        this.hide();
+        break;
+      }
+    }
+  }
+
+  private getBranchNodeCount(branch: string): number {
+    if (!this.skillTree) return 0;
+    return this.skillTree.nodes.filter(n => n.branch === branch).length;
+  }
+
+  private activateSelected(): void {
+    if (!this.skillTree || !this.levelSystem) return;
+    const branch = BRANCHES[this.selectedBranch];
+    const nodes = this.skillTree.nodes
+      .filter(n => n.branch === branch)
+      .sort((a, b) => a.tier - b.tier);
+    const node = nodes[this.selectedNode];
+    if (!node) return;
+    if (this.skillTree.canUnlock(node.id) && this.levelSystem.skillPoints > 0) {
+      if (this.levelSystem.spendPoint()) {
+        this.skillTree.rankUp(node.id);
+        this.refresh();
+      }
+    }
+  }
+
+  private updateSelectionHighlight(): void {
+    // Each branch is a column child of branchesEl
+    const columns = this.branchesEl.children;
+    for (let b = 0; b < columns.length; b++) {
+      const col = columns[b] as HTMLElement;
+      // First child is the branch header, skill nodes start at index 1
+      for (let n = 1; n < col.children.length; n++) {
+        const nodeEl = col.children[n] as HTMLElement;
+        if (b === this.selectedBranch && (n - 1) === this.selectedNode) {
+          nodeEl.style.outline = `2px solid ${BRANCH_COLORS[BRANCHES[b]]}`;
+          nodeEl.style.outlineOffset = '-2px';
+        } else {
+          nodeEl.style.outline = 'none';
+        }
+      }
+    }
   }
 
   private renderBranches(): void {

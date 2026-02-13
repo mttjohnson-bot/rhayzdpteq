@@ -16,6 +16,7 @@ export class InventoryUI {
   private equipmentEl: HTMLDivElement;
   private bagEl: HTMLDivElement;
   private statsEl: HTMLDivElement;
+  private tooltipEl: HTMLDivElement;
   private inventory: Inventory | null = null;
   private computedStats: ComputedStats | null = null;
   private onClose: (() => void) | null = null;
@@ -115,6 +116,22 @@ export class InventoryUI {
 
     body.appendChild(rightCol);
     this.container.appendChild(body);
+
+    // Item tooltip panel (shown when navigating with gamepad/keyboard)
+    this.tooltipEl = document.createElement('div');
+    Object.assign(this.tooltipEl.style, {
+      marginTop: '0.6rem',
+      padding: '0.5rem',
+      background: 'rgba(30, 25, 50, 0.8)',
+      border: '1px solid rgba(170, 68, 255, 0.3)',
+      borderRadius: '4px',
+      fontSize: '0.75rem',
+      lineHeight: '1.4',
+      color: '#ccc',
+      display: 'none',
+      whiteSpace: 'pre-line',
+    });
+    this.container.appendChild(this.tooltipEl);
 
     // Keyboard hint
     const hint = document.createElement('div');
@@ -267,6 +284,31 @@ export class InventoryUI {
       } else {
         row.style.outline = 'none';
       }
+    }
+
+    // Update item tooltip panel
+    this.updateTooltipPanel();
+  }
+
+  private updateTooltipPanel(): void {
+    if (!this.inventory) {
+      this.tooltipEl.style.display = 'none';
+      return;
+    }
+
+    let item: Item | null = null;
+    if (this.selectedColumn === 'equipment') {
+      const slots: ItemSlot[] = ['weapon', 'armor', 'ring'];
+      item = this.inventory.equipped[slots[this.selectedIndex]] ?? null;
+    } else {
+      item = this.inventory.bag[this.selectedIndex] ?? null;
+    }
+
+    if (item) {
+      this.tooltipEl.textContent = this.itemTooltip(item);
+      this.tooltipEl.style.display = 'block';
+    } else {
+      this.tooltipEl.style.display = 'none';
     }
   }
 

@@ -502,8 +502,8 @@ export class Game {
     this.hud.setGamepadConnected(this.input.hasGamepad);
 
     if (this.deathScreenVisible) {
-      // Wait for respawn input
-      if (this.input.wasPressed('KeyR')) {
+      // Wait for respawn input — R key, Enter, or Space (gamepad A button)
+      if (this.input.wasPressed('KeyR') || this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
         this.hideDeathScreen();
         this.enterHub();
       }
@@ -727,7 +727,7 @@ export class Game {
       color: '#ccc',
       textShadow: '1px 1px 4px #000',
     });
-    subtitle.textContent = 'Press R to return to hub';
+    subtitle.textContent = 'Press R or A button to return to hub';
     this.deathOverlay.appendChild(subtitle);
 
     const overlay = document.getElementById('ui-overlay');
