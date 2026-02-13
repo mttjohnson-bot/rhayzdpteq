@@ -21,6 +21,11 @@ export class InventoryUI {
   private onClose: (() => void) | null = null;
   private visible = false;
 
+  // Gamepad / keyboard navigation state
+  private selectedColumn: 'equipment' | 'bag' = 'bag';
+  private selectedIndex = 0;
+  private _keyHandler: (e: KeyboardEvent) => void;
+
   constructor() {
     this.container = document.createElement('div');
     Object.assign(this.container.style, {
@@ -113,12 +118,15 @@ export class InventoryUI {
 
     // Keyboard hint
     const hint = document.createElement('div');
-    hint.textContent = 'I/Esc: close | Click: equip | Right-click: use | Shift+click: drop';
-    Object.assign(hint.style, { marginTop: '0.8rem', fontSize: '0.7rem', color: '#777', textAlign: 'center' });
+    hint.innerHTML = 'I/Esc: close | Click: equip | Right-click: use | Shift+click: drop'
+      + '<br>Gamepad: D-pad navigate | A: equip/use | B: close';
+    Object.assign(hint.style, { marginTop: '0.8rem', fontSize: '0.7rem', color: '#777', textAlign: 'center', lineHeight: '1.4' });
     this.container.appendChild(hint);
 
     const overlay = document.getElementById('ui-overlay');
     overlay?.appendChild(this.container);
+
+    this._keyHandler = this.handleKey.bind(this);
   }
 
   show(inventory: Inventory, stats: ComputedStats, onClose: () => void): void {
@@ -126,13 +134,17 @@ export class InventoryUI {
     this.computedStats = stats;
     this.onClose = onClose;
     this.visible = true;
+    this.selectedColumn = 'bag';
+    this.selectedIndex = 0;
     this.container.style.display = 'block';
     this.refresh();
+    window.addEventListener('keydown', this._keyHandler);
   }
 
   hide(): void {
     this.visible = false;
     this.container.style.display = 'none';
+    window.removeEventListener('keydown', this._keyHandler);
     this.onClose?.();
   }
 
@@ -145,6 +157,117 @@ export class InventoryUI {
     this.renderEquipment();
     this.renderBag();
     this.renderStats();
+    this.updateSelectionHighlight();
+  }
+
+  private handleKey(e: KeyboardEvent): void {
+    if (!this.inventory) return;
+
+    const equipSlots: ItemSlot[] = ['weapon', 'armor', 'ring'];
+    const bagLen = this.inventory.bag.length;
+
+    switch (e.key) {
+      case 'ArrowUp': {
+        e.preventDefault();
+        const max = this.selectedColumn === 'equipment' ? equipSlots.length : bagLen;
+        if (max > 0) {
+          this.selectedIndex = (this.selectedIndex - 1 + max) % max;
+          this.updateSelectionHighlight();
+        }
+        break;
+      }
+      case 'ArrowDown': {
+        e.preventDefault();
+        const max = this.selectedColumn === 'equipment' ? equipSlots.length : bagLen;
+        if (max > 0) {
+          this.selectedIndex = (this.selectedIndex + 1) % max;
+          this.updateSelectionHighlight();
+        }
+        break;
+      }
+      case 'ArrowLeft':
+      case 'ArrowRight': {
+        e.preventDefault();
+        this.selectedColumn = this.selectedColumn === 'equipment' ? 'bag' : 'equipment';
+        const max = this.selectedColumn === 'equipment' ? equipSlots.length : bagLen;
+        if (this.selectedIndex >= max) this.selectedIndex = Math.max(0, max - 1);
+        this.updateSelectionHighlight();
+        break;
+      }
+      case ' ':
+      case 'Enter': {
+        e.preventDefault();
+        this.activateSelected();
+        break;
+      }
+      case 'e': {
+        // B button on gamepad dispatches 'e' — treat as close/back
+        this.hide();
+        break;
+      }
+    }
+  }
+
+  private activateSelected(): void {
+    if (!this.inventory) return;
+
+    if (this.selectedColumn === 'equipment') {
+      const slots: ItemSlot[] = ['weapon', 'armor', 'ring'];
+      const slot = slots[this.selectedIndex];
+      if (slot && this.inventory.equipped[slot]) {
+        this.inventory.unequip(slot);
+        this.refresh();
+      }
+    } else {
+      const item = this.inventory.bag[this.selectedIndex];
+      if (!item) return;
+      if (item.type === 'consumable') {
+        const consumed = this.inventory.useConsumable(item.id);
+        if (consumed) {
+          events.emit('useConsumable', consumed);
+          // Clamp index if bag shrank
+          if (this.selectedIndex >= this.inventory.bag.length) {
+            this.selectedIndex = Math.max(0, this.inventory.bag.length - 1);
+          }
+          this.refresh();
+        }
+      } else if (item.type === 'equipment') {
+        this.inventory.equip(item.id);
+        // Clamp index if bag shrank
+        if (this.selectedIndex >= this.inventory.bag.length) {
+          this.selectedIndex = Math.max(0, this.inventory.bag.length - 1);
+        }
+        this.refresh();
+      }
+    }
+  }
+
+  private updateSelectionHighlight(): void {
+    // Highlight equipment rows
+    const eqRows = this.equipmentEl.children;
+    for (let i = 0; i < eqRows.length; i++) {
+      const row = eqRows[i] as HTMLElement;
+      if (this.selectedColumn === 'equipment' && i === this.selectedIndex) {
+        row.style.outline = '2px solid #aa44ff';
+        row.style.outlineOffset = '-2px';
+      } else {
+        row.style.outline = 'none';
+      }
+    }
+
+    // Highlight bag rows (skip the count element at the end)
+    const bagChildren = this.bagEl.children;
+    const bagLen = this.inventory?.bag.length ?? 0;
+    for (let i = 0; i < bagChildren.length; i++) {
+      const row = bagChildren[i] as HTMLElement;
+      if (i < bagLen && this.selectedColumn === 'bag' && i === this.selectedIndex) {
+        row.style.outline = '2px solid #aa44ff';
+        row.style.outlineOffset = '-2px';
+        row.scrollIntoView({ block: 'nearest' });
+      } else {
+        row.style.outline = 'none';
+      }
+    }
   }
 
   private renderEquipment(): void {
