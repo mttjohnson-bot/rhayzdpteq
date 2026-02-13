@@ -5,6 +5,7 @@ export class MenuScreen {
   private onStart: (() => void) | null = null;
   private slotListEl: HTMLDivElement;
   private actionsEl: HTMLDivElement;
+  private gamepadIndicator: HTMLDivElement;
 
   constructor() {
     this.container = document.createElement('div');
@@ -85,23 +86,47 @@ export class MenuScreen {
     });
     this.container.appendChild(hint);
 
+    // Gamepad connection indicator
+    this.gamepadIndicator = document.createElement('div');
+    Object.assign(this.gamepadIndicator.style, {
+      padding: '0.3rem 0.8rem',
+      background: 'rgba(0, 0, 0, 0.5)',
+      border: '1px solid rgba(100, 200, 100, 0.3)',
+      borderRadius: '4px',
+      fontSize: '0.75rem',
+      color: '#88cc88',
+      marginTop: '0.75rem',
+      display: 'none',
+    });
+    this.gamepadIndicator.textContent = 'Gamepad Connected';
+    this.container.appendChild(this.gamepadIndicator);
+
     this._keyHandler = this._keyHandler.bind(this);
+    this._onGamepadConnected = this._onGamepadConnected.bind(this);
+    this._onGamepadDisconnected = this._onGamepadDisconnected.bind(this);
   }
 
   show(onStart: () => void): void {
     this.onStart = onStart;
     this.buildSlotList();
 
+    // Check for already-connected gamepad
+    this.updateGamepadIndicator();
+
     const overlay = document.getElementById('ui-overlay');
     overlay?.appendChild(this.container);
 
     window.addEventListener('keydown', this._keyHandler);
+    window.addEventListener('gamepadconnected', this._onGamepadConnected);
+    window.addEventListener('gamepaddisconnected', this._onGamepadDisconnected);
   }
 
   hide(): void {
     this.container.remove();
     this.onStart = null;
     window.removeEventListener('keydown', this._keyHandler);
+    window.removeEventListener('gamepadconnected', this._onGamepadConnected);
+    window.removeEventListener('gamepaddisconnected', this._onGamepadDisconnected);
   }
 
   private _keyHandler(e: KeyboardEvent): void {
@@ -187,6 +212,20 @@ export class MenuScreen {
     }
 
     this.buildActionButtons();
+  }
+
+  private _onGamepadConnected(): void {
+    this.updateGamepadIndicator();
+  }
+
+  private _onGamepadDisconnected(): void {
+    this.updateGamepadIndicator();
+  }
+
+  private updateGamepadIndicator(): void {
+    const gamepads = navigator.getGamepads();
+    const connected = gamepads.some((gp) => gp !== null);
+    this.gamepadIndicator.style.display = connected ? 'block' : 'none';
   }
 
   private buildActionButtons(): void {

@@ -62,7 +62,7 @@ export class FloorSelectUI {
     this.container.appendChild(closeBtn);
 
     const hint = document.createElement('div');
-    hint.textContent = '1-5 or arrows to select, Enter to confirm';
+    hint.textContent = '1-5 or arrows to select, Enter to confirm. Gamepad: D-pad + A, B to cancel.';
     Object.assign(hint.style, {
       textAlign: 'center',
       fontSize: '0.65rem',
