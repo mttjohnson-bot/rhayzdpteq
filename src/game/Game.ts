@@ -11,9 +11,18 @@ import { Minimap } from '../ui/Minimap';
 import { FloorSelectUI } from '../ui/FloorSelectUI';
 import { HealthBar } from '../ui/HealthBar';
 import { DamageNumbers } from '../ui/DamageNumbers';
+import { XPBar } from '../ui/XPBar';
+import { InventoryUI } from '../ui/InventoryUI';
+import { SkillTreeUI } from '../ui/SkillTreeUI';
 import { generateDungeon, DungeonData } from '../dungeon/DungeonGenerator';
 import { buildDungeonMesh, DungeonMeshData } from '../dungeon/FloorRenderer';
 import { CombatSystem } from '../combat/CombatSystem';
+import { PlayerStats, ComputedStats } from '../rpg/Stats';
+import { LevelSystem, enemyXP } from '../rpg/Leveling';
+import { SkillTree } from '../rpg/SkillTree';
+import { Inventory } from '../rpg/Inventory';
+import { LootDropManager } from '../rpg/LootDrop';
+import { rollEnemyLoot, Item } from '../rpg/LootTable';
 import { events } from '../utils/EventBus';
 import {
   TILE_SIZE,
@@ -35,7 +44,18 @@ export class Game {
   private floorSelectUI: FloorSelectUI;
   private healthBar: HealthBar;
   private damageNumbers: DamageNumbers;
+  private xpBar: XPBar;
+  private inventoryUI: InventoryUI;
+  private skillTreeUI: SkillTreeUI;
   private combatSystem: CombatSystem;
+
+  // RPG systems
+  private playerStats: PlayerStats;
+  private levelSystem: LevelSystem;
+  private skillTree: SkillTree;
+  private inventory: Inventory;
+  private lootDrops: LootDropManager;
+  private computedStats: ComputedStats;
 
   private state: GameState = 'menu';
   private clock = new THREE.Clock();
@@ -53,6 +73,10 @@ export class Game {
   private maxUnlockedFloor = 1;
   private floorSelectOpen = false;
 
+  // UI overlay state
+  private inventoryOpen = false;
+  private skillTreeOpen = false;
+
   // Death/respawn state
   private deathScreenVisible = false;
   private deathOverlay: HTMLDivElement | null = null;
@@ -69,12 +93,29 @@ export class Game {
     this.floorSelectUI = new FloorSelectUI();
     this.healthBar = new HealthBar();
     this.damageNumbers = new DamageNumbers();
+    this.xpBar = new XPBar();
+    this.inventoryUI = new InventoryUI();
+    this.skillTreeUI = new SkillTreeUI();
     this.combatSystem = new CombatSystem(this.sceneManager.scene, this.player);
+
+    // RPG systems
+    this.playerStats = new PlayerStats();
+    this.levelSystem = new LevelSystem();
+    this.skillTree = new SkillTree();
+    this.inventory = new Inventory();
+    this.lootDrops = new LootDropManager();
+
+    // Compute initial stats
+    this.computedStats = this.recomputeStats();
 
     this.damageNumbers.setCamera(this.camera.camera);
 
-    // Listen for player death
+    // Listen for events
     events.on('playerDied', this.onPlayerDied);
+    events.on('enemyKilled', this.onEnemyKilled);
+    events.on('lootPickup', this.onLootPickup);
+    events.on('useConsumable', this.onUseConsumable);
+    events.on('equipmentChanged', this.onEquipmentChanged);
 
     window.addEventListener('resize', () => {
       this.camera.resize(window.innerWidth / window.innerHeight);
@@ -87,6 +128,19 @@ export class Game {
     this.loop();
   }
 
+  // --- RPG stat recomputation ---
+
+  private recomputeStats(): ComputedStats {
+    const equipMods = this.inventory.getEquipmentModifiers();
+    const skillMods = this.skillTree.getModifiers();
+    this.playerStats.setModifiers([...equipMods, ...skillMods]);
+    const stats = this.playerStats.compute(this.levelSystem.level);
+    this.player.applyStats(stats);
+    this.combatSystem.setComputedStats(stats);
+    this.computedStats = stats;
+    return stats;
+  }
+
   // --- State transitions ---
 
   private enterMenu(): void {
@@ -96,6 +150,7 @@ export class Game {
     this.minimap.hide();
     this.healthBar.hide();
     this.damageNumbers.hide();
+    this.xpBar.hide();
     this.menuScreen.show(() => this.enterHub());
   }
 
@@ -105,12 +160,16 @@ export class Game {
     this.minimap.hide();
     this.healthBar.hide();
     this.damageNumbers.hide();
+    this.xpBar.hide();
     this.floorSelectOpen = false;
+    this.inventoryOpen = false;
+    this.skillTreeOpen = false;
     this.hideDeathScreen();
 
     // Clean up dungeon if returning from one
     if (this.dungeonGroup) {
       this.combatSystem.clearEnemies();
+      this.lootDrops.clear();
       this.sceneManager.removeGroup(this.dungeonGroup);
       this.dungeonGroup = null;
       this.dungeonData = null;
@@ -123,7 +182,8 @@ export class Game {
     // Clear dungeon collision
     this.player.setDungeonCollision(null);
 
-    // Reset player health when returning to hub
+    // Recompute stats and reset health
+    this.recomputeStats();
     this.player.resetHealth();
 
     // Build hub if first time
@@ -170,6 +230,9 @@ export class Game {
     this.dungeonGroup = this.dungeonMeshData.group;
     this.sceneManager.addGroup(this.dungeonGroup);
 
+    // Set up loot drop manager
+    this.lootDrops.setScene(this.sceneManager.scene);
+
     // Set up player collision and position
     this.player.setDungeonCollision(this.dungeonData);
     this.player.teleportTo(
@@ -182,6 +245,9 @@ export class Game {
       this.dungeonMeshData.bounds.minZ,
       this.dungeonMeshData.bounds.maxZ,
     );
+
+    // Recompute stats and reset health
+    this.recomputeStats();
     this.player.resetHealth();
     this.camera.snapTo(this.player.position);
 
@@ -202,6 +268,8 @@ export class Game {
     this.healthBar.setHealth(this.player.hp, this.player.maxHp);
     this.healthBar.show();
     this.damageNumbers.show();
+    this.xpBar.setXP(this.levelSystem.xp, this.levelSystem.xpToNextLevel, this.levelSystem.level);
+    this.xpBar.show();
 
     // Update HUD
     this.hud.showFloorIndicator(floor);
@@ -224,7 +292,8 @@ export class Game {
         break;
 
       case 'hub':
-        if (!this.floorSelectOpen) {
+        this.handleUIToggle();
+        if (!this.floorSelectOpen && !this.inventoryOpen && !this.skillTreeOpen) {
           this.player.update(dt, this.input);
           this.camera.follow(this.player.position, dt);
         }
@@ -232,14 +301,75 @@ export class Game {
         break;
 
       case 'dungeon':
-        if (!this.deathScreenVisible) {
+        this.handleUIToggle();
+        if (!this.deathScreenVisible && !this.inventoryOpen && !this.skillTreeOpen) {
           this.player.update(dt, this.input);
           this.camera.follow(this.player.position, dt);
           this.combatSystem.update(dt);
+          this.lootDrops.update(dt, this.player.position.x, this.player.position.z);
         }
         this.damageNumbers.update(dt);
+        this.xpBar.update(dt);
         this.updateDungeon();
         break;
+    }
+  }
+
+  /** Handle I (inventory) and K (skill tree) toggles */
+  private handleUIToggle(): void {
+    if (this.deathScreenVisible) return;
+
+    // Escape closes any open overlay
+    if (this.input.wasPressed('Escape')) {
+      if (this.inventoryOpen) {
+        this.inventoryUI.hide();
+        this.inventoryOpen = false;
+        return;
+      }
+      if (this.skillTreeOpen) {
+        this.skillTreeUI.hide();
+        this.skillTreeOpen = false;
+        return;
+      }
+    }
+
+    // I toggles inventory
+    if (this.input.wasPressed('KeyI')) {
+      if (this.skillTreeOpen) {
+        this.skillTreeUI.hide();
+        this.skillTreeOpen = false;
+      }
+      if (this.inventoryOpen) {
+        this.inventoryUI.hide();
+        this.inventoryOpen = false;
+      } else {
+        this.recomputeStats();
+        this.inventoryOpen = true;
+        this.inventoryUI.show(this.inventory, this.computedStats, () => {
+          this.inventoryOpen = false;
+          this.recomputeStats();
+        });
+      }
+      return;
+    }
+
+    // K toggles skill tree
+    if (this.input.wasPressed('KeyK')) {
+      if (this.inventoryOpen) {
+        this.inventoryUI.hide();
+        this.inventoryOpen = false;
+      }
+      if (this.skillTreeOpen) {
+        this.skillTreeUI.hide();
+        this.skillTreeOpen = false;
+      } else {
+        this.skillTreeOpen = true;
+        this.skillTreeUI.show(this.skillTree, this.levelSystem, () => {
+          this.skillTreeOpen = false;
+          this.recomputeStats();
+        });
+      }
+      return;
     }
   }
 
@@ -252,10 +382,12 @@ export class Game {
     const scale = 1 + Math.sin(this.portalAnimTime * 2) * 0.05;
     this.portal.mesh.scale.set(scale, 1, scale);
 
+    if (this.inventoryOpen || this.skillTreeOpen) return;
+
     // Check proximity to portal
     if (this.player.isNear(this.portal.x, this.portal.z)) {
       if (!this.floorSelectOpen) {
-        this.hud.showPrompt('Press E to select a dungeon floor');
+        this.hud.showPrompt('Press E to select floor | I: Inventory | K: Skills');
       }
       if (this.input.wasPressed('KeyE') && !this.floorSelectOpen) {
         this.floorSelectOpen = true;
@@ -267,7 +399,7 @@ export class Game {
       }
     } else {
       if (!this.floorSelectOpen) {
-        this.hud.hidePrompt();
+        this.hud.showPrompt('I: Inventory | K: Skills');
       }
     }
   }
@@ -300,12 +432,67 @@ export class Game {
         this.minimap.hide();
         this.healthBar.hide();
         this.damageNumbers.hide();
+        this.xpBar.hide();
         this.enterHub();
       }
     } else {
-      this.hud.hidePrompt();
+      if (!this.inventoryOpen && !this.skillTreeOpen) {
+        this.hud.hidePrompt();
+      }
     }
   }
+
+  // --- RPG event handlers ---
+
+  private onEnemyKilled = (_x: unknown, _z: unknown): void => {
+    const x = _x as number;
+    const z = _z as number;
+
+    // Grant XP
+    const xp = enemyXP(this.currentFloor);
+    this.levelSystem.addXP(xp);
+
+    // Recompute stats on level up (skill points available)
+    this.recomputeStats();
+
+    // Roll loot
+    const items = rollEnemyLoot(this.currentFloor);
+    for (const item of items) {
+      this.lootDrops.spawnDrop(item, x, z);
+    }
+  };
+
+  private onLootPickup = (_item: unknown): void => {
+    const item = _item as Item;
+    const added = this.inventory.addItem(item);
+    if (added) {
+      this.hud.showPrompt(`Picked up: ${item.name}`);
+      // Auto-hide after 1.5s if still showing this message
+      setTimeout(() => {
+        this.hud.hidePrompt();
+      }, 1500);
+    } else {
+      this.hud.showPrompt('Bag is full!');
+      setTimeout(() => {
+        this.hud.hidePrompt();
+      }, 1500);
+    }
+  };
+
+  private onUseConsumable = (_item: unknown): void => {
+    const item = _item as Item;
+    if (item.consumeEffect === 'heal' && item.consumeValue) {
+      this.player.heal(item.consumeValue);
+    }
+  };
+
+  private onEquipmentChanged = (): void => {
+    this.recomputeStats();
+    // Refresh inventory UI if open
+    if (this.inventoryOpen) {
+      this.inventoryUI.refresh();
+    }
+  };
 
   // --- Death/Respawn ---
 

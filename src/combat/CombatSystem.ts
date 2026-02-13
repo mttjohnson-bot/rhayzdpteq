@@ -2,15 +2,17 @@ import * as THREE from 'three';
 import { Enemy } from './Enemy';
 import { Player } from '../game/Player';
 import {
-  PLAYER_ATTACK_DAMAGE, PLAYER_ATTACK_RANGE, PLAYER_ATTACK_ARC,
+  PLAYER_ATTACK_RANGE, PLAYER_ATTACK_ARC,
 } from '../utils/constants';
 import { events } from '../utils/EventBus';
 import { DungeonData } from '../dungeon/DungeonGenerator';
+import { ComputedStats } from '../rpg/Stats';
 
 export class CombatSystem {
   private enemies: Enemy[] = [];
   private scene: THREE.Scene;
   private player: Player;
+  private computedStats: ComputedStats | null = null;
 
   constructor(scene: THREE.Scene, player: Player) {
     this.scene = scene;
@@ -20,11 +22,14 @@ export class CombatSystem {
     events.on('enemyAttack', this.onEnemyAttack);
   }
 
+  setComputedStats(stats: ComputedStats): void {
+    this.computedStats = stats;
+  }
+
   spawnEnemiesForDungeon(dungeon: DungeonData, floor: number, offsetX: number, offsetZ: number): void {
     this.clearEnemies();
 
     for (const room of dungeon.rooms) {
-      // Don't spawn enemies in entrance or exit rooms
       if (room === dungeon.entranceRoom || room === dungeon.exitRoom) continue;
 
       const count = 1 + Math.floor(Math.random() * Math.min(floor, 3));
@@ -73,6 +78,10 @@ export class CombatSystem {
     const pz = _pz as number;
     const angle = _angle as number;
 
+    const baseDamage = this.computedStats ? this.computedStats.attack : 20;
+    const critChance = this.computedStats ? this.computedStats.critChance : 0;
+    const critMult = this.computedStats ? this.computedStats.critMultiplier : 1.5;
+
     for (const enemy of this.enemies) {
       if (!enemy.alive) continue;
 
@@ -82,28 +91,33 @@ export class CombatSystem {
 
       if (dist > PLAYER_ATTACK_RANGE) continue;
 
-      // Check if enemy is within attack arc
       const angleToEnemy = Math.atan2(dz, dx);
       let angleDiff = angleToEnemy - angle;
-      // Normalize to [-PI, PI]
       while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
       while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
 
       if (Math.abs(angleDiff) <= PLAYER_ATTACK_ARC / 2) {
-        enemy.takeDamage(PLAYER_ATTACK_DAMAGE);
+        const isCrit = Math.random() < critChance;
+        const damage = Math.round(isCrit ? baseDamage * critMult : baseDamage);
+        enemy.takeDamage(damage);
+        if (isCrit) {
+          events.emit('damageNumber', enemy.position.x, enemy.position.z, damage, false, true);
+        }
       }
     }
   };
 
   private onEnemyAttack = (_enemy: unknown, _damage: unknown): void => {
     const enemy = _enemy as Enemy;
-    const damage = _damage as number;
+    const rawDamage = _damage as number;
 
     const dx = this.player.position.x - enemy.position.x;
     const dz = this.player.position.z - enemy.position.z;
     const dist = Math.sqrt(dx * dx + dz * dz);
 
     if (dist <= 1.2 && this.player.alive) {
+      const defense = this.computedStats ? this.computedStats.defense : 0;
+      const damage = Math.max(1, Math.round(rawDamage - defense * 0.5));
       this.player.takeDamage(damage);
       events.emit('damageNumber', this.player.position.x, this.player.position.z, damage, true);
     }

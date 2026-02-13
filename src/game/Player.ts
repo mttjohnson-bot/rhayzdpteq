@@ -7,6 +7,7 @@ import { clamp } from '../utils/math';
 import { InputManager } from './InputManager';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { events } from '../utils/EventBus';
+import { ComputedStats } from '../rpg/Stats';
 
 export class Player {
   readonly mesh: THREE.Mesh;
@@ -42,6 +43,12 @@ export class Player {
   private dungeonOffsetX = 0;
   private dungeonOffsetZ = 0;
 
+  // RPG stats (updated from computed stats)
+  private moveSpeedMultiplier = 1;
+  private attackSpeedMultiplier = 1;
+  private hpRegen = 0;
+  private regenAccumulator = 0;
+
   constructor() {
     const geometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_HEIGHT, PLAYER_SIZE);
     this.baseMaterial = new THREE.MeshLambertMaterial({ color: COLORS.player });
@@ -60,6 +67,26 @@ export class Player {
     this.attackIndicator = new THREE.Mesh(arcGeo, arcMat);
     this.attackIndicator.visible = false;
     this.attackIndicator.position.y = 0.3;
+  }
+
+  /** Apply computed stats from RPG system */
+  applyStats(stats: ComputedStats): void {
+    this.maxHp = stats.maxHp;
+    this.moveSpeedMultiplier = stats.moveSpeed;
+    this.attackSpeedMultiplier = stats.attackSpeed;
+    this.hpRegen = stats.hpRegen;
+    // Clamp current HP to new max
+    if (this.hp > this.maxHp) this.hp = this.maxHp;
+  }
+
+  /** Heal by amount (from potions, regen, etc.) */
+  heal(amount: number): void {
+    if (!this.alive) return;
+    const before = this.hp;
+    this.hp = Math.min(this.maxHp, this.hp + amount);
+    if (this.hp !== before) {
+      events.emit('playerDamaged', this.hp, this.maxHp, 0);
+    }
   }
 
   setBounds(minX: number, maxX: number, minZ: number, maxZ: number): void {
@@ -85,6 +112,7 @@ export class Player {
     this.alive = true;
     this.invincibleTimer = 0;
     this.hitFlashTimer = 0;
+    this.regenAccumulator = 0;
     this.baseMaterial.color.setHex(COLORS.player);
   }
 
@@ -131,6 +159,16 @@ export class Player {
 
     if (!this.alive) return;
 
+    // HP regeneration
+    if (this.hpRegen > 0 && this.hp < this.maxHp) {
+      this.regenAccumulator += this.hpRegen * dt;
+      if (this.regenAccumulator >= 1) {
+        const healAmount = Math.floor(this.regenAccumulator);
+        this.regenAccumulator -= healAmount;
+        this.heal(healAmount);
+      }
+    }
+
     // Movement
     const move = input.getMovement();
     if (move.x !== 0 || move.z !== 0) {
@@ -145,8 +183,9 @@ export class Player {
       this.facingAngle = Math.atan2(worldZ, worldX);
 
       const half = PLAYER_SIZE / 2;
-      const newX = this.position.x + worldX * PLAYER_SPEED * dt;
-      const newZ = this.position.z + worldZ * PLAYER_SPEED * dt;
+      const speed = PLAYER_SPEED * this.moveSpeedMultiplier;
+      const newX = this.position.x + worldX * speed * dt;
+      const newZ = this.position.z + worldZ * speed * dt;
 
       if (this.dungeonData) {
         if (this.isWalkable(newX, this.position.z)) {
@@ -161,9 +200,10 @@ export class Player {
       }
     }
 
-    // Attack input (mouse click or Space)
+    // Attack input (mouse click or Space) — cooldown scaled by attack speed
+    const adjustedCooldown = PLAYER_ATTACK_COOLDOWN / this.attackSpeedMultiplier;
     if ((input.wasMousePressed() || input.wasPressed('Space')) && this.attackCooldown <= 0) {
-      this.startAttack();
+      this.startAttack(adjustedCooldown);
     }
 
     // Update attack indicator position
@@ -174,10 +214,10 @@ export class Player {
     }
   }
 
-  private startAttack(): void {
+  private startAttack(cooldown: number): void {
     this.isAttacking = true;
     this.attackTimer = this.attackDuration;
-    this.attackCooldown = PLAYER_ATTACK_COOLDOWN;
+    this.attackCooldown = cooldown;
     this.attackIndicator.visible = true;
     events.emit('playerAttack', this.position.x, this.position.z, this.facingAngle);
   }
