@@ -110,9 +110,9 @@ export class InputManager {
     if (gp.buttons[0]?.pressed || gp.buttons[7]?.pressed) {
       if (!this.mouseDown) this.mousePressed = true;
       this.mouseDown = true;
-    } else if (!gp.buttons[0]?.pressed && !gp.buttons[7]?.pressed && this.gamepadIndex !== null) {
-      // Only clear mouseDown from gamepad if no real mouse is held
-      // This is imperfect but works for gamepad-only play
+    } else if (this.mouseDown) {
+      // Clear mouseDown when gamepad attack buttons are released
+      this.mouseDown = false;
     }
   }
 
