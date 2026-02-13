@@ -1,8 +1,10 @@
-import { SaveManager } from '../game/SaveManager';
+import { SaveManager, MAX_SAVE_SLOTS } from '../game/SaveManager';
 
 export class MenuScreen {
   private container: HTMLDivElement;
   private onStart: (() => void) | null = null;
+  private slotListEl: HTMLDivElement;
+  private actionsEl: HTMLDivElement;
 
   constructor() {
     this.container = document.createElement('div');
@@ -37,34 +39,141 @@ export class MenuScreen {
     subtitle.textContent = 'Climb the tower. Defeat the darkness.';
     Object.assign(subtitle.style, {
       fontSize: '1.1rem',
-      marginBottom: '2rem',
+      marginBottom: '1.5rem',
       color: '#888',
     });
 
     this.container.appendChild(title);
     this.container.appendChild(subtitle);
 
-    // Save info
-    const saveInfo = SaveManager.getSaveInfo();
-    if (saveInfo) {
-      const saveEl = document.createElement('div');
-      Object.assign(saveEl.style, {
-        marginBottom: '1.5rem',
-        padding: '0.5rem 1rem',
-        background: 'rgba(170, 68, 255, 0.1)',
-        border: '1px solid rgba(170, 68, 255, 0.3)',
-        borderRadius: '4px',
-        fontSize: '0.85rem',
-        color: '#aa88cc',
+    // Save slot label
+    const slotLabel = document.createElement('div');
+    slotLabel.textContent = 'Select Save Slot';
+    Object.assign(slotLabel.style, {
+      fontSize: '0.95rem',
+      color: '#aa88cc',
+      marginBottom: '0.5rem',
+    });
+    this.container.appendChild(slotLabel);
+
+    // Save slot buttons
+    this.slotListEl = document.createElement('div');
+    Object.assign(this.slotListEl.style, {
+      display: 'flex',
+      gap: '0.5rem',
+      marginBottom: '1.5rem',
+    });
+    this.container.appendChild(this.slotListEl);
+
+    // Action buttons container
+    this.actionsEl = document.createElement('div');
+    Object.assign(this.actionsEl.style, {
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: '0.5rem',
+    });
+    this.container.appendChild(this.actionsEl);
+
+    // Controls hint
+    const hint = document.createElement('div');
+    hint.textContent = 'Keys 1-4 = slot, Enter = start. Gamepad: D-pad + A.';
+    Object.assign(hint.style, {
+      fontSize: '0.7rem',
+      color: '#555',
+      marginTop: '1rem',
+    });
+    this.container.appendChild(hint);
+
+    this._keyHandler = this._keyHandler.bind(this);
+  }
+
+  show(onStart: () => void): void {
+    this.onStart = onStart;
+    this.buildSlotList();
+
+    const overlay = document.getElementById('ui-overlay');
+    overlay?.appendChild(this.container);
+
+    window.addEventListener('keydown', this._keyHandler);
+  }
+
+  hide(): void {
+    this.container.remove();
+    this.onStart = null;
+    window.removeEventListener('keydown', this._keyHandler);
+  }
+
+  private _keyHandler(e: KeyboardEvent): void {
+    const num = parseInt(e.key, 10);
+    if (num >= 1 && num <= MAX_SAVE_SLOTS) {
+      SaveManager.activeSlot = num;
+      this.buildSlotList();
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      this.onStart?.();
+    }
+  }
+
+  private buildSlotList(): void {
+    this.slotListEl.innerHTML = '';
+    const slots = SaveManager.getAllSlotInfo();
+
+    for (const slot of slots) {
+      const btn = document.createElement('button');
+      const isActive = slot.slot === SaveManager.activeSlot;
+
+      Object.assign(btn.style, {
+        padding: '0.6rem 0.8rem',
+        minWidth: '110px',
+        background: isActive ? 'rgba(170, 68, 255, 0.3)' : 'rgba(30, 30, 40, 0.8)',
+        border: isActive ? '2px solid #aa44ff' : '1px solid rgba(100, 100, 130, 0.4)',
+        borderRadius: '6px',
+        color: '#eee',
+        cursor: 'pointer',
+        fontSize: '0.8rem',
         textAlign: 'center',
+        transition: 'all 0.15s',
       });
-      saveEl.textContent = `Save found: Lv.${saveInfo.level} | Floor ${saveInfo.floor}/5`;
-      this.container.appendChild(saveEl);
+
+      const label = document.createElement('div');
+      label.textContent = `Slot ${slot.slot}`;
+      Object.assign(label.style, { fontWeight: 'bold', marginBottom: '0.2rem' });
+      btn.appendChild(label);
+
+      const info = document.createElement('div');
+      Object.assign(info.style, { fontSize: '0.65rem', color: '#999' });
+      if (slot.exists) {
+        const status = slot.gameCompleted ? ' (Done)' : '';
+        info.textContent = `Lv.${slot.level} | Floor ${slot.floor}/5${status}`;
+      } else {
+        info.textContent = 'Empty';
+      }
+      btn.appendChild(info);
+
+      btn.addEventListener('click', () => {
+        SaveManager.activeSlot = slot.slot;
+        this.buildSlotList();
+      });
+      btn.addEventListener('mouseenter', () => {
+        if (!isActive) btn.style.background = 'rgba(170, 68, 255, 0.15)';
+      });
+      btn.addEventListener('mouseleave', () => {
+        if (!isActive) btn.style.background = 'rgba(30, 30, 40, 0.8)';
+      });
+
+      this.slotListEl.appendChild(btn);
     }
 
-    // Start/Continue button
+    this.buildActionButtons();
+  }
+
+  private buildActionButtons(): void {
+    this.actionsEl.innerHTML = '';
+    const hasSave = SaveManager.hasSave(SaveManager.activeSlot);
+
     const startBtn = document.createElement('button');
-    startBtn.textContent = saveInfo ? 'Continue' : 'Start Game';
+    startBtn.textContent = hasSave ? 'Continue' : 'New Game';
     Object.assign(startBtn.style, {
       padding: '0.8rem 2.5rem',
       fontSize: '1.2rem',
@@ -74,7 +183,6 @@ export class MenuScreen {
       cursor: 'pointer',
       letterSpacing: '0.05em',
       transition: 'all 0.2s',
-      marginBottom: '0.8rem',
     });
     startBtn.addEventListener('mouseenter', () => {
       startBtn.style.background = '#aa44ff';
@@ -84,50 +192,36 @@ export class MenuScreen {
       startBtn.style.background = 'transparent';
       startBtn.style.color = '#cc88ff';
     });
-    startBtn.addEventListener('click', () => {
-      this.onStart?.();
-    });
-    this.container.appendChild(startBtn);
+    startBtn.addEventListener('click', () => this.onStart?.());
+    this.actionsEl.appendChild(startBtn);
 
-    // New game button (only if save exists)
-    if (saveInfo) {
-      const newBtn = document.createElement('button');
-      newBtn.textContent = 'New Game';
-      Object.assign(newBtn.style, {
-        padding: '0.5rem 1.5rem',
-        fontSize: '0.9rem',
-        border: '1px solid rgba(255, 255, 255, 0.3)',
+    if (hasSave) {
+      const delBtn = document.createElement('button');
+      delBtn.textContent = 'Delete Save';
+      Object.assign(delBtn.style, {
+        padding: '0.4rem 1rem',
+        fontSize: '0.8rem',
+        border: '1px solid rgba(255, 100, 100, 0.3)',
         background: 'transparent',
-        color: '#888',
+        color: '#aa6666',
         cursor: 'pointer',
         transition: 'all 0.2s',
       });
-      newBtn.addEventListener('mouseenter', () => {
-        newBtn.style.color = '#ff6644';
-        newBtn.style.borderColor = '#ff6644';
+      delBtn.addEventListener('mouseenter', () => {
+        delBtn.style.color = '#ff6644';
+        delBtn.style.borderColor = '#ff6644';
       });
-      newBtn.addEventListener('mouseleave', () => {
-        newBtn.style.color = '#888';
-        newBtn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+      delBtn.addEventListener('mouseleave', () => {
+        delBtn.style.color = '#aa6666';
+        delBtn.style.borderColor = 'rgba(255, 100, 100, 0.3)';
       });
-      newBtn.addEventListener('click', () => {
-        if (confirm('Delete saved progress and start a new game?')) {
-          SaveManager.deleteSave();
-          window.location.reload();
+      delBtn.addEventListener('click', () => {
+        if (confirm(`Delete save in Slot ${SaveManager.activeSlot}?`)) {
+          SaveManager.deleteSave(SaveManager.activeSlot);
+          this.buildSlotList();
         }
       });
-      this.container.appendChild(newBtn);
+      this.actionsEl.appendChild(delBtn);
     }
-  }
-
-  show(onStart: () => void): void {
-    this.onStart = onStart;
-    const overlay = document.getElementById('ui-overlay');
-    overlay?.appendChild(this.container);
-  }
-
-  hide(): void {
-    this.container.remove();
-    this.onStart = null;
   }
 }

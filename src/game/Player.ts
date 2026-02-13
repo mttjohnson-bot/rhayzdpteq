@@ -13,41 +13,41 @@ export class Player {
   readonly mesh: THREE.Mesh;
   readonly position: THREE.Vector3;
 
-  // Health
   hp: number = PLAYER_MAX_HP;
   maxHp: number = PLAYER_MAX_HP;
   alive: boolean = true;
 
-  // Attack state
   attackCooldown: number = 0;
   isAttacking: boolean = false;
   private attackTimer: number = 0;
-  private readonly attackDuration = 0.15; // visual swing time
+  private readonly attackDuration = 0.15;
 
-  // Invincibility after taking damage
   invincibleTimer: number = 0;
-
-  // Facing direction (angle in radians, 0 = +X)
   facingAngle: number = 0;
 
-  // Visual feedback
   private baseMaterial: THREE.MeshLambertMaterial;
   private hitFlashTimer: number = 0;
 
-  // Attack visual (sword swing indicator)
   readonly attackIndicator: THREE.Mesh;
 
-  // Boundaries
   private bounds = { minX: -Infinity, maxX: Infinity, minZ: -Infinity, maxZ: Infinity };
   private dungeonData: DungeonData | null = null;
   private dungeonOffsetX = 0;
   private dungeonOffsetZ = 0;
 
-  // RPG stats (updated from computed stats)
   private moveSpeedMultiplier = 1;
   private attackSpeedMultiplier = 1;
   private hpRegen = 0;
   private regenAccumulator = 0;
+
+  // Knockback
+  private knockbackVelX = 0;
+  private knockbackVelZ = 0;
+  private knockbackTimer = 0;
+  private readonly knockbackDuration = 0.15;
+
+  // Auto-face callback
+  private autoFaceCallback: ((px: number, pz: number) => { x: number; z: number } | null) | null = null;
 
   constructor() {
     const geometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_HEIGHT, PLAYER_SIZE);
@@ -57,7 +57,6 @@ export class Player {
     this.mesh.position.y = PLAYER_HEIGHT / 2;
     this.position = this.mesh.position;
 
-    // Attack arc indicator (flat wedge)
     const arcGeo = new THREE.CylinderGeometry(0, 1.0, 0.1, 8, 1, false, 0, Math.PI / 2);
     const arcMat = new THREE.MeshBasicMaterial({
       color: 0xffffff,
@@ -69,17 +68,18 @@ export class Player {
     this.attackIndicator.position.y = 0.3;
   }
 
-  /** Apply computed stats from RPG system */
+  setAutoFaceCallback(cb: (px: number, pz: number) => { x: number; z: number } | null): void {
+    this.autoFaceCallback = cb;
+  }
+
   applyStats(stats: ComputedStats): void {
     this.maxHp = stats.maxHp;
     this.moveSpeedMultiplier = stats.moveSpeed;
     this.attackSpeedMultiplier = stats.attackSpeed;
     this.hpRegen = stats.hpRegen;
-    // Clamp current HP to new max
     if (this.hp > this.maxHp) this.hp = this.maxHp;
   }
 
-  /** Heal by amount (from potions, regen, etc.) */
   heal(amount: number): void {
     if (!this.alive) return;
     const before = this.hp;
@@ -113,6 +113,9 @@ export class Player {
     this.invincibleTimer = 0;
     this.hitFlashTimer = 0;
     this.regenAccumulator = 0;
+    this.knockbackVelX = 0;
+    this.knockbackVelZ = 0;
+    this.knockbackTimer = 0;
     this.baseMaterial.color.setHex(COLORS.player);
   }
 
@@ -128,12 +131,16 @@ export class Player {
     }
   }
 
+  applyKnockback(vx: number, vz: number): void {
+    this.knockbackVelX = vx;
+    this.knockbackVelZ = vz;
+    this.knockbackTimer = this.knockbackDuration;
+  }
+
   update(dt: number, input: InputManager): void {
-    // Timers
     if (this.attackCooldown > 0) this.attackCooldown -= dt;
     if (this.invincibleTimer > 0) this.invincibleTimer -= dt;
 
-    // Hit flash visual
     if (this.hitFlashTimer > 0) {
       this.hitFlashTimer -= dt;
       this.baseMaterial.color.setHex(0xffffff);
@@ -141,14 +148,12 @@ export class Player {
       this.baseMaterial.color.setHex(COLORS.player);
     }
 
-    // Invincibility blink
     if (this.invincibleTimer > 0) {
       this.mesh.visible = Math.floor(this.invincibleTimer * 10) % 2 === 0;
     } else {
       this.mesh.visible = true;
     }
 
-    // Attack animation
     if (this.isAttacking) {
       this.attackTimer -= dt;
       if (this.attackTimer <= 0) {
@@ -158,6 +163,15 @@ export class Player {
     }
 
     if (!this.alive) return;
+
+    // Knockback
+    if (this.knockbackTimer > 0) {
+      this.knockbackTimer -= dt;
+      const t = this.knockbackTimer / this.knockbackDuration;
+      const kbMoveX = this.knockbackVelX * t * dt * 10;
+      const kbMoveZ = this.knockbackVelZ * t * dt * 10;
+      this.applyMovement(kbMoveX, kbMoveZ);
+    }
 
     // HP regeneration
     if (this.hpRegen > 0 && this.hp < this.maxHp) {
@@ -172,45 +186,55 @@ export class Player {
     // Movement
     const move = input.getMovement();
     if (move.x !== 0 || move.z !== 0) {
-      // Rotate movement to match isometric camera orientation
       const angle = -Math.PI / 4;
       const cos = Math.cos(angle);
       const sin = Math.sin(angle);
       const worldX = move.x * cos - move.z * sin;
       const worldZ = move.x * sin + move.z * cos;
 
-      // Update facing direction based on movement
       this.facingAngle = Math.atan2(worldZ, worldX);
 
-      const half = PLAYER_SIZE / 2;
       const speed = PLAYER_SPEED * this.moveSpeedMultiplier;
-      const newX = this.position.x + worldX * speed * dt;
-      const newZ = this.position.z + worldZ * speed * dt;
-
-      if (this.dungeonData) {
-        if (this.isWalkable(newX, this.position.z)) {
-          this.position.x = newX;
-        }
-        if (this.isWalkable(this.position.x, newZ)) {
-          this.position.z = newZ;
-        }
-      } else {
-        this.position.x = clamp(newX, this.bounds.minX + half, this.bounds.maxX - half);
-        this.position.z = clamp(newZ, this.bounds.minZ + half, this.bounds.maxZ - half);
-      }
+      this.applyMovement(worldX * speed * dt, worldZ * speed * dt);
     }
 
-    // Attack input (mouse click or Space) — cooldown scaled by attack speed
+    // Attack input
     const adjustedCooldown = PLAYER_ATTACK_COOLDOWN / this.attackSpeedMultiplier;
     if ((input.wasMousePressed() || input.wasPressed('Space')) && this.attackCooldown <= 0) {
+      // Auto-face nearest enemy when attacking
+      if (this.autoFaceCallback) {
+        const target = this.autoFaceCallback(this.position.x, this.position.z);
+        if (target) {
+          const dx = target.x - this.position.x;
+          const dz = target.z - this.position.z;
+          this.facingAngle = Math.atan2(dz, dx);
+        }
+      }
       this.startAttack(adjustedCooldown);
     }
 
-    // Update attack indicator position
     if (this.attackIndicator.visible) {
       this.attackIndicator.position.x = this.position.x;
       this.attackIndicator.position.z = this.position.z;
       this.attackIndicator.rotation.y = -this.facingAngle + Math.PI / 4;
+    }
+  }
+
+  private applyMovement(moveX: number, moveZ: number): void {
+    const half = PLAYER_SIZE / 2;
+    const newX = this.position.x + moveX;
+    const newZ = this.position.z + moveZ;
+
+    if (this.dungeonData) {
+      if (this.isWalkable(newX, this.position.z)) {
+        this.position.x = newX;
+      }
+      if (this.isWalkable(this.position.x, newZ)) {
+        this.position.z = newZ;
+      }
+    } else {
+      this.position.x = clamp(newX, this.bounds.minX + half, this.bounds.maxX - half);
+      this.position.z = clamp(newZ, this.bounds.minZ + half, this.bounds.maxZ - half);
     }
   }
 

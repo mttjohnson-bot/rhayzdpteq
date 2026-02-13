@@ -4,6 +4,8 @@ import { Boss } from './Boss';
 import { Player } from '../game/Player';
 import {
   PLAYER_ATTACK_RANGE, PLAYER_ATTACK_ARC,
+  KNOCKBACK_FORCE, KNOCKBACK_CHANCE,
+  EnemyTypeId,
 } from '../utils/constants';
 import { events } from '../utils/EventBus';
 import { DungeonData } from '../dungeon/DungeonGenerator';
@@ -36,6 +38,7 @@ export class CombatSystem {
     this.currentDungeon = dungeon;
 
     const config = getFloorConfig(floor);
+    const diff = config.difficulty;
 
     for (const room of dungeon.rooms) {
       if (room === dungeon.entranceRoom) continue;
@@ -51,13 +54,21 @@ export class CombatSystem {
         continue;
       }
 
-      const count = config.difficulty.enemyCountMin +
-        Math.floor(Math.random() * (config.difficulty.enemyCountExtra + 1));
+      const count = diff.enemyCountMin +
+        Math.floor(Math.random() * (diff.enemyCountExtra + 1));
+
+      // Determine if this mob group has a captain
+      const hasCaptain = Math.random() < diff.captainChance;
+
       for (let i = 0; i < count; i++) {
         const wx = (room.x + 1 + Math.random() * (room.width - 2)) + offsetX + 0.5;
         const wz = (room.z + 1 + Math.random() * (room.height - 2)) + offsetZ + 0.5;
 
-        const enemy = new Enemy(wx, wz, floor, config.difficulty);
+        // Pick enemy type from available types for this floor
+        const typeId: EnemyTypeId = diff.enemyTypes[Math.floor(Math.random() * diff.enemyTypes.length)];
+        const isCaptain = hasCaptain && i === 0;
+
+        const enemy = new Enemy(wx, wz, floor, diff, typeId, isCaptain);
         enemy.setDungeonCollision(dungeon);
         this.enemies.push(enemy);
         this.scene.add(enemy.mesh);
@@ -111,9 +122,35 @@ export class CombatSystem {
            this.bosses.filter(b => b.alive).length;
   }
 
-  /** Check if all bosses on the floor are defeated */
   get bossDefeated(): boolean {
     return this.bosses.length === 0 || this.bosses.every(b => !b.alive);
+  }
+
+  /** Find nearest enemy within attack range for auto-face */
+  findNearestTarget(px: number, pz: number): { x: number; z: number } | null {
+    let nearest: { x: number; z: number; dist: number } | null = null;
+    const range = PLAYER_ATTACK_RANGE * 1.5;
+
+    for (const enemy of this.enemies) {
+      if (!enemy.alive) continue;
+      const dx = enemy.position.x - px;
+      const dz = enemy.position.z - pz;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist <= range && (!nearest || dist < nearest.dist)) {
+        nearest = { x: enemy.position.x, z: enemy.position.z, dist };
+      }
+    }
+    for (const boss of this.bosses) {
+      if (!boss.alive) continue;
+      const dx = boss.position.x - px;
+      const dz = boss.position.z - pz;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist <= range && (!nearest || dist < nearest.dist)) {
+        nearest = { x: boss.position.x, z: boss.position.z, dist };
+      }
+    }
+
+    return nearest ? { x: nearest.x, z: nearest.z } : null;
   }
 
   private onPlayerAttack = (_px: unknown, _pz: unknown, _angle: unknown): void => {
@@ -170,11 +207,20 @@ export class CombatSystem {
     const dz = this.player.position.z - enemy.position.z;
     const dist = Math.sqrt(dx * dx + dz * dz);
 
-    if (dist <= 1.5 && this.player.alive) {
+    const maxHitRange = (enemy instanceof Enemy && enemy.enemyType.attackRange > 2) ? enemy.enemyType.attackRange : 1.5;
+
+    if (dist <= maxHitRange && this.player.alive) {
       const defense = this.computedStats ? this.computedStats.defense : 0;
       const damage = Math.max(1, Math.round(rawDamage - defense * 0.5));
       this.player.takeDamage(damage);
       events.emit('damageNumber', this.player.position.x, this.player.position.z, damage, true);
+
+      // Knockback chance
+      if (dist > 0.1 && Math.random() < KNOCKBACK_CHANCE) {
+        const kbX = (dx / dist) * KNOCKBACK_FORCE;
+        const kbZ = (dz / dist) * KNOCKBACK_FORCE;
+        this.player.applyKnockback(kbX, kbZ);
+      }
     }
   };
 
@@ -193,7 +239,8 @@ export class CombatSystem {
       const sx = x + Math.cos(angle) * dist;
       const sz = z + Math.sin(angle) * dist;
 
-      const enemy = new Enemy(sx, sz, floor, config.difficulty);
+      const typeId = config.difficulty.enemyTypes[Math.floor(Math.random() * config.difficulty.enemyTypes.length)];
+      const enemy = new Enemy(sx, sz, floor, config.difficulty, typeId);
       enemy.setDungeonCollision(this.currentDungeon);
       this.enemies.push(enemy);
       this.scene.add(enemy.mesh);

@@ -25,7 +25,7 @@ import { LevelSystem, enemyXP } from '../rpg/Leveling';
 import { SkillTree } from '../rpg/SkillTree';
 import { Inventory } from '../rpg/Inventory';
 import { LootDropManager } from '../rpg/LootDrop';
-import { rollEnemyLoot, Item } from '../rpg/LootTable';
+import { rollEnemyLoot, rollBossLoot, Item } from '../rpg/LootTable';
 import { events } from '../utils/EventBus';
 import {
   TILE_SIZE,
@@ -85,6 +85,17 @@ export class Game {
   private deathScreenVisible = false;
   private deathOverlay: HTMLDivElement | null = null;
 
+  // Win screen state
+  private winScreenVisible = false;
+  private winOverlay: HTMLDivElement | null = null;
+
+  // Consumable buff timers
+  private speedBuffTimer = 0;
+  private speedBuffMult = 0;
+  private strengthBuffTimer = 0;
+  private strengthBuffDmg = 0;
+  private shieldHp = 0;
+
   // Auto-save timer
   private autoSaveTimer = 0;
   private readonly AUTO_SAVE_INTERVAL = 30; // seconds
@@ -119,6 +130,9 @@ export class Game {
 
     this.damageNumbers.setCamera(this.camera.camera);
 
+    // Wire auto-face: when player attacks, face nearest enemy
+    this.player.setAutoFaceCallback((px, pz) => this.combatSystem.findNearestTarget(px, pz));
+
     // Listen for events
     events.on('playerDied', this.onPlayerDied);
     events.on('enemyKilled', this.onEnemyKilled);
@@ -143,8 +157,8 @@ export class Game {
 
   // --- Save/Load ---
 
-  private saveGame(): void {
-    SaveManager.save(this.maxUnlockedFloor, this.levelSystem, this.skillTree, this.inventory);
+  private saveGame(gameCompleted?: boolean): void {
+    SaveManager.save(this.maxUnlockedFloor, this.levelSystem, this.skillTree, this.inventory, gameCompleted);
   }
 
   private loadGame(): void {
@@ -179,7 +193,10 @@ export class Game {
     this.damageNumbers.hide();
     this.xpBar.hide();
     this.bossHealthBar.hide();
-    this.menuScreen.show(() => this.enterHub());
+    this.menuScreen.show(() => {
+      this.loadGame(); // reload for selected slot
+      this.enterHub();
+    });
   }
 
   private enterHub(): void {
@@ -194,6 +211,12 @@ export class Game {
     this.inventoryOpen = false;
     this.skillTreeOpen = false;
     this.hideDeathScreen();
+    this.hideWinScreen();
+
+    // Clear consumable buffs
+    this.speedBuffTimer = 0;
+    this.strengthBuffTimer = 0;
+    this.shieldHp = 0;
 
     // Clean up dungeon if returning from one
     if (this.dungeonGroup) {
@@ -243,6 +266,7 @@ export class Game {
     this.camera.snapTo(this.player.position);
     this.hud.show();
     this.hud.showLevelInfo(this.levelSystem.level, this.maxUnlockedFloor);
+    this.hud.setGamepadConnected(this.input.hasGamepad);
     this.instructions.show();
 
     // Auto-save when returning to hub
@@ -254,6 +278,11 @@ export class Game {
     this.currentFloor = floor;
     this.hud.hidePrompt();
     this.floorSelectOpen = false;
+
+    // Clear consumable buffs
+    this.speedBuffTimer = 0;
+    this.strengthBuffTimer = 0;
+    this.shieldHp = 0;
 
     // Hide hub (but keep in memory)
     if (this.hubGroup) {
@@ -313,6 +342,7 @@ export class Game {
 
     // Update HUD
     this.hud.showFloorIndicator(floor, floorConfig.theme.name);
+    this.hud.setGamepadConnected(this.input.hasGamepad);
   }
 
   // --- Game loop ---
@@ -348,11 +378,13 @@ export class Game {
 
       case 'dungeon':
         this.handleUIToggle();
-        if (!this.deathScreenVisible && !this.inventoryOpen && !this.skillTreeOpen) {
+        if (!this.deathScreenVisible && !this.winScreenVisible && !this.inventoryOpen && !this.skillTreeOpen) {
           this.player.update(dt, this.input);
           this.camera.follow(this.player.position, dt);
           this.combatSystem.update(dt);
           this.lootDrops.update(dt, this.player.position.x, this.player.position.z);
+          this.sceneManager.updateLightPosition(this.player.position.x, this.player.position.z);
+          this.updateBuffTimers(dt);
         }
         this.damageNumbers.update(dt);
         this.xpBar.update(dt);
@@ -364,7 +396,7 @@ export class Game {
 
   /** Handle I (inventory) and K (skill tree) toggles */
   private handleUIToggle(): void {
-    if (this.deathScreenVisible) return;
+    if (this.deathScreenVisible || this.winScreenVisible) return;
 
     // Escape closes any open overlay
     if (this.input.wasPressed('Escape')) {
@@ -429,6 +461,9 @@ export class Game {
     const scale = 1 + Math.sin(this.portalAnimTime * 2) * 0.05;
     this.portal.mesh.scale.set(scale, 1, scale);
 
+    // Update gamepad indicator
+    this.hud.setGamepadConnected(this.input.hasGamepad);
+
     if (this.inventoryOpen || this.skillTreeOpen) return;
 
     // Check proximity to portal
@@ -457,10 +492,22 @@ export class Game {
     // Update minimap with player position
     this.minimap.updatePlayerPosition(this.player.position.x, this.player.position.z);
 
+    // Update gamepad indicator
+    this.hud.setGamepadConnected(this.input.hasGamepad);
+
     if (this.deathScreenVisible) {
       // Wait for respawn input
       if (this.input.wasPressed('KeyR')) {
         this.hideDeathScreen();
+        this.enterHub();
+      }
+      return;
+    }
+
+    if (this.winScreenVisible) {
+      // Wait for continue input
+      if (this.input.wasPressed('KeyR') || this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
+        this.hideWinScreen();
         this.enterHub();
       }
       return;
@@ -471,19 +518,28 @@ export class Game {
     if (this.player.isNear(exit.x, exit.z)) {
       // Only allow exit if boss is defeated
       if (this.combatSystem.bossDefeated) {
-        this.hud.showPrompt('Press E to ascend to hub');
-        if (this.input.wasPressed('KeyE')) {
-          // Unlock next floor
-          if (this.currentFloor >= this.maxUnlockedFloor && this.currentFloor < 5) {
-            this.maxUnlockedFloor = this.currentFloor + 1;
+        // Floor 5 boss defeated = game won!
+        if (this.currentFloor === 5) {
+          this.hud.showPrompt('Press E to claim victory!');
+          if (this.input.wasPressed('KeyE')) {
+            this.showWinScreen();
+            this.saveGame(true); // mark game as completed
           }
-          this.hud.hideFloorIndicator();
-          this.minimap.hide();
-          this.healthBar.hide();
-          this.damageNumbers.hide();
-          this.xpBar.hide();
-          this.bossHealthBar.hide();
-          this.enterHub();
+        } else {
+          this.hud.showPrompt('Press E to ascend to hub');
+          if (this.input.wasPressed('KeyE')) {
+            // Unlock next floor
+            if (this.currentFloor >= this.maxUnlockedFloor && this.currentFloor < 5) {
+              this.maxUnlockedFloor = this.currentFloor + 1;
+            }
+            this.hud.hideFloorIndicator();
+            this.minimap.hide();
+            this.healthBar.hide();
+            this.damageNumbers.hide();
+            this.xpBar.hide();
+            this.bossHealthBar.hide();
+            this.enterHub();
+          }
         }
       } else {
         this.hud.showPrompt('Defeat the boss to unlock the exit');
@@ -491,6 +547,28 @@ export class Game {
     } else {
       if (!this.inventoryOpen && !this.skillTreeOpen) {
         this.hud.hidePrompt();
+      }
+    }
+  }
+
+  // --- Consumable buff timers ---
+
+  private updateBuffTimers(dt: number): void {
+    if (this.speedBuffTimer > 0) {
+      this.speedBuffTimer -= dt;
+      if (this.speedBuffTimer <= 0) {
+        this.speedBuffTimer = 0;
+        this.speedBuffMult = 0;
+        this.recomputeStats(); // restore normal speed
+      }
+    }
+
+    if (this.strengthBuffTimer > 0) {
+      this.strengthBuffTimer -= dt;
+      if (this.strengthBuffTimer <= 0) {
+        this.strengthBuffTimer = 0;
+        this.strengthBuffDmg = 0;
+        this.recomputeStats(); // restore normal damage
       }
     }
   }
@@ -516,11 +594,20 @@ export class Game {
   };
 
   private onBossKilled = (_x: unknown, _z: unknown, _floor: unknown): void => {
+    const x = _x as number;
+    const z = _z as number;
     const floor = _floor as number;
+
     // Boss grants 5x XP
     const xp = enemyXP(floor) * 5;
     this.levelSystem.addXP(xp);
     this.recomputeStats();
+
+    // Boss drops special loot
+    const bossItems = rollBossLoot(floor);
+    for (const item of bossItems) {
+      this.lootDrops.spawnDrop(item, x, z);
+    }
 
     this.hud.showPrompt('Boss defeated! Find the exit.');
     this.bossHealthBar.hide();
@@ -551,8 +638,35 @@ export class Game {
 
   private onUseConsumable = (_item: unknown): void => {
     const item = _item as Item;
-    if (item.consumeEffect === 'heal' && item.consumeValue) {
-      this.player.heal(item.consumeValue);
+    switch (item.consumeEffect) {
+      case 'heal':
+        if (item.consumeValue) {
+          this.player.heal(item.consumeValue);
+        }
+        break;
+      case 'speedBoost':
+        if (item.consumeValue && item.consumeDuration) {
+          this.speedBuffMult = item.consumeValue / 100;
+          this.speedBuffTimer = item.consumeDuration;
+          this.hud.showPrompt(`Speed boost! (${item.consumeDuration}s)`);
+          setTimeout(() => this.hud.hidePrompt(), 1500);
+        }
+        break;
+      case 'strengthBoost':
+        if (item.consumeValue && item.consumeDuration) {
+          this.strengthBuffDmg = item.consumeValue;
+          this.strengthBuffTimer = item.consumeDuration;
+          this.hud.showPrompt(`Strength boost! +${item.consumeValue} dmg (${item.consumeDuration}s)`);
+          setTimeout(() => this.hud.hidePrompt(), 1500);
+        }
+        break;
+      case 'manaShield':
+        if (item.consumeValue) {
+          this.shieldHp = item.consumeValue;
+          this.hud.showPrompt(`Shield active! ${item.consumeValue} HP`);
+          setTimeout(() => this.hud.hidePrompt(), 1500);
+        }
+        break;
     }
   };
 
@@ -619,6 +733,90 @@ export class Game {
     if (this.deathOverlay) {
       this.deathOverlay.remove();
       this.deathOverlay = null;
+    }
+  }
+
+  // --- Win Screen ---
+
+  private showWinScreen(): void {
+    this.winScreenVisible = true;
+
+    this.winOverlay = document.createElement('div');
+    Object.assign(this.winOverlay.style, {
+      position: 'absolute',
+      top: '0',
+      left: '0',
+      width: '100%',
+      height: '100%',
+      background: 'rgba(0, 0, 0, 0.8)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: "'Segoe UI', system-ui, sans-serif",
+      color: '#ffdd44',
+      zIndex: '100',
+    });
+
+    const crown = document.createElement('div');
+    Object.assign(crown.style, {
+      fontSize: '4rem',
+      marginBottom: '0.5rem',
+      textShadow: '0 0 30px rgba(255, 200, 50, 0.8)',
+    });
+    crown.textContent = 'VICTORY';
+    this.winOverlay.appendChild(crown);
+
+    const title = document.createElement('div');
+    Object.assign(title.style, {
+      fontSize: '2rem',
+      fontWeight: 'bold',
+      textShadow: '2px 2px 8px #000',
+      marginBottom: '0.5rem',
+      color: '#fff',
+    });
+    title.textContent = 'The Darkness Has Been Vanquished!';
+    this.winOverlay.appendChild(title);
+
+    const subtitle = document.createElement('div');
+    Object.assign(subtitle.style, {
+      fontSize: '1.1rem',
+      color: '#cc99ff',
+      textShadow: '1px 1px 4px #000',
+      marginBottom: '0.5rem',
+    });
+    subtitle.textContent = 'You have conquered all 5 floors of the dungeon.';
+    this.winOverlay.appendChild(subtitle);
+
+    const stats = document.createElement('div');
+    Object.assign(stats.style, {
+      fontSize: '0.9rem',
+      color: '#aaa',
+      marginBottom: '1.5rem',
+      textAlign: 'center',
+      lineHeight: '1.6',
+    });
+    stats.innerHTML = `Level ${this.levelSystem.level}<br>Floors Cleared: 5/5`;
+    this.winOverlay.appendChild(stats);
+
+    const continueText = document.createElement('div');
+    Object.assign(continueText.style, {
+      fontSize: '1rem',
+      color: '#88cc88',
+      textShadow: '1px 1px 4px #000',
+    });
+    continueText.textContent = 'Press R or Enter to return to hub';
+    this.winOverlay.appendChild(continueText);
+
+    const overlay = document.getElementById('ui-overlay');
+    overlay?.appendChild(this.winOverlay);
+  }
+
+  private hideWinScreen(): void {
+    this.winScreenVisible = false;
+    if (this.winOverlay) {
+      this.winOverlay.remove();
+      this.winOverlay = null;
     }
   }
 }

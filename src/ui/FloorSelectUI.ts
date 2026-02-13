@@ -5,6 +5,9 @@ export class FloorSelectUI {
   private listEl: HTMLDivElement;
   private maxUnlockedFloor = 1;
   private onSelect: ((floor: number) => void) | null = null;
+  private selectedIndex = 0;
+  private buttons: HTMLButtonElement[] = [];
+  private _keyHandler: (e: KeyboardEvent) => void;
 
   constructor() {
     this.container = document.createElement('div');
@@ -42,7 +45,7 @@ export class FloorSelectUI {
     this.container.appendChild(this.listEl);
 
     const closeBtn = document.createElement('button');
-    closeBtn.textContent = 'Cancel';
+    closeBtn.textContent = 'Cancel (Esc)';
     Object.assign(closeBtn.style, {
       marginTop: '1rem',
       padding: '0.4rem 1rem',
@@ -56,37 +59,122 @@ export class FloorSelectUI {
     });
     closeBtn.addEventListener('click', () => this.hide());
     this.container.appendChild(closeBtn);
+
+    const hint = document.createElement('div');
+    hint.textContent = '1-5 or arrows to select, Enter to confirm';
+    Object.assign(hint.style, {
+      textAlign: 'center',
+      fontSize: '0.65rem',
+      color: '#555',
+      marginTop: '0.5rem',
+    });
+    this.container.appendChild(hint);
+
+    this._keyHandler = this.handleKey.bind(this);
   }
 
   show(maxUnlocked: number, onSelect: (floor: number) => void): void {
     this.maxUnlockedFloor = maxUnlocked;
     this.onSelect = onSelect;
+    this.selectedIndex = 0;
     this.buildList();
 
     const overlay = document.getElementById('ui-overlay');
     overlay?.appendChild(this.container);
+
+    window.addEventListener('keydown', this._keyHandler);
   }
 
   hide(): void {
     this.container.remove();
+    window.removeEventListener('keydown', this._keyHandler);
+    this.onSelect = null;
+  }
+
+  private handleKey(e: KeyboardEvent): void {
+    const totalFloors = 5;
+
+    // Number keys 1-5 to jump directly
+    const num = parseInt(e.key, 10);
+    if (num >= 1 && num <= totalFloors) {
+      this.selectedIndex = num - 1;
+      this.updateHighlight();
+      if (num <= this.maxUnlockedFloor) {
+        this.hide();
+        this.onSelect?.(num);
+      }
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowUp':
+      case 'w':
+      case 'W':
+        this.selectedIndex = Math.max(0, this.selectedIndex - 1);
+        this.updateHighlight();
+        break;
+      case 'ArrowDown':
+      case 's':
+      case 'S':
+        this.selectedIndex = Math.min(totalFloors - 1, this.selectedIndex + 1);
+        this.updateHighlight();
+        break;
+      case 'Enter':
+      case ' ': {
+        const floor = this.selectedIndex + 1;
+        if (floor <= this.maxUnlockedFloor) {
+          this.hide();
+          this.onSelect?.(floor);
+        }
+        break;
+      }
+      case 'Escape':
+        this.hide();
+        break;
+    }
+  }
+
+  private updateHighlight(): void {
+    for (let i = 0; i < this.buttons.length; i++) {
+      const btn = this.buttons[i];
+      const unlocked = i + 1 <= this.maxUnlockedFloor;
+      const selected = i === this.selectedIndex;
+
+      if (selected && unlocked) {
+        btn.style.background = 'rgba(170, 68, 255, 0.5)';
+        btn.style.borderColor = 'rgba(170, 68, 255, 0.8)';
+      } else if (unlocked) {
+        btn.style.background = 'rgba(170, 68, 255, 0.2)';
+        btn.style.borderColor = 'rgba(170, 68, 255, 0.5)';
+      } else {
+        btn.style.background = 'rgba(50, 50, 50, 0.5)';
+        btn.style.borderColor = 'rgba(100, 100, 100, 0.3)';
+      }
+    }
   }
 
   private buildList(): void {
     this.listEl.innerHTML = '';
-    const totalFloors = 5; // MVP has 5 floors
+    this.buttons = [];
+    const totalFloors = 5;
 
     for (let i = 1; i <= totalFloors; i++) {
       const btn = document.createElement('button');
       const unlocked = i <= this.maxUnlockedFloor;
+      const selected = i - 1 === this.selectedIndex;
 
       const floorConfig = getFloorConfig(i);
       btn.textContent = unlocked
-        ? `Floor ${i} - ${floorConfig.theme.name}`
-        : `Floor ${i} - ${floorConfig.theme.name} (Locked)`;
+        ? `${i}. Floor ${i} - ${floorConfig.theme.name}`
+        : `${i}. Floor ${i} - ${floorConfig.theme.name} (Locked)`;
       Object.assign(btn.style, {
         padding: '0.6rem 1rem',
-        background: unlocked ? 'rgba(170, 68, 255, 0.2)' : 'rgba(50, 50, 50, 0.5)',
-        border: unlocked ? '1px solid rgba(170, 68, 255, 0.5)' : '1px solid rgba(100, 100, 100, 0.3)',
+        background: selected && unlocked
+          ? 'rgba(170, 68, 255, 0.5)'
+          : unlocked ? 'rgba(170, 68, 255, 0.2)' : 'rgba(50, 50, 50, 0.5)',
+        border: selected && unlocked
+          ? '1px solid rgba(170, 68, 255, 0.8)'
+          : unlocked ? '1px solid rgba(170, 68, 255, 0.5)' : '1px solid rgba(100, 100, 100, 0.3)',
         borderRadius: '4px',
         color: unlocked ? '#eee' : '#666',
         cursor: unlocked ? 'pointer' : 'default',
@@ -96,10 +184,8 @@ export class FloorSelectUI {
 
       if (unlocked) {
         btn.addEventListener('mouseenter', () => {
-          btn.style.background = 'rgba(170, 68, 255, 0.4)';
-        });
-        btn.addEventListener('mouseleave', () => {
-          btn.style.background = 'rgba(170, 68, 255, 0.2)';
+          this.selectedIndex = i - 1;
+          this.updateHighlight();
         });
         btn.addEventListener('click', () => {
           this.hide();
@@ -107,6 +193,7 @@ export class FloorSelectUI {
         });
       }
 
+      this.buttons.push(btn);
       this.listEl.appendChild(btn);
     }
   }

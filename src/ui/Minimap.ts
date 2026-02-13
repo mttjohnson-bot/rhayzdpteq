@@ -1,8 +1,8 @@
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 
-const MINIMAP_TILE = 3; // pixels per tile on minimap
-const MINIMAP_MAX_SIZE = 180; // max pixel dimension
-const FOG_REVEAL_RADIUS = 5; // tiles around player to reveal
+const MINIMAP_TILE = 2; // pixels per tile on minimap
+const VIEWPORT_SIZE = 160; // fixed viewport pixel size
+const FOG_REVEAL_RADIUS = 6;
 
 export class Minimap {
   private container: HTMLDivElement;
@@ -21,27 +21,20 @@ export class Minimap {
       border: '2px solid rgba(170, 68, 255, 0.5)',
       borderRadius: '4px',
       background: 'rgba(0, 0, 0, 0.7)',
+      overflow: 'hidden',
       zIndex: '10',
     });
 
     this.canvas = document.createElement('canvas');
+    this.canvas.width = VIEWPORT_SIZE;
+    this.canvas.height = VIEWPORT_SIZE;
     this.ctx = this.canvas.getContext('2d')!;
     this.container.appendChild(this.canvas);
   }
 
   setDungeon(dungeon: DungeonData): void {
     this.dungeon = dungeon;
-
-    // Compute scale to fit within max size
-    this.scale = Math.min(
-      MINIMAP_TILE,
-      Math.floor(MINIMAP_MAX_SIZE / dungeon.width),
-      Math.floor(MINIMAP_MAX_SIZE / dungeon.height),
-    );
-    this.scale = Math.max(1, this.scale);
-
-    this.canvas.width = dungeon.width * this.scale;
-    this.canvas.height = dungeon.height * this.scale;
+    this.scale = MINIMAP_TILE;
 
     // Initialize fog of war
     this.revealed = [];
@@ -55,7 +48,6 @@ export class Minimap {
   updatePlayerPosition(worldX: number, worldZ: number): void {
     if (!this.dungeon) return;
 
-    // Convert world position to tile coords
     const offsetX = -(this.dungeon.width) / 2;
     const offsetZ = -(this.dungeon.height) / 2;
     const tileX = Math.floor(worldX - offsetX);
@@ -82,50 +74,46 @@ export class Minimap {
     const { ctx, scale } = this;
     const d = this.dungeon;
 
-    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.clearRect(0, 0, VIEWPORT_SIZE, VIEWPORT_SIZE);
 
-    for (let z = 0; z < d.height; z++) {
-      for (let x = 0; x < d.width; x++) {
+    // Calculate viewport offset to center on player
+    const viewTiles = Math.floor(VIEWPORT_SIZE / scale);
+    const halfView = Math.floor(viewTiles / 2);
+
+    const centerX = playerTileX ?? Math.floor(d.width / 2);
+    const centerZ = playerTileZ ?? Math.floor(d.height / 2);
+
+    const startX = Math.max(0, Math.min(centerX - halfView, d.width - viewTiles));
+    const startZ = Math.max(0, Math.min(centerZ - halfView, d.height - viewTiles));
+
+    for (let z = startZ; z < Math.min(d.height, startZ + viewTiles + 1); z++) {
+      for (let x = startX; x < Math.min(d.width, startX + viewTiles + 1); x++) {
         if (!this.revealed[z][x]) continue;
 
         const tile = d.tiles[z][x];
         let color: string;
 
         switch (tile) {
-          case TileType.Floor:
-            color = '#4a4a5a';
-            break;
-          case TileType.Wall:
-            color = '#6a6a7a';
-            break;
-          case TileType.Door:
-            color = '#6a5a4a';
-            break;
-          case TileType.Exit:
-            color = '#44ff44';
-            break;
-          case TileType.Entrance:
-            color = '#4488ff';
-            break;
-          default:
-            continue;
+          case TileType.Floor: color = '#4a4a5a'; break;
+          case TileType.Wall: color = '#6a6a7a'; break;
+          case TileType.Door: color = '#6a5a4a'; break;
+          case TileType.Exit: color = '#44ff44'; break;
+          case TileType.Entrance: color = '#4488ff'; break;
+          default: continue;
         }
 
         ctx.fillStyle = color;
-        ctx.fillRect(x * scale, z * scale, scale, scale);
+        ctx.fillRect((x - startX) * scale, (z - startZ) * scale, scale, scale);
       }
     }
 
     // Draw player dot
     if (playerTileX !== undefined && playerTileZ !== undefined) {
       ctx.fillStyle = '#3a9bdc';
-      const dotSize = Math.max(scale, 3);
-      ctx.fillRect(
-        playerTileX * scale - dotSize / 2 + scale / 2,
-        playerTileZ * scale - dotSize / 2 + scale / 2,
-        dotSize,
-        dotSize,
-      );
+      const dotSize = Math.max(scale + 1, 4);
+      const px = (playerTileX - startX) * scale + scale / 2 - dotSize / 2;
+      const pz = (playerTileZ - startZ) * scale + scale / 2 - dotSize / 2;
+      ctx.fillRect(px, pz, dotSize, dotSize);
     }
   }
 
