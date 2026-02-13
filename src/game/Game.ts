@@ -474,10 +474,16 @@ export class Game {
       if (this.input.wasPressed('KeyE') && !this.floorSelectOpen) {
         this.floorSelectOpen = true;
         this.hud.hidePrompt();
-        this.floorSelectUI.show(this.maxUnlockedFloor, (floor: number) => {
-          this.floorSelectOpen = false;
-          this.enterDungeon(floor);
-        });
+        this.floorSelectUI.show(
+          this.maxUnlockedFloor,
+          (floor: number) => {
+            this.floorSelectOpen = false;
+            this.enterDungeon(floor);
+          },
+          () => {
+            this.floorSelectOpen = false;
+          },
+        );
       }
     } else {
       if (!this.floorSelectOpen) {
