@@ -77,7 +77,7 @@ export class MenuScreen {
 
     // Controls hint
     const hint = document.createElement('div');
-    hint.textContent = 'Keys 1-4 = slot, Enter = start. Gamepad: D-pad + A.';
+    hint.textContent = 'Keys 1-4 or arrows = slot, Enter = start. Gamepad: D-pad + A.';
     Object.assign(hint.style, {
       fontSize: '0.7rem',
       color: '#555',
@@ -109,9 +109,30 @@ export class MenuScreen {
     if (num >= 1 && num <= MAX_SAVE_SLOTS) {
       SaveManager.activeSlot = num;
       this.buildSlotList();
+      return;
     }
-    if (e.key === 'Enter' || e.key === ' ') {
-      this.onStart?.();
+
+    switch (e.key) {
+      case 'ArrowLeft':
+      case 'a':
+      case 'A': {
+        const prev = SaveManager.activeSlot - 1;
+        SaveManager.activeSlot = prev < 1 ? MAX_SAVE_SLOTS : prev;
+        this.buildSlotList();
+        break;
+      }
+      case 'ArrowRight':
+      case 'd':
+      case 'D': {
+        const next = SaveManager.activeSlot + 1;
+        SaveManager.activeSlot = next > MAX_SAVE_SLOTS ? 1 : next;
+        this.buildSlotList();
+        break;
+      }
+      case 'Enter':
+      case ' ':
+        this.onStart?.();
+        break;
     }
   }
 

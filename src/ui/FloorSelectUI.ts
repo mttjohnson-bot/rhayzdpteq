@@ -5,6 +5,7 @@ export class FloorSelectUI {
   private listEl: HTMLDivElement;
   private maxUnlockedFloor = 1;
   private onSelect: ((floor: number) => void) | null = null;
+  private onCancel: (() => void) | null = null;
   private selectedIndex = 0;
   private buttons: HTMLButtonElement[] = [];
   private _keyHandler: (e: KeyboardEvent) => void;
@@ -57,7 +58,7 @@ export class FloorSelectUI {
       fontSize: '0.9rem',
       width: '100%',
     });
-    closeBtn.addEventListener('click', () => this.hide());
+    closeBtn.addEventListener('click', () => this.cancel());
     this.container.appendChild(closeBtn);
 
     const hint = document.createElement('div');
@@ -73,9 +74,10 @@ export class FloorSelectUI {
     this._keyHandler = this.handleKey.bind(this);
   }
 
-  show(maxUnlocked: number, onSelect: (floor: number) => void): void {
+  show(maxUnlocked: number, onSelect: (floor: number) => void, onCancel?: () => void): void {
     this.maxUnlockedFloor = maxUnlocked;
     this.onSelect = onSelect;
+    this.onCancel = onCancel ?? null;
     this.selectedIndex = 0;
     this.buildList();
 
@@ -89,6 +91,19 @@ export class FloorSelectUI {
     this.container.remove();
     window.removeEventListener('keydown', this._keyHandler);
     this.onSelect = null;
+    this.onCancel = null;
+  }
+
+  private cancel(): void {
+    const cb = this.onCancel;
+    this.hide();
+    cb?.();
+  }
+
+  private confirm(floor: number): void {
+    const cb = this.onSelect;
+    this.hide();
+    cb?.(floor);
   }
 
   private handleKey(e: KeyboardEvent): void {
@@ -100,8 +115,7 @@ export class FloorSelectUI {
       this.selectedIndex = num - 1;
       this.updateHighlight();
       if (num <= this.maxUnlockedFloor) {
-        this.hide();
-        this.onSelect?.(num);
+        this.confirm(num);
       }
       return;
     }
@@ -123,13 +137,12 @@ export class FloorSelectUI {
       case ' ': {
         const floor = this.selectedIndex + 1;
         if (floor <= this.maxUnlockedFloor) {
-          this.hide();
-          this.onSelect?.(floor);
+          this.confirm(floor);
         }
         break;
       }
       case 'Escape':
-        this.hide();
+        this.cancel();
         break;
     }
   }
@@ -188,8 +201,7 @@ export class FloorSelectUI {
           this.updateHighlight();
         });
         btn.addEventListener('click', () => {
-          this.hide();
-          this.onSelect?.(i);
+          this.confirm(i);
         });
       }
 
