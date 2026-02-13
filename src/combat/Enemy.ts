@@ -6,6 +6,7 @@ import {
 } from '../utils/constants';
 import { events } from '../utils/EventBus';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
+import { FloorDifficulty } from '../dungeon/FloorConfig';
 
 export type EnemyState = 'patrol' | 'chase' | 'attack' | 'dead';
 
@@ -43,13 +44,14 @@ export class Enemy {
   private speed: number;
   damage: number;
 
-  constructor(x: number, z: number, floor: number) {
-    const hpScale = 1 + (floor - 1) * 0.3;
-    const dmgScale = 1 + (floor - 1) * 0.2;
+  constructor(x: number, z: number, floor: number, difficulty?: FloorDifficulty) {
+    const hpScale = difficulty ? difficulty.enemyHpScale : (1 + (floor - 1) * 0.3);
+    const dmgScale = difficulty ? difficulty.enemyDmgScale : (1 + (floor - 1) * 0.2);
+    const spdScale = difficulty ? difficulty.enemySpeedScale : (1 + (floor - 1) * 0.05);
 
     this.maxHp = Math.round(ENEMY_HP * hpScale);
     this.hp = this.maxHp;
-    this.speed = ENEMY_SPEED * (1 + (floor - 1) * 0.05);
+    this.speed = ENEMY_SPEED * spdScale;
     this.damage = Math.round(ENEMY_ATTACK_DAMAGE * dmgScale);
 
     this.mesh = new THREE.Group();

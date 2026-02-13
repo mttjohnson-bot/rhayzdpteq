@@ -1,9 +1,12 @@
 import * as THREE from 'three';
 import { COLORS } from '../utils/constants';
+import { FloorTheme } from '../dungeon/FloorConfig';
 
 export class SceneManager {
   readonly renderer: THREE.WebGLRenderer;
   readonly scene: THREE.Scene;
+  private ambientLight: THREE.AmbientLight;
+  private directionalLight: THREE.DirectionalLight;
 
   constructor() {
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -17,27 +20,46 @@ export class SceneManager {
     this.scene.background = new THREE.Color(0x1a1a2e);
     this.scene.fog = new THREE.Fog(0x1a1a2e, 20, 40);
 
+    this.ambientLight = new THREE.AmbientLight(COLORS.ambient, 0.6);
+    this.directionalLight = new THREE.DirectionalLight(COLORS.directional, 0.8);
     this.setupLighting();
 
     window.addEventListener('resize', () => this.onResize());
   }
 
   private setupLighting(): void {
-    const ambient = new THREE.AmbientLight(COLORS.ambient, 0.6);
-    this.scene.add(ambient);
+    this.scene.add(this.ambientLight);
 
-    const directional = new THREE.DirectionalLight(COLORS.directional, 0.8);
-    directional.position.set(8, 12, 8);
-    directional.castShadow = true;
-    directional.shadow.mapSize.width = 1024;
-    directional.shadow.mapSize.height = 1024;
-    directional.shadow.camera.near = 0.5;
-    directional.shadow.camera.far = 40;
-    directional.shadow.camera.left = -15;
-    directional.shadow.camera.right = 15;
-    directional.shadow.camera.top = 15;
-    directional.shadow.camera.bottom = -15;
-    this.scene.add(directional);
+    this.directionalLight.position.set(8, 12, 8);
+    this.directionalLight.castShadow = true;
+    this.directionalLight.shadow.mapSize.width = 1024;
+    this.directionalLight.shadow.mapSize.height = 1024;
+    this.directionalLight.shadow.camera.near = 0.5;
+    this.directionalLight.shadow.camera.far = 40;
+    this.directionalLight.shadow.camera.left = -15;
+    this.directionalLight.shadow.camera.right = 15;
+    this.directionalLight.shadow.camera.top = 15;
+    this.directionalLight.shadow.camera.bottom = -15;
+    this.scene.add(this.directionalLight);
+  }
+
+  /** Apply floor-specific lighting and fog theme */
+  applyFloorTheme(theme: FloorTheme): void {
+    this.scene.background = new THREE.Color(theme.fogColor);
+    this.scene.fog = new THREE.Fog(theme.fogColor, 18, 38);
+    this.ambientLight.color.setHex(theme.ambientColor);
+    this.directionalLight.color.setHex(theme.lightColor);
+    this.directionalLight.intensity = theme.lightIntensity;
+  }
+
+  /** Reset to default hub lighting */
+  resetLighting(): void {
+    this.scene.background = new THREE.Color(0x1a1a2e);
+    this.scene.fog = new THREE.Fog(0x1a1a2e, 20, 40);
+    this.ambientLight.color.setHex(COLORS.ambient);
+    this.ambientLight.intensity = 0.6;
+    this.directionalLight.color.setHex(COLORS.directional);
+    this.directionalLight.intensity = 0.8;
   }
 
   render(camera: THREE.Camera): void {

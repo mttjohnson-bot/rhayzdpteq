@@ -1,4 +1,5 @@
 import { TILE_SIZE } from '../utils/constants';
+import { getFloorConfig } from './FloorConfig';
 
 export interface Room {
   id: number;
@@ -56,10 +57,11 @@ function randInt(rng: () => number, min: number, max: number): number {
 export function generateDungeon(floor: number, seed?: number): DungeonData {
   const rng = seededRandom(seed ?? (Date.now() + floor * 9973));
 
-  // Scale dungeon size with floor number
-  const roomCount = 5 + Math.min(floor, 5) * 2;
-  const gridWidth = 40 + floor * 5;
-  const gridHeight = 40 + floor * 5;
+  // Use floor config for sizing
+  const config = getFloorConfig(floor);
+  const roomCount = config.difficulty.roomCountBase;
+  const gridWidth = config.difficulty.gridSize;
+  const gridHeight = config.difficulty.gridSize;
 
   // Initialize grid
   const tiles: TileType[][] = [];

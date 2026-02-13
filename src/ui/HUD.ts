@@ -2,6 +2,7 @@ export class HUD {
   private container: HTMLDivElement;
   private promptEl: HTMLDivElement;
   private floorEl: HTMLDivElement;
+  private levelInfoEl: HTMLDivElement;
 
   constructor() {
     this.container = document.createElement('div');
@@ -31,8 +32,25 @@ export class HUD {
       fontSize: '0.9rem',
       letterSpacing: '0.1em',
       display: 'none',
+      textAlign: 'center',
     });
     this.container.appendChild(this.floorEl);
+
+    // Level info (top-left, shown in hub)
+    this.levelInfoEl = document.createElement('div');
+    Object.assign(this.levelInfoEl.style, {
+      position: 'absolute',
+      top: '10px',
+      left: '10px',
+      padding: '0.3rem 0.8rem',
+      background: 'rgba(0, 0, 0, 0.6)',
+      border: '1px solid rgba(170, 68, 255, 0.3)',
+      borderRadius: '4px',
+      fontSize: '0.8rem',
+      color: '#cc99ff',
+      display: 'none',
+    });
+    this.container.appendChild(this.levelInfoEl);
 
     // Interaction prompt (shows "Press E to enter portal" etc.)
     this.promptEl = document.createElement('div');
@@ -70,12 +88,23 @@ export class HUD {
     this.promptEl.style.display = 'none';
   }
 
-  showFloorIndicator(floor: number): void {
-    this.floorEl.textContent = `Floor ${floor}`;
+  showFloorIndicator(floor: number, themeName?: string): void {
+    const label = themeName ? `Floor ${floor} - ${themeName}` : `Floor ${floor}`;
+    this.floorEl.textContent = label;
     this.floorEl.style.display = 'block';
+    this.levelInfoEl.style.display = 'none';
   }
 
   hideFloorIndicator(): void {
     this.floorEl.style.display = 'none';
+  }
+
+  showLevelInfo(level: number, maxFloor: number): void {
+    this.levelInfoEl.textContent = `Lv.${level} | Floor ${maxFloor}/5`;
+    this.levelInfoEl.style.display = 'block';
+  }
+
+  hideLevelInfo(): void {
+    this.levelInfoEl.style.display = 'none';
   }
 }

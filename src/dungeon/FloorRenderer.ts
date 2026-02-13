@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { DungeonData, TileType } from './DungeonGenerator';
-import { TILE_SIZE, WALL_HEIGHT, COLORS } from '../utils/constants';
+import { TILE_SIZE, WALL_HEIGHT } from '../utils/constants';
+import { getFloorConfig, FloorTheme } from './FloorConfig';
 
 export interface DungeonMeshData {
   group: THREE.Group;
@@ -10,7 +11,8 @@ export interface DungeonMeshData {
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
 }
 
-export function buildDungeonMesh(dungeon: DungeonData): DungeonMeshData {
+export function buildDungeonMesh(dungeon: DungeonData, floor: number = 1): DungeonMeshData {
+  const theme = getFloorConfig(floor).theme;
   const group = new THREE.Group();
 
   // Center the dungeon around world origin
@@ -58,7 +60,7 @@ export function buildDungeonMesh(dungeon: DungeonData): DungeonMeshData {
       floorPositions,
       TILE_SIZE, 0.2, TILE_SIZE,
       0, -0.1, 0,
-      COLORS.floor,
+      theme.floorColor,
       false, true,
     );
     group.add(mesh);
@@ -70,7 +72,7 @@ export function buildDungeonMesh(dungeon: DungeonData): DungeonMeshData {
       wallPositions,
       TILE_SIZE, WALL_HEIGHT, TILE_SIZE,
       0, WALL_HEIGHT / 2, 0,
-      COLORS.wall,
+      theme.wallColor,
       true, true,
     );
     group.add(mesh);
@@ -80,7 +82,7 @@ export function buildDungeonMesh(dungeon: DungeonData): DungeonMeshData {
       wallPositions,
       TILE_SIZE, 0.15, TILE_SIZE,
       0, WALL_HEIGHT + 0.075, 0,
-      COLORS.wallTop,
+      theme.wallTopColor,
       false, false,
     );
     group.add(topMesh);
@@ -92,7 +94,7 @@ export function buildDungeonMesh(dungeon: DungeonData): DungeonMeshData {
       doorPositions,
       TILE_SIZE, 0.2, TILE_SIZE,
       0, -0.1, 0,
-      0x6a5a4a,
+      theme.doorColor,
       false, true,
     );
     group.add(mesh);

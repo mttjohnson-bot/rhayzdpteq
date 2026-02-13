@@ -1,3 +1,5 @@
+import { getFloorConfig } from '../dungeon/FloorConfig';
+
 export class FloorSelectUI {
   private container: HTMLDivElement;
   private listEl: HTMLDivElement;
@@ -77,7 +79,10 @@ export class FloorSelectUI {
       const btn = document.createElement('button');
       const unlocked = i <= this.maxUnlockedFloor;
 
-      btn.textContent = unlocked ? `Floor ${i}` : `Floor ${i} (Locked)`;
+      const floorConfig = getFloorConfig(i);
+      btn.textContent = unlocked
+        ? `Floor ${i} - ${floorConfig.theme.name}`
+        : `Floor ${i} - ${floorConfig.theme.name} (Locked)`;
       Object.assign(btn.style, {
         padding: '0.6rem 1rem',
         background: unlocked ? 'rgba(170, 68, 255, 0.2)' : 'rgba(50, 50, 50, 0.5)',
