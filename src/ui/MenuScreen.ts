@@ -26,7 +26,7 @@ export class MenuScreen {
     });
 
     const title = document.createElement('h1');
-    title.textContent = 'Dungeon Ascent';
+    title.textContent = 'Rhayzd Pteq';
     Object.assign(title.style, {
       fontSize: '3rem',
       marginBottom: '0.5rem',
