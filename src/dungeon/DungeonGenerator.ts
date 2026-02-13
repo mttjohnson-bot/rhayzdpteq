@@ -39,7 +39,7 @@ export interface DungeonData {
 }
 
 const ROOM_PADDING = 3; // min gap between rooms
-const MAX_PLACEMENT_ATTEMPTS = 500;
+const MAX_PLACEMENT_ATTEMPTS = 2000;
 
 function seededRandom(seed: number): () => number {
   let s = seed;
