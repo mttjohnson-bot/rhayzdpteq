@@ -1,3 +1,5 @@
+import { SaveManager } from '../game/SaveManager';
+
 export class MenuScreen {
   private container: HTMLDivElement;
   private onStart: (() => void) | null = null;
@@ -35,12 +37,34 @@ export class MenuScreen {
     subtitle.textContent = 'Climb the tower. Defeat the darkness.';
     Object.assign(subtitle.style, {
       fontSize: '1.1rem',
-      marginBottom: '2.5rem',
+      marginBottom: '2rem',
       color: '#888',
     });
 
+    this.container.appendChild(title);
+    this.container.appendChild(subtitle);
+
+    // Save info
+    const saveInfo = SaveManager.getSaveInfo();
+    if (saveInfo) {
+      const saveEl = document.createElement('div');
+      Object.assign(saveEl.style, {
+        marginBottom: '1.5rem',
+        padding: '0.5rem 1rem',
+        background: 'rgba(170, 68, 255, 0.1)',
+        border: '1px solid rgba(170, 68, 255, 0.3)',
+        borderRadius: '4px',
+        fontSize: '0.85rem',
+        color: '#aa88cc',
+        textAlign: 'center',
+      });
+      saveEl.textContent = `Save found: Lv.${saveInfo.level} | Floor ${saveInfo.floor}/5`;
+      this.container.appendChild(saveEl);
+    }
+
+    // Start/Continue button
     const startBtn = document.createElement('button');
-    startBtn.textContent = 'Start Game';
+    startBtn.textContent = saveInfo ? 'Continue' : 'Start Game';
     Object.assign(startBtn.style, {
       padding: '0.8rem 2.5rem',
       fontSize: '1.2rem',
@@ -50,6 +74,7 @@ export class MenuScreen {
       cursor: 'pointer',
       letterSpacing: '0.05em',
       transition: 'all 0.2s',
+      marginBottom: '0.8rem',
     });
     startBtn.addEventListener('mouseenter', () => {
       startBtn.style.background = '#aa44ff';
@@ -62,10 +87,37 @@ export class MenuScreen {
     startBtn.addEventListener('click', () => {
       this.onStart?.();
     });
-
-    this.container.appendChild(title);
-    this.container.appendChild(subtitle);
     this.container.appendChild(startBtn);
+
+    // New game button (only if save exists)
+    if (saveInfo) {
+      const newBtn = document.createElement('button');
+      newBtn.textContent = 'New Game';
+      Object.assign(newBtn.style, {
+        padding: '0.5rem 1.5rem',
+        fontSize: '0.9rem',
+        border: '1px solid rgba(255, 255, 255, 0.3)',
+        background: 'transparent',
+        color: '#888',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+      });
+      newBtn.addEventListener('mouseenter', () => {
+        newBtn.style.color = '#ff6644';
+        newBtn.style.borderColor = '#ff6644';
+      });
+      newBtn.addEventListener('mouseleave', () => {
+        newBtn.style.color = '#888';
+        newBtn.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+      });
+      newBtn.addEventListener('click', () => {
+        if (confirm('Delete saved progress and start a new game?')) {
+          SaveManager.deleteSave();
+          window.location.reload();
+        }
+      });
+      this.container.appendChild(newBtn);
+    }
   }
 
   show(onStart: () => void): void {

@@ -4,6 +4,7 @@ import { GameCamera } from './Camera';
 import { InputManager } from './InputManager';
 import { Player } from './Player';
 import { createHubScene, PortalInfo } from './Hub';
+import { SaveManager } from './SaveManager';
 import { MenuScreen } from '../ui/MenuScreen';
 import { HUD } from '../ui/HUD';
 import { InstructionsPanel } from '../ui/InstructionsPanel';
@@ -14,8 +15,10 @@ import { DamageNumbers } from '../ui/DamageNumbers';
 import { XPBar } from '../ui/XPBar';
 import { InventoryUI } from '../ui/InventoryUI';
 import { SkillTreeUI } from '../ui/SkillTreeUI';
+import { BossHealthBar } from '../ui/BossHealthBar';
 import { generateDungeon, DungeonData } from '../dungeon/DungeonGenerator';
 import { buildDungeonMesh, DungeonMeshData } from '../dungeon/FloorRenderer';
+import { getFloorConfig } from '../dungeon/FloorConfig';
 import { CombatSystem } from '../combat/CombatSystem';
 import { PlayerStats, ComputedStats } from '../rpg/Stats';
 import { LevelSystem, enemyXP } from '../rpg/Leveling';
@@ -47,6 +50,7 @@ export class Game {
   private xpBar: XPBar;
   private inventoryUI: InventoryUI;
   private skillTreeUI: SkillTreeUI;
+  private bossHealthBar: BossHealthBar;
   private combatSystem: CombatSystem;
 
   // RPG systems
@@ -81,6 +85,10 @@ export class Game {
   private deathScreenVisible = false;
   private deathOverlay: HTMLDivElement | null = null;
 
+  // Auto-save timer
+  private autoSaveTimer = 0;
+  private readonly AUTO_SAVE_INTERVAL = 30; // seconds
+
   constructor() {
     this.sceneManager = new SceneManager();
     this.camera = new GameCamera(window.innerWidth / window.innerHeight);
@@ -96,6 +104,7 @@ export class Game {
     this.xpBar = new XPBar();
     this.inventoryUI = new InventoryUI();
     this.skillTreeUI = new SkillTreeUI();
+    this.bossHealthBar = new BossHealthBar();
     this.combatSystem = new CombatSystem(this.sceneManager.scene, this.player);
 
     // RPG systems
@@ -116,6 +125,8 @@ export class Game {
     events.on('lootPickup', this.onLootPickup);
     events.on('useConsumable', this.onUseConsumable);
     events.on('equipmentChanged', this.onEquipmentChanged);
+    events.on('bossKilled', this.onBossKilled);
+    events.on('bossEnrage', this.onBossEnrage);
 
     window.addEventListener('resize', () => {
       this.camera.resize(window.innerWidth / window.innerHeight);
@@ -123,9 +134,25 @@ export class Game {
   }
 
   start(): void {
+    // Try to load saved game
+    this.loadGame();
     this.enterMenu();
     this.clock.start();
     this.loop();
+  }
+
+  // --- Save/Load ---
+
+  private saveGame(): void {
+    SaveManager.save(this.maxUnlockedFloor, this.levelSystem, this.skillTree, this.inventory);
+  }
+
+  private loadGame(): void {
+    const data = SaveManager.load();
+    if (data) {
+      this.maxUnlockedFloor = SaveManager.apply(data, this.levelSystem, this.skillTree, this.inventory);
+      this.recomputeStats();
+    }
   }
 
   // --- RPG stat recomputation ---
@@ -151,6 +178,7 @@ export class Game {
     this.healthBar.hide();
     this.damageNumbers.hide();
     this.xpBar.hide();
+    this.bossHealthBar.hide();
     this.menuScreen.show(() => this.enterHub());
   }
 
@@ -161,6 +189,7 @@ export class Game {
     this.healthBar.hide();
     this.damageNumbers.hide();
     this.xpBar.hide();
+    this.bossHealthBar.hide();
     this.floorSelectOpen = false;
     this.inventoryOpen = false;
     this.skillTreeOpen = false;
@@ -175,6 +204,9 @@ export class Game {
       this.dungeonData = null;
       this.dungeonMeshData = null;
     }
+
+    // Reset lighting to hub defaults
+    this.sceneManager.resetLighting();
 
     // Remove attack indicator from scene if present
     this.sceneManager.scene.remove(this.player.attackIndicator);
@@ -210,7 +242,11 @@ export class Game {
 
     this.camera.snapTo(this.player.position);
     this.hud.show();
+    this.hud.showLevelInfo(this.levelSystem.level, this.maxUnlockedFloor);
     this.instructions.show();
+
+    // Auto-save when returning to hub
+    this.saveGame();
   }
 
   private enterDungeon(floor: number): void {
@@ -224,9 +260,13 @@ export class Game {
       this.sceneManager.scene.remove(this.hubGroup);
     }
 
+    // Apply floor theme
+    const floorConfig = getFloorConfig(floor);
+    this.sceneManager.applyFloorTheme(floorConfig.theme);
+
     // Generate dungeon
     this.dungeonData = generateDungeon(floor);
-    this.dungeonMeshData = buildDungeonMesh(this.dungeonData);
+    this.dungeonMeshData = buildDungeonMesh(this.dungeonData, floor);
     this.dungeonGroup = this.dungeonMeshData.group;
     this.sceneManager.addGroup(this.dungeonGroup);
 
@@ -254,7 +294,7 @@ export class Game {
     // Add attack indicator to scene
     this.sceneManager.scene.add(this.player.attackIndicator);
 
-    // Spawn enemies
+    // Spawn enemies and bosses
     const offsetX = -(this.dungeonData.width * TILE_SIZE) / 2;
     const offsetZ = -(this.dungeonData.height * TILE_SIZE) / 2;
     this.combatSystem.spawnEnemiesForDungeon(this.dungeonData, floor, offsetX, offsetZ);
@@ -272,7 +312,7 @@ export class Game {
     this.xpBar.show();
 
     // Update HUD
-    this.hud.showFloorIndicator(floor);
+    this.hud.showFloorIndicator(floor, floorConfig.theme.name);
   }
 
   // --- Game loop ---
@@ -298,6 +338,12 @@ export class Game {
           this.camera.follow(this.player.position, dt);
         }
         this.updateHub(dt);
+        // Auto-save periodically in hub
+        this.autoSaveTimer += dt;
+        if (this.autoSaveTimer >= this.AUTO_SAVE_INTERVAL) {
+          this.autoSaveTimer = 0;
+          this.saveGame();
+        }
         break;
 
       case 'dungeon':
@@ -310,6 +356,7 @@ export class Game {
         }
         this.damageNumbers.update(dt);
         this.xpBar.update(dt);
+        this.bossHealthBar.update(dt);
         this.updateDungeon();
         break;
     }
@@ -422,18 +469,24 @@ export class Game {
     // Check if player reaches the exit tile
     const exit = this.dungeonMeshData.exitWorldPos;
     if (this.player.isNear(exit.x, exit.z)) {
-      this.hud.showPrompt('Press E to ascend to hub');
-      if (this.input.wasPressed('KeyE')) {
-        // Unlock next floor
-        if (this.currentFloor >= this.maxUnlockedFloor && this.currentFloor < 5) {
-          this.maxUnlockedFloor = this.currentFloor + 1;
+      // Only allow exit if boss is defeated
+      if (this.combatSystem.bossDefeated) {
+        this.hud.showPrompt('Press E to ascend to hub');
+        if (this.input.wasPressed('KeyE')) {
+          // Unlock next floor
+          if (this.currentFloor >= this.maxUnlockedFloor && this.currentFloor < 5) {
+            this.maxUnlockedFloor = this.currentFloor + 1;
+          }
+          this.hud.hideFloorIndicator();
+          this.minimap.hide();
+          this.healthBar.hide();
+          this.damageNumbers.hide();
+          this.xpBar.hide();
+          this.bossHealthBar.hide();
+          this.enterHub();
         }
-        this.hud.hideFloorIndicator();
-        this.minimap.hide();
-        this.healthBar.hide();
-        this.damageNumbers.hide();
-        this.xpBar.hide();
-        this.enterHub();
+      } else {
+        this.hud.showPrompt('Defeat the boss to unlock the exit');
       }
     } else {
       if (!this.inventoryOpen && !this.skillTreeOpen) {
@@ -462,12 +515,29 @@ export class Game {
     }
   };
 
+  private onBossKilled = (_x: unknown, _z: unknown, _floor: unknown): void => {
+    const floor = _floor as number;
+    // Boss grants 5x XP
+    const xp = enemyXP(floor) * 5;
+    this.levelSystem.addXP(xp);
+    this.recomputeStats();
+
+    this.hud.showPrompt('Boss defeated! Find the exit.');
+    this.bossHealthBar.hide();
+    setTimeout(() => this.hud.hidePrompt(), 3000);
+  };
+
+  private onBossEnrage = (_name: unknown): void => {
+    const name = _name as string;
+    this.hud.showPrompt(`${name} is enraged!`);
+    setTimeout(() => this.hud.hidePrompt(), 2000);
+  };
+
   private onLootPickup = (_item: unknown): void => {
     const item = _item as Item;
     const added = this.inventory.addItem(item);
     if (added) {
       this.hud.showPrompt(`Picked up: ${item.name}`);
-      // Auto-hide after 1.5s if still showing this message
       setTimeout(() => {
         this.hud.hidePrompt();
       }, 1500);
