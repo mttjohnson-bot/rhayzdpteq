@@ -82,6 +82,15 @@ export class InputManager {
         if (mapped) {
           this.keysPressed.add(mapped);
           this.keysDown.add(mapped);
+
+          // Dispatch synthetic keyboard event so DOM-based UI listeners
+          // (MenuScreen, FloorSelectUI, etc.) also receive gamepad input
+          const key = this.gamepadButtonToKey(i);
+          if (key) {
+            window.dispatchEvent(
+              new KeyboardEvent('keydown', { key, code: mapped, bubbles: true }),
+            );
+          }
         }
       } else if (!pressed && this.gamepadButtonsPressed.has(i)) {
         const mapped = this.mapGamepadButton(i);
@@ -104,6 +113,24 @@ export class InputManager {
     } else if (!gp.buttons[0]?.pressed && !gp.buttons[7]?.pressed && this.gamepadIndex !== null) {
       // Only clear mouseDown from gamepad if no real mouse is held
       // This is imperfect but works for gamepad-only play
+    }
+  }
+
+  /** Map gamepad button index to KeyboardEvent.key value (for synthetic events) */
+  private gamepadButtonToKey(index: number): string | null {
+    switch (index) {
+      case 0: return ' ';            // A = space
+      case 1: return 'e';            // B = interact
+      case 2: return 'i';            // X = inventory
+      case 3: return 'k';            // Y = skill tree
+      case 4: return 'r';            // L1 = respawn
+      case 8: return 'Escape';       // Select
+      case 9: return 'Escape';       // Start
+      case 12: return 'ArrowUp';     // D-pad up
+      case 13: return 'ArrowDown';   // D-pad down
+      case 14: return 'ArrowLeft';   // D-pad left
+      case 15: return 'ArrowRight';  // D-pad right
+      default: return null;
     }
   }
 
