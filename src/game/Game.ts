@@ -9,8 +9,12 @@ import { HUD } from '../ui/HUD';
 import { InstructionsPanel } from '../ui/InstructionsPanel';
 import { Minimap } from '../ui/Minimap';
 import { FloorSelectUI } from '../ui/FloorSelectUI';
+import { HealthBar } from '../ui/HealthBar';
+import { DamageNumbers } from '../ui/DamageNumbers';
 import { generateDungeon, DungeonData } from '../dungeon/DungeonGenerator';
 import { buildDungeonMesh, DungeonMeshData } from '../dungeon/FloorRenderer';
+import { CombatSystem } from '../combat/CombatSystem';
+import { events } from '../utils/EventBus';
 import {
   TILE_SIZE,
   HUB_WIDTH,
@@ -29,6 +33,9 @@ export class Game {
   private instructions: InstructionsPanel;
   private minimap: Minimap;
   private floorSelectUI: FloorSelectUI;
+  private healthBar: HealthBar;
+  private damageNumbers: DamageNumbers;
+  private combatSystem: CombatSystem;
 
   private state: GameState = 'menu';
   private clock = new THREE.Clock();
@@ -46,6 +53,10 @@ export class Game {
   private maxUnlockedFloor = 1;
   private floorSelectOpen = false;
 
+  // Death/respawn state
+  private deathScreenVisible = false;
+  private deathOverlay: HTMLDivElement | null = null;
+
   constructor() {
     this.sceneManager = new SceneManager();
     this.camera = new GameCamera(window.innerWidth / window.innerHeight);
@@ -56,6 +67,14 @@ export class Game {
     this.instructions = new InstructionsPanel();
     this.minimap = new Minimap();
     this.floorSelectUI = new FloorSelectUI();
+    this.healthBar = new HealthBar();
+    this.damageNumbers = new DamageNumbers();
+    this.combatSystem = new CombatSystem(this.sceneManager.scene, this.player);
+
+    this.damageNumbers.setCamera(this.camera.camera);
+
+    // Listen for player death
+    events.on('playerDied', this.onPlayerDied);
 
     window.addEventListener('resize', () => {
       this.camera.resize(window.innerWidth / window.innerHeight);
@@ -75,6 +94,8 @@ export class Game {
     this.hud.hide();
     this.instructions.hide();
     this.minimap.hide();
+    this.healthBar.hide();
+    this.damageNumbers.hide();
     this.menuScreen.show(() => this.enterHub());
   }
 
@@ -82,18 +103,28 @@ export class Game {
     this.state = 'hub';
     this.menuScreen.hide();
     this.minimap.hide();
+    this.healthBar.hide();
+    this.damageNumbers.hide();
     this.floorSelectOpen = false;
+    this.hideDeathScreen();
 
     // Clean up dungeon if returning from one
     if (this.dungeonGroup) {
+      this.combatSystem.clearEnemies();
       this.sceneManager.removeGroup(this.dungeonGroup);
       this.dungeonGroup = null;
       this.dungeonData = null;
       this.dungeonMeshData = null;
     }
 
+    // Remove attack indicator from scene if present
+    this.sceneManager.scene.remove(this.player.attackIndicator);
+
     // Clear dungeon collision
     this.player.setDungeonCollision(null);
+
+    // Reset player health when returning to hub
+    this.player.resetHealth();
 
     // Build hub if first time
     if (!this.hubGroup) {
@@ -151,12 +182,26 @@ export class Game {
       this.dungeonMeshData.bounds.minZ,
       this.dungeonMeshData.bounds.maxZ,
     );
+    this.player.resetHealth();
     this.camera.snapTo(this.player.position);
+
+    // Add attack indicator to scene
+    this.sceneManager.scene.add(this.player.attackIndicator);
+
+    // Spawn enemies
+    const offsetX = -(this.dungeonData.width * TILE_SIZE) / 2;
+    const offsetZ = -(this.dungeonData.height * TILE_SIZE) / 2;
+    this.combatSystem.spawnEnemiesForDungeon(this.dungeonData, floor, offsetX, offsetZ);
 
     // Set up minimap
     this.minimap.setDungeon(this.dungeonData);
     this.minimap.show();
     this.minimap.updatePlayerPosition(this.player.position.x, this.player.position.z);
+
+    // Show combat UI
+    this.healthBar.setHealth(this.player.hp, this.player.maxHp);
+    this.healthBar.show();
+    this.damageNumbers.show();
 
     // Update HUD
     this.hud.showFloorIndicator(floor);
@@ -187,8 +232,12 @@ export class Game {
         break;
 
       case 'dungeon':
-        this.player.update(dt, this.input);
-        this.camera.follow(this.player.position, dt);
+        if (!this.deathScreenVisible) {
+          this.player.update(dt, this.input);
+          this.camera.follow(this.player.position, dt);
+          this.combatSystem.update(dt);
+        }
+        this.damageNumbers.update(dt);
         this.updateDungeon();
         break;
     }
@@ -229,6 +278,15 @@ export class Game {
     // Update minimap with player position
     this.minimap.updatePlayerPosition(this.player.position.x, this.player.position.z);
 
+    if (this.deathScreenVisible) {
+      // Wait for respawn input
+      if (this.input.wasPressed('KeyR')) {
+        this.hideDeathScreen();
+        this.enterHub();
+      }
+      return;
+    }
+
     // Check if player reaches the exit tile
     const exit = this.dungeonMeshData.exitWorldPos;
     if (this.player.isNear(exit.x, exit.z)) {
@@ -240,10 +298,70 @@ export class Game {
         }
         this.hud.hideFloorIndicator();
         this.minimap.hide();
+        this.healthBar.hide();
+        this.damageNumbers.hide();
         this.enterHub();
       }
     } else {
       this.hud.hidePrompt();
+    }
+  }
+
+  // --- Death/Respawn ---
+
+  private onPlayerDied = (): void => {
+    this.showDeathScreen();
+  };
+
+  private showDeathScreen(): void {
+    this.deathScreenVisible = true;
+
+    this.deathOverlay = document.createElement('div');
+    Object.assign(this.deathOverlay.style, {
+      position: 'absolute',
+      top: '0',
+      left: '0',
+      width: '100%',
+      height: '100%',
+      background: 'rgba(80, 0, 0, 0.6)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontFamily: "'Segoe UI', system-ui, sans-serif",
+      color: '#ff4444',
+      zIndex: '100',
+      animation: 'fadeIn 0.5s ease-out',
+    });
+
+    const title = document.createElement('div');
+    Object.assign(title.style, {
+      fontSize: '3rem',
+      fontWeight: 'bold',
+      textShadow: '2px 2px 8px #000',
+      marginBottom: '1rem',
+    });
+    title.textContent = 'YOU DIED';
+    this.deathOverlay.appendChild(title);
+
+    const subtitle = document.createElement('div');
+    Object.assign(subtitle.style, {
+      fontSize: '1.2rem',
+      color: '#ccc',
+      textShadow: '1px 1px 4px #000',
+    });
+    subtitle.textContent = 'Press R to return to hub';
+    this.deathOverlay.appendChild(subtitle);
+
+    const overlay = document.getElementById('ui-overlay');
+    overlay?.appendChild(this.deathOverlay);
+  }
+
+  private hideDeathScreen(): void {
+    this.deathScreenVisible = false;
+    if (this.deathOverlay) {
+      this.deathOverlay.remove();
+      this.deathOverlay = null;
     }
   }
 }

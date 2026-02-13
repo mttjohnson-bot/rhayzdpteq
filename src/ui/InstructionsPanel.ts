@@ -24,6 +24,7 @@ export class InstructionsPanel {
       <div style="color:#aa88ff; font-weight:600; margin-bottom:6px; font-size:0.95rem;">Controls</div>
       <div><span style="color:#eee">WASD / Arrows</span> — Move</div>
       <div><span style="color:#eee">E</span> — Interact</div>
+      <div><span style="color:#eee">Click / Space</span> — Attack</div>
       <hr style="border:none; border-top:1px solid rgba(255,255,255,0.1); margin:8px 0;">
       <div style="color:#aa88ff; font-weight:600; margin-bottom:6px; font-size:0.95rem;">Objective</div>
       <div>Find the <span style="color:#dd88ff">purple portal</span> and press <span style="color:#eee">E</span> to enter the dungeon.</div>
