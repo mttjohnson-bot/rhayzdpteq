@@ -124,6 +124,7 @@ export class InputManager {
       case 2: return 'i';            // X = inventory
       case 3: return 'k';            // Y = skill tree
       case 4: return 'r';            // L1 = respawn
+      case 5: return 'x';            // R1 = drop (inventory)
       case 8: return 'Escape';       // Select
       case 9: return 'Escape';       // Start
       case 12: return 'ArrowUp';     // D-pad up
@@ -142,6 +143,7 @@ export class InputManager {
       case 2: return 'KeyI';          // X = inventory
       case 3: return 'KeyK';          // Y = skill tree
       case 4: return 'KeyR';          // L1 = respawn
+      case 5: return 'KeyX';          // R1 = drop (inventory)
       case 8: return 'Escape';        // Select = cancel/close
       case 9: return 'Escape';        // Start = pause/cancel
       case 12: return 'ArrowUp';      // D-pad up

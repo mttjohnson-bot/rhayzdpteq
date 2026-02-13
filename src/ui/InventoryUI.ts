@@ -10,6 +10,7 @@ import { Inventory } from '../rpg/Inventory';
 import { Item, rarityColor, ItemSlot } from '../rpg/LootTable';
 import { ComputedStats } from '../rpg/Stats';
 import { events } from '../utils/EventBus';
+import { ConfirmDialog } from './ConfirmDialog';
 
 export class InventoryUI {
   private container: HTMLDivElement;
@@ -26,6 +27,7 @@ export class InventoryUI {
   private selectedColumn: 'equipment' | 'bag' = 'bag';
   private selectedIndex = 0;
   private _keyHandler: (e: KeyboardEvent) => void;
+  private confirmDialog: ConfirmDialog;
 
   constructor() {
     this.container = document.createElement('div');
@@ -135,8 +137,8 @@ export class InventoryUI {
 
     // Keyboard hint
     const hint = document.createElement('div');
-    hint.innerHTML = 'I/Esc: close | Click: equip | Right-click: use | Shift+click: drop'
-      + '<br>Gamepad: D-pad navigate | A: equip/use | B: close';
+    hint.innerHTML = 'I/Esc: close | Click: equip | Right-click: use | X: drop | Shift+click: drop'
+      + '<br>Gamepad: D-pad navigate | A: equip/use | R1: drop | B: close';
     Object.assign(hint.style, { marginTop: '0.8rem', fontSize: '0.7rem', color: '#777', textAlign: 'center', lineHeight: '1.4' });
     this.container.appendChild(hint);
 
@@ -144,6 +146,7 @@ export class InventoryUI {
     overlay?.appendChild(this.container);
 
     this._keyHandler = this.handleKey.bind(this);
+    this.confirmDialog = new ConfirmDialog();
   }
 
   show(inventory: Inventory, stats: ComputedStats, onClose: () => void): void {
@@ -217,6 +220,12 @@ export class InventoryUI {
         this.activateSelected();
         break;
       }
+      case 'x': {
+        // X key or R1 gamepad button — drop selected item
+        e.preventDefault();
+        this.dropSelected();
+        break;
+      }
       case 'e': {
         // B button on gamepad dispatches 'e' — treat as close/back
         this.hide();
@@ -256,6 +265,42 @@ export class InventoryUI {
         }
         this.refresh();
       }
+    }
+  }
+
+  private dropSelected(): void {
+    if (!this.inventory) return;
+
+    let item: Item | null = null;
+    if (this.selectedColumn === 'bag') {
+      item = this.inventory.bag[this.selectedIndex] ?? null;
+    }
+    if (!item) return;
+
+    this.promptDrop(item);
+  }
+
+  private async promptDrop(item: Item): Promise<void> {
+    if (!this.inventory) return;
+
+    // Remove keyboard handler while confirm dialog is active
+    window.removeEventListener('keydown', this._keyHandler);
+
+    const confirmed = await this.confirmDialog.show(
+      `Drop "${item.name}"? It will be destroyed.`,
+    );
+
+    // Re-attach keyboard handler
+    if (this.visible) {
+      window.addEventListener('keydown', this._keyHandler);
+    }
+
+    if (confirmed) {
+      this.inventory.dropItem(item.id);
+      if (this.selectedIndex >= this.inventory.bag.length) {
+        this.selectedIndex = Math.max(0, this.inventory.bag.length - 1);
+      }
+      this.refresh();
     }
   }
 
@@ -406,10 +451,7 @@ export class InventoryUI {
       dropBtn.addEventListener('mouseleave', () => { dropBtn.style.color = '#664444'; });
       dropBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (confirm(`Drop "${item.name}"? It will be destroyed.`)) {
-          this.inventory!.dropItem(item.id);
-          this.refresh();
-        }
+        this.promptDrop(item);
       });
       rightPart.appendChild(dropBtn);
       row.appendChild(rightPart);
@@ -417,10 +459,7 @@ export class InventoryUI {
       // Left click to equip, shift+click to drop, right click to use consumable
       row.addEventListener('click', (e) => {
         if ((e as MouseEvent).shiftKey) {
-          if (confirm(`Drop "${item.name}"? It will be destroyed.`)) {
-            this.inventory!.dropItem(item.id);
-            this.refresh();
-          }
+          this.promptDrop(item);
         } else if (item.type === 'equipment') {
           this.inventory!.equip(item.id);
           this.refresh();
