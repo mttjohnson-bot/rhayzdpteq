@@ -252,3 +252,75 @@ These should be resolved as development progresses:
 - [ ] How to handle player death (return to hub? lose items? lose XP? retry same floor?)
 - [ ] Hub features: NPC vendors, upgrade stations, cosmetic unlocks?
 - [ ] Multiplayer potential (future scope?)
+- [ ] randomly introduce dager obstacles in rooms
+  - [ ] obstacle types
+    - [ ] fixed room objects to move around like furniture
+    - [ ] water weakens player/enemy on contact
+    - [ ] mud slows player/enemy on contact
+    - [ ] fire burns player/enemy on contact
+    - [ ] trap that explodes on contact
+- [ ] additional collectable loot items
+  - [ ] collectable item types
+    - [ ] level modifier (harder/easier enemies)
+    - [ ] show colored dots on mini map where enemies remain on level
+  - [ ] a randomly selected and hidden loot item on each level map
+  - [ ] random dropable item (low chance of dropping)
+- [ ] item storage vault in hub and inventory transfer dialog (with keyboard and gamepad support)
+- [ ] Quests/Tasks/Objectives board with rewards
+  - [ ] defeat x number of type y enemies
+  - [ ] defeat boss y with x type of specific item equiped
+  - [ ] collect x type of collectable item
+- [ ] use menu button on controller to open menu dialog and tab between sections with bumpers
+- [ ] Support for Meta Quest2 WebVR/WebXR and VR Controllers
+- [ ] Settings section in menu
+  - [ ] toggle between first person and third person view
+  - [ ] toggle to automatically enable all controller options or select a single controller
+    - [ ] selection of controller options (keyboard, gamepad)
+  - [ ] Diagnostics overlay
+    - [ ] frame rate
+    - [ ] active draw calls - number of objects actively tracking and being rendered
+- [ ] diagnostics info tab in menu
+    - [ ] os and browser detection and display
+    - [ ] controller detected
+      - [ ] type of controller detected
+- [ ] full map tab in menu
+  - [ ] zoom in/out support
+  - [ ] display percentage of map discovered
+  - [ ] key indicators on map
+    - [ ] start
+    - [ ] exit
+    - [ ] boss room
+    - [ ] location of discovered collectable item
+- [ ] software robustness
+  - [ ] verification suite
+    - [ ] Unit & Integration Testing
+    - [ ] End-to-End (E2E) & Visual Testing
+    - [ ] Development & Build Tools 
+  - [ ] security scanning
+    - [ ] dependency update checking
+    - [ ] vulnerability scanning
+    - [ ] error handling
+  - [ ] linting code base
+- [ ] library for viewing all visual game assets
+  - [ ] additional door from hub to library
+  - [ ] organize library rooms on floor by asset type
+    - [ ] enemies
+      - [ ] mob / captain
+      - [ ] boss
+    - [ ] npc characters
+      - [ ] merchant vendor
+    - [ ] inventory items
+      - [ ] weapons
+      - [ ] armor
+      - [ ] rings
+      - [ ] potions
+    - [ ] structure components
+      - [ ] floor
+      - [ ] wall
+      - [ ] room objects
+      - [ ] show all variations and themes available for structure components
+  - [ ] each asset is in a fixed position over a short pedistal and slowly rotates
+  - [ ] asset interactions
+    - [ ] highlight the asset the player is most facing
+    - [ ] when asset is highlighted option to interact is made available
+    - [ ] when player initiates interaction with asset a dialog appears with asset stats and details
