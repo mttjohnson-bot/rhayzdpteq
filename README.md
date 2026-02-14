@@ -1,6 +1,6 @@
-# Voxel Dungeon Crawler
+# Rhayzd Pteq
 
-A browser-based 3D dungeon crawler RPG with a voxel art style, built with [Three.js](https://threejs.org/) and TypeScript.
+Rhayzd Pteq exists at the intersection of family lore and systems engineering as a phonetic cipher for "Raised Tech" that embodies the act of willing a digital foundation into existence. While presented as a playable experience, this project functions with the intent of one day being a foundational framework to decouple core mechanics from creative narrative. It is an iterative experiment in translating abstract imagination into tangible reality, establishing a workshop that will serve as the invisible backbone for building future worlds, stories, and puzzles yet to be imagined.
 
 ## About the Game
 
@@ -20,39 +20,6 @@ Ascend through procedurally generated dungeon floors using real-time action comb
 ## Play the Game
 
 Play now at: **[https://mttjohnson-bot.github.io/rhayzdpteq/](https://mttjohnson-bot.github.io/rhayzdpteq/)**
-
-## Getting Started (Development)
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) (LTS recommended)
-- npm
-
-### Setup
-
-```bash
-# Clone the repository
-git clone https://github.com/mttjohnson-bot/rhayzdpteq.git
-cd rhayzdpteq
-
-# Install dependencies
-npm install
-
-# Start the dev server
-npm run dev
-```
-
-### Commands
-
-| Task | Command |
-|------|---------|
-| Install dependencies | `npm install` |
-| Dev server | `npm run dev` |
-| Production build | `npm run build` |
-| Preview build | `npm run preview` |
-| Run tests | `npm test` |
-| Lint | `npm run lint` |
-| Type check | `npx tsc --noEmit` |
 
 ## Controls
 
