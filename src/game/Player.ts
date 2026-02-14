@@ -8,6 +8,7 @@ import { InputManager } from './InputManager';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { events } from '../utils/EventBus';
 import { ComputedStats } from '../rpg/Stats';
+import { createOcclusionSilhouette } from '../rendering/OcclusionOutline';
 
 export class Player {
   readonly mesh: THREE.Mesh;
@@ -56,6 +57,10 @@ export class Player {
     this.mesh.castShadow = true;
     this.mesh.position.y = PLAYER_HEIGHT / 2;
     this.position = this.mesh.position;
+
+    // Occlusion silhouette: visible through walls
+    const silhouette = createOcclusionSilhouette(PLAYER_SIZE, PLAYER_HEIGHT, PLAYER_SIZE, 0x66ccff);
+    this.mesh.add(silhouette);
 
     const arcGeo = new THREE.CylinderGeometry(0, 1.0, 0.1, 8, 1, false, 0, Math.PI / 2);
     const arcMat = new THREE.MeshBasicMaterial({

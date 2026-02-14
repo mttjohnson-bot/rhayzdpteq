@@ -9,6 +9,7 @@ import {
 import { events } from '../utils/EventBus';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { FloorDifficulty } from '../dungeon/FloorConfig';
+import { createOcclusionSilhouette } from '../rendering/OcclusionOutline';
 
 export type EnemyState = 'patrol' | 'chase' | 'attack' | 'dead';
 
@@ -92,6 +93,10 @@ export class Enemy {
     body.castShadow = true;
     body.position.y = height / 2;
     this.mesh.add(body);
+
+    // Occlusion silhouette: visible through walls
+    const silhouette = createOcclusionSilhouette(size, height, size, 0xff6644, height / 2);
+    this.mesh.add(silhouette);
 
     // Type-specific decorations
     this.addTypeDecorations(type, size, height);

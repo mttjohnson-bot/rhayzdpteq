@@ -7,6 +7,7 @@ import {
 import { events } from '../utils/EventBus';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { BossConfig, BossAbility } from '../dungeon/FloorConfig';
+import { createOcclusionSilhouette } from '../rendering/OcclusionOutline';
 
 export class Boss {
   readonly mesh: THREE.Group;
@@ -74,6 +75,10 @@ export class Boss {
     body.castShadow = true;
     body.position.y = height / 2;
     this.mesh.add(body);
+
+    // Occlusion silhouette: visible through walls
+    const silhouette = createOcclusionSilhouette(size * 0.7, height, size * 0.7, 0xff4444, height / 2);
+    this.mesh.add(silhouette);
 
     // Boss horns
     const hornGeo = new THREE.ConeGeometry(size * 0.1, size * 0.4, 4);
