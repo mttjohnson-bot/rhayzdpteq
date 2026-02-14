@@ -75,6 +75,10 @@ npm run dev
 - **Vite** — fast builds and hot module replacement
 - **GitHub Pages** — free static hosting
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a history of what has changed in each release.
+
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
