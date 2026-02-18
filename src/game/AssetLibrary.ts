@@ -26,6 +26,7 @@ import {
   CAPTAIN_SCALE,
   type EnemyTypeId,
 } from '../utils/constants';
+import { TestDummy } from '../combat/TestDummy';
 import { getFloorConfig } from '../dungeon/FloorConfig';
 import { buildEnemyDisplayMesh } from '../combat/Enemy';
 import { buildBossDisplayMesh } from '../combat/Boss';
@@ -272,6 +273,7 @@ export class AssetLibrary {
   readonly group: THREE.Group;
   private assets: LibraryAsset[] = [];
   private highlightedAsset: LibraryAsset | null = null;
+  private testDummies: TestDummy[] = [];
 
   constructor() {
     this.group = new THREE.Group();
@@ -283,6 +285,7 @@ export class AssetLibrary {
     this._buildItemsWing();
     this._buildEastCorridor();
     this._buildStructureWing();
+    this._buildTrainingArea();
   }
 
   // -------------------------------------------------------------------------
@@ -294,11 +297,19 @@ export class AssetLibrary {
     for (const asset of this.assets) {
       asset.displayMesh.rotation.y += ROTATION_SPEED * dt;
     }
+    // Update test dummy hit-flash timers
+    for (const dummy of this.testDummies) {
+      dummy.update(dt);
+    }
     this._updateHighlight(playerX, playerZ, facingAngle);
   }
 
   getHighlightedAsset(): LibraryAsset | null {
     return this.highlightedAsset;
+  }
+
+  getTestDummies(): TestDummy[] {
+    return this.testDummies;
   }
 
   // -------------------------------------------------------------------------
@@ -447,6 +458,64 @@ export class AssetLibrary {
     this._buildWall(20, 1, 39.5, 6.5);
 
     this._addStructureSection();
+  }
+
+  // -------------------------------------------------------------------------
+  // Training area (test dummies)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Build three attackable training dummies in the Entry Hall.
+   *
+   * Layout:
+   *   - Dummy 1 (solo): x=14.5, z=0    — for single-target & range testing
+   *   - Dummy 2 (pair): x=17.5, z=-0.5 — pair for AoE / cleave testing
+   *   - Dummy 3 (pair): x=17.5, z=+0.5 — pair for AoE / cleave testing
+   *
+   * A raised training platform visually marks the area.
+   */
+  private _buildTrainingArea(): void {
+    // Raised platform under the training area
+    const platGeo = new THREE.BoxGeometry(6, 0.08, 5);
+    const platMat = new THREE.MeshLambertMaterial({ color: 0x5c4433 });
+    const platform = new THREE.Mesh(platGeo, platMat);
+    platform.position.set(16, 0.04, 0);
+    platform.receiveShadow = true;
+    this.group.add(platform);
+
+    // Border ring around platform
+    const borderGeo = new THREE.BoxGeometry(6.3, 0.04, 5.3);
+    const borderMat = new THREE.MeshLambertMaterial({ color: 0x7a6a55 });
+    const border = new THREE.Mesh(borderGeo, borderMat);
+    border.position.set(16, 0.01, 0);
+    border.receiveShadow = true;
+    this.group.add(border);
+
+    // "TRAINING" sign post behind the dummies
+    const signPostGeo = new THREE.BoxGeometry(0.08, 1.6, 0.08);
+    const signPostMat = new THREE.MeshLambertMaterial({ color: 0x6a5010 });
+    const signPost = new THREE.Mesh(signPostGeo, signPostMat);
+    signPost.position.set(19.2, 0.8, 0);
+    this.group.add(signPost);
+
+    const signGeo = new THREE.BoxGeometry(1.8, 0.5, 0.06);
+    const signMat = new THREE.MeshLambertMaterial({ color: 0x5c4433 });
+    const sign = new THREE.Mesh(signGeo, signMat);
+    sign.position.set(19.2, 1.5, 0);
+    this.group.add(sign);
+
+    // Create the three test dummies
+    const positions: Array<[number, number]> = [
+      [14.5, 0],     // solo dummy — single-target & range testing
+      [17.5, -0.5],  // pair dummy — AoE testing
+      [17.5, 0.5],   // pair dummy — AoE testing
+    ];
+
+    for (const [x, z] of positions) {
+      const dummy = new TestDummy(x, z);
+      this.testDummies.push(dummy);
+      this.group.add(dummy.mesh);
+    }
   }
 
   // -------------------------------------------------------------------------

@@ -22,6 +22,7 @@ import { generateDungeon, DungeonData } from '../dungeon/DungeonGenerator';
 import { buildDungeonMesh, DungeonMeshData } from '../dungeon/FloorRenderer';
 import { getFloorConfig } from '../dungeon/FloorConfig';
 import { CombatSystem } from '../combat/CombatSystem';
+import { TestDummy } from '../combat/TestDummy';
 import { PlayerStats, ComputedStats } from '../rpg/Stats';
 import { LevelSystem, enemyXP } from '../rpg/Leveling';
 import { SkillTree } from '../rpg/SkillTree';
@@ -33,6 +34,8 @@ import {
   TILE_SIZE,
   HUB_WIDTH,
   HUB_DEPTH,
+  PLAYER_ATTACK_RANGE,
+  PLAYER_ATTACK_ARC,
 } from '../utils/constants';
 
 export type GameState = 'menu' | 'hub' | 'dungeon' | 'library';
@@ -263,6 +266,10 @@ export class Game {
 
     // Clear dungeon collision
     this.player.setDungeonCollision(null);
+
+    // Restore combat-system auto-face and colliders (library overrides these)
+    this.player.setAutoFaceCallback((px, pz) => this.combatSystem.findNearestTarget(px, pz));
+    this.player.setMobColliders(() => this.combatSystem.getColliders());
 
     // Recompute stats and reset health
     this.recomputeStats();
@@ -559,8 +566,23 @@ export class Game {
       this.sceneManager.scene.add(this.assetLibrary.group);
     }
 
-    // Remove attack indicator (not needed in library)
-    this.sceneManager.scene.remove(this.player.attackIndicator);
+    // Enable attack indicator for training dummies
+    this.sceneManager.scene.add(this.player.attackIndicator);
+
+    // Show damage numbers so hits on dummies are visible
+    this.damageNumbers.show();
+
+    // Auto-face nearest test dummy when attacking
+    const dummies = this.assetLibrary.getTestDummies();
+    this.player.setAutoFaceCallback((px, pz) => this.findNearestDummy(px, pz));
+
+    // Collide with dummies so player can't walk through them
+    this.player.setMobColliders(() =>
+      dummies.map(d => ({ position: d.position, collisionRadius: d.collisionRadius, alive: true as boolean })),
+    );
+
+    // Register library attack handler
+    events.on('playerAttack', this.onPlayerAttackInLibrary);
 
     // Place player just inside the library entrance
     this.player.teleportTo(10, 0);
@@ -582,6 +604,12 @@ export class Game {
       this.libraryDialog.hide();
       this.libraryDialogOpen = false;
     }
+
+    // Clean up library attack handling
+    events.off('playerAttack', this.onPlayerAttackInLibrary);
+    this.sceneManager.scene.remove(this.player.attackIndicator);
+    this.damageNumbers.hide();
+
     this.enterHub();
   }
 
@@ -589,6 +617,9 @@ export class Game {
     if (!this.assetLibrary) return;
 
     this.hud.setGamepadConnected(this.input.hasGamepad);
+
+    // Always update floating damage numbers
+    this.damageNumbers.update(dt);
 
     if (this.libraryDialogOpen) return;
 
@@ -600,6 +631,9 @@ export class Game {
       return;
     }
 
+    // Check if player is near the training area (centered around x=16, z=0)
+    const nearTraining = this.player.isNear(16, 0, 6);
+
     const highlighted = this.assetLibrary.getHighlightedAsset();
     if (highlighted) {
       this.hud.showPrompt(`Press E to inspect: ${highlighted.name}`);
@@ -610,6 +644,8 @@ export class Game {
           this.hud.hidePrompt();
         });
       }
+    } else if (nearTraining) {
+      this.hud.showPrompt('Training Area — Attack the dummies to test your damage!  |  I: Inventory');
     } else {
       this.hud.showPrompt('Walk toward an asset to highlight it  |  Walk west to return to Hub');
     }
@@ -679,6 +715,60 @@ export class Game {
       }
     }
   }
+
+  // --- Library training dummy attack handling ---
+
+  /** Find nearest test dummy within auto-face range. */
+  private findNearestDummy(px: number, pz: number): { x: number; z: number } | null {
+    if (!this.assetLibrary) return null;
+    const dummies = this.assetLibrary.getTestDummies();
+    const range = PLAYER_ATTACK_RANGE * 1.5;
+
+    let nearest: { x: number; z: number; dist: number } | null = null;
+    for (const dummy of dummies) {
+      const dx = dummy.position.x - px;
+      const dz = dummy.position.z - pz;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist <= range && (!nearest || dist < nearest.dist)) {
+        nearest = { x: dummy.position.x, z: dummy.position.z, dist };
+      }
+    }
+    return nearest ? { x: nearest.x, z: nearest.z } : null;
+  }
+
+  /** Handle player attacks against training dummies in the library. */
+  private onPlayerAttackInLibrary = (_px: unknown, _pz: unknown, _angle: unknown): void => {
+    if (this.state !== 'library' || !this.assetLibrary) return;
+
+    const px = _px as number;
+    const pz = _pz as number;
+    const angle = _angle as number;
+
+    const baseDamage = this.computedStats.attack;
+    const critChance = this.computedStats.critChance;
+    const critMult = this.computedStats.critMultiplier;
+
+    for (const dummy of this.assetLibrary.getTestDummies()) {
+      const dx = dummy.position.x - px;
+      const dz = dummy.position.z - pz;
+      const dist = Math.sqrt(dx * dx + dz * dz);
+      if (dist > PLAYER_ATTACK_RANGE) continue;
+
+      const angleToTarget = Math.atan2(dz, dx);
+      let angleDiff = angleToTarget - angle;
+      while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+      while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+      if (Math.abs(angleDiff) <= PLAYER_ATTACK_ARC / 2) {
+        const isCrit = Math.random() < critChance;
+        const damage = Math.round(isCrit ? baseDamage * critMult : baseDamage);
+        dummy.takeDamage(damage);
+        if (isCrit) {
+          events.emit('damageNumber', dummy.position.x, dummy.position.z, damage, false, true);
+        }
+      }
+    }
+  };
 
   // --- Consumable buff timers ---
 
