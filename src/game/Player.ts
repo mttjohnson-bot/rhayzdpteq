@@ -183,13 +183,14 @@ export class Player {
       }
     }
 
-    // Animate equipped weapon pivot
+    // Animate equipped weapon pivot (all rotations are in player-mesh local space)
     if (this.weaponPivot && this.weaponMesh) {
       const swingT = this.isAttacking ? 1 - (this.attackTimer / this.attackDuration) : 0;
       const swingArc = Math.sin(swingT * Math.PI) * (Math.PI * 0.65);
       // Resting: weapon held 45° to the right of facing; sweeps through to the left during attack
       const sweepAngle = Math.PI / 4 - swingArc;
-      this.weaponPivot.rotation.y = -this.facingAngle + sweepAngle;
+      // Local-space only — player mesh rotation handles world-space orientation
+      this.weaponPivot.rotation.y = sweepAngle;
       // Tilt weapon forward at the peak of the swing
       this.weaponPivot.rotation.x = -swingArc * 0.3;
     }
@@ -252,6 +253,11 @@ export class Player {
       this.attackIndicator.position.z = this.position.z;
       this.attackIndicator.rotation.y = -this.facingAngle + Math.PI / 4;
     }
+
+    // Rotate player mesh to face the current movement/attack direction.
+    // facingAngle = atan2(worldZ, worldX) uses CCW-positive convention;
+    // Three.js rotation.y uses CW-positive, so the offset is +π/2.
+    this.mesh.rotation.y = Math.PI / 2 - this.facingAngle;
   }
 
   private applyMovement(moveX: number, moveZ: number): void {
