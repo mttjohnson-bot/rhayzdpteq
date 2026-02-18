@@ -510,15 +510,9 @@ export class Game {
 
     if (this.inventoryOpen || this.skillTreeOpen) return;
 
-    // Check proximity to library door (east wall)
-    if (this.libraryDoor && this.player.isNear(this.libraryDoor.x, this.libraryDoor.z, 2.5)) {
-      if (!this.floorSelectOpen) {
-        this.hud.showPrompt('Press E to enter Asset Library | I: Inventory | K: Skills');
-      }
-      if (this.input.wasPressed('KeyE') && !this.floorSelectOpen) {
-        this.enterLibrary();
-        return;
-      }
+    // Check proximity to library door (east wall) — auto-enter on approach
+    if (this.libraryDoor && this.player.isNear(this.libraryDoor.x, this.libraryDoor.z, 2.5) && !this.floorSelectOpen) {
+      this.enterLibrary();
       return;
     }
 
