@@ -4,7 +4,7 @@ import { GameCamera } from './Camera';
 import { InputManager } from './InputManager';
 import { Player } from './Player';
 import { createHubScene, PortalInfo, LibraryDoorInfo } from './Hub';
-import { AssetLibrary } from './AssetLibrary';
+import { AssetLibrary, buildWeaponDisplayMesh, buildArmorDisplayMesh, buildRingDisplayMesh } from './AssetLibrary';
 import { LibraryAssetDialog } from '../ui/LibraryAssetDialog';
 import { SaveManager } from './SaveManager';
 import { MenuScreen } from '../ui/MenuScreen';
@@ -191,7 +191,22 @@ export class Game {
     this.player.applyStats(stats);
     this.combatSystem.setComputedStats(stats);
     this.computedStats = stats;
+    this.updatePlayerEquipmentVisuals();
     return stats;
+  }
+
+  /** Build and attach 3D equipment visuals to the player based on current inventory. */
+  private updatePlayerEquipmentVisuals(): void {
+    const { weapon, armor, ring } = this.inventory.equipped;
+
+    if (weapon && weapon.subtype) {
+      this.player.setWeaponMesh(buildWeaponDisplayMesh(weapon.subtype, weapon.rarity));
+    } else {
+      this.player.setWeaponMesh(null);
+    }
+
+    this.player.updateArmorVisual(armor ? armor.rarity : null);
+    this.player.updateRingVisual(ring ? ring.rarity : null);
   }
 
   // --- State transitions ---

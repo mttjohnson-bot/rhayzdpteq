@@ -75,14 +75,14 @@ function toHex(n: number): string {
   return '#' + n.toString(16).padStart(6, '0');
 }
 
-const RARITY_HEX: Record<ItemRarity, number> = {
+export const RARITY_HEX: Record<ItemRarity, number> = {
   common: 0xaaaaaa,
   uncommon: 0x44cc44,
   rare: 0x4488ff,
   epic: 0xcc44ff,
 };
 
-function buildWeaponDisplayMesh(category: string, rarity: ItemRarity): THREE.Group {
+export function buildWeaponDisplayMesh(category: string, rarity: ItemRarity): THREE.Group {
   const group = new THREE.Group();
   const color = RARITY_HEX[rarity];
   const mat = new THREE.MeshLambertMaterial({ color });
@@ -120,7 +120,7 @@ function buildWeaponDisplayMesh(category: string, rarity: ItemRarity): THREE.Gro
   return group;
 }
 
-function buildArmorDisplayMesh(rarity: ItemRarity): THREE.Group {
+export function buildArmorDisplayMesh(rarity: ItemRarity): THREE.Group {
   const group = new THREE.Group();
   const color = RARITY_HEX[rarity];
   const mat = new THREE.MeshLambertMaterial({ color });
@@ -143,7 +143,7 @@ function buildArmorDisplayMesh(rarity: ItemRarity): THREE.Group {
   return group;
 }
 
-function buildRingDisplayMesh(rarity: ItemRarity): THREE.Group {
+export function buildRingDisplayMesh(rarity: ItemRarity): THREE.Group {
   const group = new THREE.Group();
   const color = RARITY_HEX[rarity];
   const mat = new THREE.MeshLambertMaterial({ color });
