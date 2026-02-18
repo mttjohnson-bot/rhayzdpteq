@@ -101,6 +101,18 @@ export class MenuScreen {
     this.gamepadIndicator.textContent = 'Gamepad Connected';
     this.container.appendChild(this.gamepadIndicator);
 
+    // Build version info
+    const versionInfo = document.createElement('div');
+    versionInfo.textContent = `last changed ${__BUILD_DATE__} (${__BUILD_COMMIT__})`;
+    Object.assign(versionInfo.style, {
+      position: 'absolute',
+      bottom: '0.75rem',
+      right: '1rem',
+      fontSize: '0.65rem',
+      color: '#444',
+    });
+    this.container.appendChild(versionInfo);
+
     this._keyHandler = this._keyHandler.bind(this);
     this._onGamepadConnected = this._onGamepadConnected.bind(this);
     this._onGamepadDisconnected = this._onGamepadDisconnected.bind(this);
