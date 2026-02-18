@@ -133,6 +133,9 @@ export class Game {
     // Wire auto-face: when player attacks, face nearest enemy
     this.player.setAutoFaceCallback((px, pz) => this.combatSystem.findNearestTarget(px, pz));
 
+    // Wire mob collision: player cannot move through enemies or bosses
+    this.player.setMobColliders(() => this.combatSystem.getColliders());
+
     // Listen for events
     events.on('playerDied', this.onPlayerDied);
     events.on('enemyKilled', this.onEnemyKilled);
