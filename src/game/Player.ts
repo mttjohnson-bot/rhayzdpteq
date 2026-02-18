@@ -9,6 +9,8 @@ import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { events } from '../utils/EventBus';
 import { ComputedStats } from '../rpg/Stats';
 import { createOcclusionSilhouette } from '../rendering/OcclusionOutline';
+import { ItemRarity } from '../rpg/LootTable';
+import { RARITY_HEX } from './AssetLibrary';
 
 export class Player {
   readonly mesh: THREE.Mesh;
@@ -52,6 +54,13 @@ export class Player {
 
   // Mob collision callback
   private getMobColliders: (() => Array<{ position: THREE.Vector3; collisionRadius: number; alive: boolean }>) | null = null;
+
+  // Equipment visuals
+  private weaponPivot: THREE.Group | null = null;
+  private weaponMesh: THREE.Group | null = null;
+  private armorPadL: THREE.Mesh | null = null;
+  private armorPadR: THREE.Mesh | null = null;
+  private ringVisual: THREE.Mesh | null = null;
 
   constructor() {
     const geometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_HEIGHT, PLAYER_SIZE);
@@ -172,6 +181,17 @@ export class Player {
         this.isAttacking = false;
         this.attackIndicator.visible = false;
       }
+    }
+
+    // Animate equipped weapon pivot
+    if (this.weaponPivot && this.weaponMesh) {
+      const swingT = this.isAttacking ? 1 - (this.attackTimer / this.attackDuration) : 0;
+      const swingArc = Math.sin(swingT * Math.PI) * (Math.PI * 0.65);
+      // Resting: weapon held 45° to the right of facing; sweeps through to the left during attack
+      const sweepAngle = Math.PI / 4 - swingArc;
+      this.weaponPivot.rotation.y = -this.facingAngle + sweepAngle;
+      // Tilt weapon forward at the peak of the swing
+      this.weaponPivot.rotation.x = -swingArc * 0.3;
     }
 
     if (!this.alive) return;
@@ -312,6 +332,58 @@ export class Player {
     }
 
     return true;
+  }
+
+  /** Attach/replace the 3D weapon model on the player. Pass null to remove it. */
+  setWeaponMesh(mesh: THREE.Group | null): void {
+    if (this.weaponPivot) {
+      this.mesh.remove(this.weaponPivot);
+      this.weaponPivot = null;
+      this.weaponMesh = null;
+    }
+    if (mesh) {
+      const pivot = new THREE.Group();
+      // Position slightly below the player's vertical center so the weapon sits at waist level
+      pivot.position.set(0, 0.1, 0);
+      // Scale the weapon model down to fit player proportions
+      mesh.scale.setScalar(0.55);
+      // Place weapon forward of the pivot so it extends in the facing direction
+      mesh.position.set(0, 0, 0.45);
+      pivot.add(mesh);
+      this.mesh.add(pivot);
+      this.weaponPivot = pivot;
+      this.weaponMesh = mesh;
+    }
+  }
+
+  /** Show/update coloured shoulder pads based on equipped armor rarity. Pass null to remove. */
+  updateArmorVisual(rarity: ItemRarity | null): void {
+    if (this.armorPadL) { this.mesh.remove(this.armorPadL); this.armorPadL = null; }
+    if (this.armorPadR) { this.mesh.remove(this.armorPadR); this.armorPadR = null; }
+    if (!rarity) return;
+    const color = RARITY_HEX[rarity];
+    const padGeo = new THREE.BoxGeometry(0.18, 0.18, 0.14);
+    const padMat = new THREE.MeshLambertMaterial({ color });
+    this.armorPadL = new THREE.Mesh(padGeo, padMat);
+    this.armorPadL.position.set(-0.38, 0.22, 0);
+    this.mesh.add(this.armorPadL);
+    this.armorPadR = new THREE.Mesh(padGeo.clone(), padMat.clone());
+    this.armorPadR.position.set(0.38, 0.22, 0);
+    this.mesh.add(this.armorPadR);
+  }
+
+  /** Show/update a glowing ring indicator based on equipped ring rarity. Pass null to remove. */
+  updateRingVisual(rarity: ItemRarity | null): void {
+    if (this.ringVisual) { this.mesh.remove(this.ringVisual); this.ringVisual = null; }
+    if (!rarity) return;
+    const color = RARITY_HEX[rarity];
+    const geo = new THREE.TorusGeometry(0.12, 0.03, 6, 12);
+    const mat = new THREE.MeshLambertMaterial({ color, emissive: color, emissiveIntensity: 0.5 });
+    this.ringVisual = new THREE.Mesh(geo, mat);
+    this.ringVisual.rotation.x = Math.PI / 2;
+    // Position at the player's right wrist area
+    this.ringVisual.position.set(0.38, -0.18, 0);
+    this.mesh.add(this.ringVisual);
   }
 
   isNear(x: number, z: number, range: number = TILE_SIZE * 1.5): boolean {

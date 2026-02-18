@@ -20,6 +20,8 @@ export interface Item {
   rarity: ItemRarity;
   level: number;
   modifier: StatModifier;
+  /** For weapons: the weapon category ('sword' | 'axe' | 'mace' | 'dagger' | 'spear') */
+  subtype?: string;
   consumeEffect?: ConsumeEffect;
   consumeValue?: number;
   consumeDuration?: number;
@@ -98,11 +100,13 @@ function generateEquipment(floor: number, slot?: ItemSlot): Item {
 
   let name: string;
   const modifier: StatModifier = {};
+  let subtype: string | undefined;
 
   switch (actualSlot) {
     case 'weapon': {
       // Pick weapon category for variety
       const category = pickRandom(WEAPON_CATEGORIES);
+      subtype = category;
       const baseName = pickRandom(WEAPON_NAMES[category]);
       name = `${prefix} ${baseName}`;
       modifier.flatDamage = Math.round((3 + floor * 2) * mult);
@@ -171,6 +175,7 @@ function generateEquipment(floor: number, slot?: ItemSlot): Item {
     rarity,
     level: baseLvl,
     modifier,
+    ...(subtype !== undefined && { subtype }),
   };
 }
 
