@@ -3,7 +3,9 @@ import { SceneManager } from '../rendering/SceneManager';
 import { GameCamera } from './Camera';
 import { InputManager } from './InputManager';
 import { Player } from './Player';
-import { createHubScene, PortalInfo } from './Hub';
+import { createHubScene, PortalInfo, LibraryDoorInfo } from './Hub';
+import { AssetLibrary } from './AssetLibrary';
+import { LibraryAssetDialog } from '../ui/LibraryAssetDialog';
 import { SaveManager } from './SaveManager';
 import { MenuScreen } from '../ui/MenuScreen';
 import { HUD } from '../ui/HUD';
@@ -33,7 +35,7 @@ import {
   HUB_DEPTH,
 } from '../utils/constants';
 
-export type GameState = 'menu' | 'hub' | 'dungeon';
+export type GameState = 'menu' | 'hub' | 'dungeon' | 'library';
 
 export class Game {
   private sceneManager: SceneManager;
@@ -68,6 +70,12 @@ export class Game {
   private hubGroup: THREE.Group | null = null;
   private portal: PortalInfo | null = null;
   private portalAnimTime = 0;
+  private libraryDoor: LibraryDoorInfo | null = null;
+
+  // Library state
+  private assetLibrary: AssetLibrary | null = null;
+  private libraryDialog: LibraryAssetDialog;
+  private libraryDialogOpen = false;
 
   // Dungeon state
   private dungeonGroup: THREE.Group | null = null;
@@ -116,6 +124,7 @@ export class Game {
     this.inventoryUI = new InventoryUI();
     this.skillTreeUI = new SkillTreeUI();
     this.bossHealthBar = new BossHealthBar();
+    this.libraryDialog = new LibraryAssetDialog();
     this.combatSystem = new CombatSystem(this.sceneManager.scene, this.player);
 
     // RPG systems
@@ -249,6 +258,7 @@ export class Game {
       const hub = createHubScene();
       this.hubGroup = hub.group;
       this.portal = hub.portal;
+      this.libraryDoor = hub.libraryDoor;
       this.sceneManager.addGroup(this.hubGroup);
     } else {
       // Re-add existing hub
@@ -394,6 +404,15 @@ export class Game {
         this.bossHealthBar.update(dt);
         this.updateDungeon();
         break;
+
+      case 'library':
+        this.handleUIToggle();
+        if (!this.libraryDialogOpen && !this.inventoryOpen && !this.skillTreeOpen) {
+          this.player.update(dt, this.input);
+          this.camera.follow(this.player.position, dt);
+        }
+        this.updateLibrary(dt);
+        break;
     }
   }
 
@@ -469,6 +488,18 @@ export class Game {
 
     if (this.inventoryOpen || this.skillTreeOpen) return;
 
+    // Check proximity to library door (east wall)
+    if (this.libraryDoor && this.player.isNear(this.libraryDoor.x, this.libraryDoor.z, 2.5)) {
+      if (!this.floorSelectOpen) {
+        this.hud.showPrompt('Press E to enter Asset Library | I: Inventory | K: Skills');
+      }
+      if (this.input.wasPressed('KeyE') && !this.floorSelectOpen) {
+        this.enterLibrary();
+        return;
+      }
+      return;
+    }
+
     // Check proximity to portal
     if (this.player.isNear(this.portal.x, this.portal.z)) {
       if (!this.floorSelectOpen) {
@@ -492,6 +523,80 @@ export class Game {
       if (!this.floorSelectOpen) {
         this.hud.showPrompt('I: Inventory | K: Skills');
       }
+    }
+  }
+
+  private enterLibrary(): void {
+    this.state = 'library';
+    this.hud.hidePrompt();
+    this.floorSelectOpen = false;
+
+    // Hide hub (keep in memory)
+    if (this.hubGroup) {
+      this.sceneManager.scene.remove(this.hubGroup);
+    }
+
+    // Build library on first visit; reuse on subsequent visits
+    if (!this.assetLibrary) {
+      this.assetLibrary = new AssetLibrary();
+      this.sceneManager.addGroup(this.assetLibrary.group);
+    } else {
+      this.sceneManager.scene.add(this.assetLibrary.group);
+    }
+
+    // Remove attack indicator (not needed in library)
+    this.sceneManager.scene.remove(this.player.attackIndicator);
+
+    // Place player just inside the library entrance
+    this.player.teleportTo(10, 0);
+    this.player.setBounds(8.5, 49.5, -23.5, 23.5);
+    this.player.setDungeonCollision(null);
+
+    this.sceneManager.resetLighting();
+    this.camera.snapTo(this.player.position);
+    this.hud.show();
+    this.hud.showLevelInfo(this.levelSystem.level, this.maxUnlockedFloor);
+    this.hud.setGamepadConnected(this.input.hasGamepad);
+  }
+
+  private exitLibrary(): void {
+    if (this.assetLibrary) {
+      this.sceneManager.scene.remove(this.assetLibrary.group);
+    }
+    if (this.libraryDialogOpen) {
+      this.libraryDialog.hide();
+      this.libraryDialogOpen = false;
+    }
+    this.enterHub();
+  }
+
+  private updateLibrary(dt: number): void {
+    if (!this.assetLibrary) return;
+
+    this.hud.setGamepadConnected(this.input.hasGamepad);
+
+    if (this.libraryDialogOpen) return;
+
+    this.assetLibrary.update(dt, this.player.position.x, this.player.position.z, this.player.facingAngle);
+
+    // Walk west past the door threshold → return to hub
+    if (this.player.position.x < 9.5) {
+      this.exitLibrary();
+      return;
+    }
+
+    const highlighted = this.assetLibrary.getHighlightedAsset();
+    if (highlighted) {
+      this.hud.showPrompt(`Press E to inspect: ${highlighted.name}`);
+      if (this.input.wasPressed('KeyE')) {
+        this.libraryDialogOpen = true;
+        this.libraryDialog.show(highlighted, () => {
+          this.libraryDialogOpen = false;
+          this.hud.hidePrompt();
+        });
+      }
+    } else {
+      this.hud.showPrompt('Walk toward an asset to highlight it  |  Walk west to return to Hub');
     }
   }
 

@@ -380,3 +380,87 @@ export class Enemy {
     });
   }
 }
+
+/**
+ * Builds a visual-only display mesh for use in the Asset Library.
+ * Replicates enemy appearance without health bars, occlusion silhouettes, or AI state.
+ */
+export function buildEnemyDisplayMesh(typeId: EnemyTypeId, isCaptain: boolean): THREE.Group {
+  const type = ENEMY_TYPES[typeId];
+  const captainSizeMult = isCaptain ? CAPTAIN_SCALE : 1;
+  const bodyScale = type.bodyScale * captainSizeMult;
+  const size = ENEMY_SIZE * bodyScale;
+  const height = ENEMY_HEIGHT * type.heightScale * captainSizeMult;
+
+  const group = new THREE.Group();
+
+  // Body
+  const bodyGeo = new THREE.BoxGeometry(size, height, size);
+  const bodyMat = new THREE.MeshLambertMaterial({ color: type.color });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.castShadow = true;
+  body.position.y = height / 2;
+  group.add(body);
+
+  // Type-specific decorations
+  switch (type.id) {
+    case 'brute': {
+      const padGeo = new THREE.BoxGeometry(size * 0.3, size * 0.2, size * 0.3);
+      const padMat = new THREE.MeshLambertMaterial({ color: 0x664422 });
+      const lPad = new THREE.Mesh(padGeo, padMat);
+      lPad.position.set(-size * 0.5, height * 0.8, 0);
+      group.add(lPad);
+      const rPad = new THREE.Mesh(padGeo.clone(), padMat);
+      rPad.position.set(size * 0.5, height * 0.8, 0);
+      group.add(rPad);
+      break;
+    }
+    case 'archer': {
+      const quiverGeo = new THREE.CylinderGeometry(0.04, 0.04, height * 0.4, 4);
+      const quiverMat = new THREE.MeshLambertMaterial({ color: 0x886633 });
+      const quiver = new THREE.Mesh(quiverGeo, quiverMat);
+      quiver.position.set(0, height * 0.6, size * 0.4);
+      group.add(quiver);
+      break;
+    }
+    case 'mage': {
+      const hatGeo = new THREE.ConeGeometry(size * 0.3, size * 0.5, 6);
+      const hatMat = new THREE.MeshLambertMaterial({ color: 0x4422aa });
+      const hat = new THREE.Mesh(hatGeo, hatMat);
+      hat.position.y = height + size * 0.1;
+      group.add(hat);
+      break;
+    }
+    case 'assassin': {
+      const hoodGeo = new THREE.ConeGeometry(size * 0.35, size * 0.3, 3);
+      const hoodMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+      const hood = new THREE.Mesh(hoodGeo, hoodMat);
+      hood.position.y = height + size * 0.05;
+      group.add(hood);
+      break;
+    }
+  }
+
+  // Captain crown
+  if (isCaptain) {
+    const crownGeo = new THREE.ConeGeometry(size * 0.25, size * 0.4, 4);
+    const crownMat = new THREE.MeshLambertMaterial({ color: 0xffcc00 });
+    const crown = new THREE.Mesh(crownGeo, crownMat);
+    crown.position.y = height + size * 0.15;
+    group.add(crown);
+  }
+
+  // Eyes
+  const eyeSize = 0.08 * bodyScale;
+  const eyeGeo = new THREE.BoxGeometry(eyeSize, eyeSize, eyeSize);
+  const eyeColor = type.id === 'mage' ? 0xaa44ff : type.id === 'assassin' ? 0xff0000 : 0xffffff;
+  const eyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
+  const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+  leftEye.position.set(-size * 0.24, height * 0.7, -size / 2 - 0.01);
+  group.add(leftEye);
+  const rightEye = new THREE.Mesh(eyeGeo.clone(), eyeMat);
+  rightEye.position.set(size * 0.24, height * 0.7, -size / 2 - 0.01);
+  group.add(rightEye);
+
+  return group;
+}

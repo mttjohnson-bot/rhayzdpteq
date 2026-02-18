@@ -381,3 +381,49 @@ export class Boss {
     });
   }
 }
+
+/**
+ * Builds a visual-only display mesh for use in the Asset Library.
+ * Replicates boss appearance without health bars, occlusion silhouettes, or AI state.
+ */
+export function buildBossDisplayMesh(config: BossConfig): THREE.Group {
+  const group = new THREE.Group();
+  const size = config.scale;
+  const height = size * 1.2;
+
+  // Body
+  const bodyGeo = new THREE.BoxGeometry(size * 0.7, height, size * 0.7);
+  const bodyMat = new THREE.MeshLambertMaterial({ color: config.color });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.castShadow = true;
+  body.position.y = height / 2;
+  group.add(body);
+
+  // Horns
+  const hornGeo = new THREE.ConeGeometry(size * 0.1, size * 0.4, 4);
+  const hornMat = new THREE.MeshLambertMaterial({ color: 0xdddddd });
+  const leftHorn = new THREE.Mesh(hornGeo, hornMat);
+  leftHorn.position.set(-size * 0.25, height + size * 0.15, 0);
+  leftHorn.rotation.z = 0.3;
+  group.add(leftHorn);
+  const rightHorn = new THREE.Mesh(hornGeo.clone(), hornMat);
+  rightHorn.position.set(size * 0.25, height + size * 0.15, 0);
+  rightHorn.rotation.z = -0.3;
+  group.add(rightHorn);
+
+  // Eyes (larger, menacing)
+  const eyeSize = size * 0.08;
+  const eyeGeo = new THREE.BoxGeometry(eyeSize, eyeSize * 1.5, eyeSize);
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
+  const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+  leftEye.position.set(-size * 0.15, height * 0.75, -size * 0.35 - 0.01);
+  group.add(leftEye);
+  const rightEye = new THREE.Mesh(eyeGeo.clone(), eyeMat);
+  rightEye.position.set(size * 0.15, height * 0.75, -size * 0.35 - 0.01);
+  group.add(rightEye);
+
+  // Normalize scale so all bosses display at a consistent size in the library
+  group.scale.setScalar(1.0 / size);
+
+  return group;
+}

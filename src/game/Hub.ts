@@ -17,7 +17,12 @@ export interface PortalInfo {
  * Builds the fixed hub scene geometry.
  * Returns a group containing all hub meshes and the portal location.
  */
-export function createHubScene(): { group: THREE.Group; portal: PortalInfo } {
+export interface LibraryDoorInfo {
+  x: number;
+  z: number;
+}
+
+export function createHubScene(): { group: THREE.Group; portal: PortalInfo; libraryDoor: LibraryDoorInfo } {
   const group = new THREE.Group();
 
   const halfW = (HUB_WIDTH * TILE_SIZE) / 2;
@@ -66,8 +71,18 @@ export function createHubScene(): { group: THREE.Group; portal: PortalInfo } {
   buildWall(HUB_WIDTH * TILE_SIZE + TILE_SIZE, TILE_SIZE, 0, halfD + TILE_SIZE / 2);
   // West wall
   buildWall(TILE_SIZE, HUB_DEPTH * TILE_SIZE, -halfW - TILE_SIZE / 2, 0);
-  // East wall
-  buildWall(TILE_SIZE, HUB_DEPTH * TILE_SIZE, halfW + TILE_SIZE / 2, 0);
+  // East wall — two segments with a 3-tile door gap at center (z = -1.5 to +1.5)
+  // Each segment is 6 tiles deep, centered at ±4.5
+  buildWall(TILE_SIZE, 6 * TILE_SIZE, halfW + TILE_SIZE / 2, -4.5);
+  buildWall(TILE_SIZE, 6 * TILE_SIZE, halfW + TILE_SIZE / 2, 4.5);
+
+  // Library door arch — decorative lintel above the gap
+  const archGeo = new THREE.BoxGeometry(TILE_SIZE * 1.1, TILE_SIZE * 0.3, 3 * TILE_SIZE + 0.1);
+  const archMat = new THREE.MeshLambertMaterial({ color: COLORS.wallTop });
+  const arch = new THREE.Mesh(archGeo, archMat);
+  arch.position.set(halfW + TILE_SIZE / 2, WALL_HEIGHT - 0.15, 0);
+  arch.castShadow = true;
+  group.add(arch);
 
   // --- Decorative pillars at corners ---
   const pillarGeo = new THREE.BoxGeometry(TILE_SIZE * 0.8, WALL_HEIGHT * 1.3, TILE_SIZE * 0.8);
@@ -118,5 +133,6 @@ export function createHubScene(): { group: THREE.Group; portal: PortalInfo } {
   return {
     group,
     portal: { x: portalX, z: portalZ, mesh: portalMesh },
+    libraryDoor: { x: halfW + TILE_SIZE / 2, z: 0 },
   };
 }
