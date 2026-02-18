@@ -87,34 +87,44 @@ export function buildWeaponDisplayMesh(category: string, rarity: ItemRarity): TH
   const group = new THREE.Group();
   const color = RARITY_HEX[rarity];
   const mat = new THREE.MeshLambertMaterial({ color });
+  const handleMat = new THREE.MeshLambertMaterial({ color: 0x6a4420 });
 
-  // Blade / shaft
+  // Blade / shaft — chunky voxel proportions for isometric visibility
   const bladeH = category === 'spear' ? 1.1 : category === 'dagger' ? 0.55 : 0.8;
-  const bladeW = category === 'axe' ? 0.18 : category === 'mace' ? 0.16 : 0.07;
-  const bladeGeo = new THREE.BoxGeometry(bladeW, bladeH, 0.06);
+  const bladeW = category === 'axe' ? 0.22 : category === 'mace' ? 0.2 : 0.12;
+  const bladeGeo = new THREE.BoxGeometry(bladeW, bladeH, 0.1);
   const blade = new THREE.Mesh(bladeGeo, mat);
-  blade.position.y = bladeH / 2 + 0.1;
+  blade.position.y = bladeH / 2 + 0.18;
+  blade.castShadow = true;
   group.add(blade);
 
+  // Handle below the guard
+  const handleGeo = new THREE.BoxGeometry(0.09, 0.22, 0.09);
+  const handle = new THREE.Mesh(handleGeo, handleMat);
+  handle.position.y = 0.02;
+  group.add(handle);
+
   if (category === 'sword' || category === 'dagger' || category === 'spear') {
-    // Crossguard / tip
-    const guardGeo = new THREE.BoxGeometry(0.36, 0.06, 0.06);
+    // Crossguard
+    const guardGeo = new THREE.BoxGeometry(0.36, 0.08, 0.1);
     const guard = new THREE.Mesh(guardGeo, mat);
     guard.position.y = 0.18;
     group.add(guard);
   } else if (category === 'axe') {
     // Axe head
-    const headGeo = new THREE.BoxGeometry(0.3, 0.24, 0.06);
+    const headGeo = new THREE.BoxGeometry(0.34, 0.28, 0.1);
     const headMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
     const head = new THREE.Mesh(headGeo, headMat);
-    head.position.set(0.12, bladeH + 0.08, 0);
+    head.position.set(0.14, bladeH + 0.08, 0);
+    head.castShadow = true;
     group.add(head);
   } else if (category === 'mace') {
     // Mace head
-    const headGeo = new THREE.BoxGeometry(0.24, 0.2, 0.24);
+    const headGeo = new THREE.BoxGeometry(0.28, 0.24, 0.28);
     const headMat = new THREE.MeshLambertMaterial({ color: 0x888888 });
     const head = new THREE.Mesh(headGeo, headMat);
     head.position.y = bladeH + 0.08;
+    head.castShadow = true;
     group.add(head);
   }
 
