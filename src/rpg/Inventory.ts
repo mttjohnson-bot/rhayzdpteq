@@ -12,6 +12,36 @@ import { events } from '../utils/EventBus';
 
 const BASE_BAG_SIZE = 24;
 
+/**
+ * Mapping from weapon name keywords to weapon category (subtype).
+ * Used to migrate old saved weapons that predate the subtype field.
+ */
+const WEAPON_NAME_TO_CATEGORY: Record<string, string> = {
+  Sword: 'sword', Blade: 'sword', Falchion: 'sword', Sabre: 'sword',
+  Axe: 'axe', Hatchet: 'axe', Cleaver: 'axe', Tomahawk: 'axe',
+  Mace: 'mace', Hammer: 'mace', Flail: 'mace', Morningstar: 'mace',
+  Dagger: 'dagger', Shiv: 'dagger', Stiletto: 'dagger', Dirk: 'dagger',
+  Halberd: 'spear', Pike: 'spear', Spear: 'spear', Glaive: 'spear',
+};
+
+/** Backfill missing fields on items loaded from old save formats. */
+function migrateItem(item: Item): Item {
+  // Weapons saved before the subtype field was added need it inferred from name
+  if (item.slot === 'weapon' && !item.subtype) {
+    for (const [keyword, category] of Object.entries(WEAPON_NAME_TO_CATEGORY)) {
+      if (item.name.includes(keyword)) {
+        item.subtype = category;
+        break;
+      }
+    }
+    // Fallback if name doesn't match any known keyword
+    if (!item.subtype) {
+      item.subtype = 'sword';
+    }
+  }
+  return item;
+}
+
 export interface EquipmentSlots {
   weapon: Item | null;
   armor: Item | null;
@@ -118,10 +148,10 @@ export class Inventory {
 
   fromJSON(data: { equipped: Record<string, Item | null>; bag: Item[] }): void {
     this.equipped = {
-      weapon: data.equipped.weapon ?? null,
-      armor: data.equipped.armor ?? null,
-      ring: data.equipped.ring ?? null,
+      weapon: data.equipped.weapon ? migrateItem(data.equipped.weapon) : null,
+      armor: data.equipped.armor ? migrateItem(data.equipped.armor) : null,
+      ring: data.equipped.ring ? migrateItem(data.equipped.ring) : null,
     };
-    this.bag = data.bag ?? [];
+    this.bag = (data.bag ?? []).map(migrateItem);
   }
 }
