@@ -206,7 +206,8 @@ export class Player {
 
       this.facingAngle = Math.atan2(worldZ, worldX);
 
-      const attackSpeedFactor = this.isAttacking ? 0.25 : 1;
+      const attackHeld = input.isMouseDown() || input.isDown('Space');
+      const attackSpeedFactor = attackHeld ? 0.25 : 1;
       const speed = PLAYER_SPEED * this.moveSpeedMultiplier * attackSpeedFactor;
       this.applyMovement(worldX * speed * dt, worldZ * speed * dt);
     }
