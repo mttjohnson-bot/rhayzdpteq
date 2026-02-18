@@ -50,6 +50,9 @@ export class Player {
   // Auto-face callback
   private autoFaceCallback: ((px: number, pz: number) => { x: number; z: number } | null) | null = null;
 
+  // Mob collision callback
+  private getMobColliders: (() => Array<{ position: THREE.Vector3; collisionRadius: number; alive: boolean }>) | null = null;
+
   constructor() {
     const geometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_HEIGHT, PLAYER_SIZE);
     this.baseMaterial = new THREE.MeshLambertMaterial({ color: COLORS.player });
@@ -75,6 +78,10 @@ export class Player {
 
   setAutoFaceCallback(cb: (px: number, pz: number) => { x: number; z: number } | null): void {
     this.autoFaceCallback = cb;
+  }
+
+  setMobColliders(cb: () => Array<{ position: THREE.Vector3; collisionRadius: number; alive: boolean }>): void {
+    this.getMobColliders = cb;
   }
 
   applyStats(stats: ComputedStats): void {
@@ -199,7 +206,8 @@ export class Player {
 
       this.facingAngle = Math.atan2(worldZ, worldX);
 
-      const speed = PLAYER_SPEED * this.moveSpeedMultiplier;
+      const attackSpeedFactor = this.isAttacking ? 0.25 : 1;
+      const speed = PLAYER_SPEED * this.moveSpeedMultiplier * attackSpeedFactor;
       this.applyMovement(worldX * speed * dt, worldZ * speed * dt);
     }
 
@@ -231,15 +239,19 @@ export class Player {
     const newZ = this.position.z + moveZ;
 
     if (this.dungeonData) {
-      if (this.isWalkable(newX, this.position.z)) {
+      if (this.isWalkable(newX, this.position.z) && !this.isBlockedByMob(newX, this.position.z)) {
         this.position.x = newX;
       }
-      if (this.isWalkable(this.position.x, newZ)) {
+      if (this.isWalkable(this.position.x, newZ) && !this.isBlockedByMob(this.position.x, newZ)) {
         this.position.z = newZ;
       }
     } else {
-      this.position.x = clamp(newX, this.bounds.minX + half, this.bounds.maxX - half);
-      this.position.z = clamp(newZ, this.bounds.minZ + half, this.bounds.maxZ - half);
+      if (!this.isBlockedByMob(newX, this.position.z)) {
+        this.position.x = clamp(newX, this.bounds.minX + half, this.bounds.maxX - half);
+      }
+      if (!this.isBlockedByMob(this.position.x, newZ)) {
+        this.position.z = clamp(newZ, this.bounds.minZ + half, this.bounds.maxZ - half);
+      }
     }
   }
 
@@ -249,6 +261,27 @@ export class Player {
     this.attackCooldown = cooldown;
     this.attackIndicator.visible = true;
     events.emit('playerAttack', this.position.x, this.position.z, this.facingAngle);
+  }
+
+  private isBlockedByMob(worldX: number, worldZ: number): boolean {
+    if (!this.getMobColliders) return false;
+    const colliders = this.getMobColliders();
+    const playerRadius = PLAYER_SIZE / 2;
+    for (const mob of colliders) {
+      if (!mob.alive) continue;
+      const minDist = playerRadius + mob.collisionRadius;
+      const newDx = worldX - mob.position.x;
+      const newDz = worldZ - mob.position.z;
+      const newDist = Math.sqrt(newDx * newDx + newDz * newDz);
+      if (newDist < minDist) {
+        // Only block if this move brings us closer to the mob (allows escaping overlaps)
+        const curDx = this.position.x - mob.position.x;
+        const curDz = this.position.z - mob.position.z;
+        const curDist = Math.sqrt(curDx * curDx + curDz * curDz);
+        if (newDist < curDist) return true;
+      }
+    }
+    return false;
   }
 
   private isWalkable(worldX: number, worldZ: number): boolean {

@@ -126,6 +126,10 @@ export class CombatSystem {
     return this.bosses.length === 0 || this.bosses.every(b => !b.alive);
   }
 
+  getColliders(): Array<{ position: THREE.Vector3; collisionRadius: number; alive: boolean }> {
+    return [...this.enemies, ...this.bosses];
+  }
+
   /** Find nearest enemy within attack range for auto-face */
   findNearestTarget(px: number, pz: number): { x: number; z: number } | null {
     let nearest: { x: number; z: number; dist: number } | null = null;
