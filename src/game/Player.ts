@@ -23,7 +23,7 @@ export class Player {
   attackCooldown: number = 0;
   isAttacking: boolean = false;
   private attackTimer: number = 0;
-  private readonly attackDuration = 0.15;
+  private readonly attackDuration = 0.35;
 
   invincibleTimer: number = 0;
   facingAngle: number = 0;
@@ -186,13 +186,13 @@ export class Player {
     // Animate equipped weapon pivot (all rotations are in player-mesh local space)
     if (this.weaponPivot && this.weaponMesh) {
       const swingT = this.isAttacking ? 1 - (this.attackTimer / this.attackDuration) : 0;
-      const swingArc = Math.sin(swingT * Math.PI) * (Math.PI * 0.65);
+      const swingArc = Math.sin(swingT * Math.PI) * (Math.PI * 0.85);
       // Resting: weapon held 45° to the right of facing; sweeps through to the left during attack
       const sweepAngle = Math.PI / 4 - swingArc;
       // Local-space only — player mesh rotation handles world-space orientation
       this.weaponPivot.rotation.y = sweepAngle;
       // Tilt weapon forward at the peak of the swing
-      this.weaponPivot.rotation.x = -swingArc * 0.3;
+      this.weaponPivot.rotation.x = -swingArc * 0.45;
     }
 
     if (!this.alive) return;
@@ -349,12 +349,14 @@ export class Player {
     }
     if (mesh) {
       const pivot = new THREE.Group();
-      // Position slightly below the player's vertical center so the weapon sits at waist level
-      pivot.position.set(0, 0.1, 0);
-      // Scale the weapon model down to fit player proportions
-      mesh.scale.setScalar(0.55);
+      // Position at the player's hand level
+      pivot.position.set(0, -0.05, 0);
+      // Scale weapon to be clearly visible at isometric distance
+      mesh.scale.setScalar(0.8);
       // Place weapon forward of the pivot so it extends in the facing direction
-      mesh.position.set(0, 0, 0.45);
+      mesh.position.set(0, 0, 0.55);
+      // Tilt blade forward so it's visible from the 45° isometric camera
+      mesh.rotation.x = -0.5;
       pivot.add(mesh);
       this.mesh.add(pivot);
       this.weaponPivot = pivot;
