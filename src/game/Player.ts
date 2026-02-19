@@ -39,6 +39,7 @@ export class Player {
   private dungeonOffsetZ = 0;
 
   private moveSpeedMultiplier = 1;
+  private obstacleSpeedMult = 1;
   private attackSpeedMultiplier = 1;
   private hpRegen = 0;
   private regenAccumulator = 0;
@@ -99,6 +100,11 @@ export class Player {
     this.attackSpeedMultiplier = stats.attackSpeed;
     this.hpRegen = stats.hpRegen;
     if (this.hp > this.maxHp) this.hp = this.maxHp;
+  }
+
+  /** Set obstacle-based speed modifier (1.0 = normal, < 1.0 = slowed by obstacle). */
+  setObstacleSpeedMult(mult: number): void {
+    this.obstacleSpeedMult = mult;
   }
 
   heal(amount: number): void {
@@ -229,7 +235,7 @@ export class Player {
 
       const attackHeld = input.isMouseDown() || input.isDown('Space');
       const attackSpeedFactor = attackHeld ? 0.25 : 1;
-      const speed = PLAYER_SPEED * this.moveSpeedMultiplier * attackSpeedFactor;
+      const speed = PLAYER_SPEED * this.moveSpeedMultiplier * this.obstacleSpeedMult * attackSpeedFactor;
       this.applyMovement(worldX * speed * dt, worldZ * speed * dt);
     }
 

@@ -42,6 +42,8 @@ export class FloorSelectUI {
       display: 'flex',
       flexDirection: 'column',
       gap: '0.5rem',
+      maxHeight: '50vh',
+      overflowY: 'auto',
     });
     this.container.appendChild(this.listEl);
 
@@ -62,7 +64,7 @@ export class FloorSelectUI {
     this.container.appendChild(closeBtn);
 
     const hint = document.createElement('div');
-    hint.textContent = '1-5 or arrows to select, Enter to confirm. Gamepad: D-pad + A, B to cancel.';
+    hint.textContent = '0-9 or arrows to select, Enter to confirm. Gamepad: D-pad + A, B to cancel.';
     Object.assign(hint.style, {
       textAlign: 'center',
       fontSize: '0.65rem',
@@ -107,15 +109,18 @@ export class FloorSelectUI {
   }
 
   private handleKey(e: KeyboardEvent): void {
-    const totalFloors = 5;
+    const totalFloors = 10;
 
-    // Number keys 1-5 to jump directly
+    // Number keys: 1-9 for floors 1-9, 0 for floor 10
     const num = parseInt(e.key, 10);
-    if (num >= 1 && num <= totalFloors) {
-      this.selectedIndex = num - 1;
-      this.updateHighlight();
-      if (num <= this.maxUnlockedFloor) {
-        this.confirm(num);
+    if (!isNaN(num)) {
+      const floor = num === 0 ? 10 : num;
+      if (floor >= 1 && floor <= totalFloors) {
+        this.selectedIndex = floor - 1;
+        this.updateHighlight();
+        if (floor <= this.maxUnlockedFloor) {
+          this.confirm(floor);
+        }
       }
       return;
     }
@@ -169,7 +174,7 @@ export class FloorSelectUI {
   private buildList(): void {
     this.listEl.innerHTML = '';
     this.buttons = [];
-    const totalFloors = 5;
+    const totalFloors = 10;
 
     for (let i = 1; i <= totalFloors; i++) {
       const btn = document.createElement('button');

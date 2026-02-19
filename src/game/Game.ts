@@ -21,6 +21,7 @@ import { BossHealthBar } from '../ui/BossHealthBar';
 import { generateDungeon, DungeonData } from '../dungeon/DungeonGenerator';
 import { buildDungeonMesh, DungeonMeshData } from '../dungeon/FloorRenderer';
 import { getFloorConfig } from '../dungeon/FloorConfig';
+import { ObstacleSystem } from '../dungeon/ObstacleSystem';
 import { CombatSystem } from '../combat/CombatSystem';
 import { TestDummy } from '../combat/TestDummy';
 import { PlayerStats, ComputedStats } from '../rpg/Stats';
@@ -107,6 +108,12 @@ export class Game {
   private strengthBuffDmg = 0;
   private shieldHp = 0;
 
+  // Obstacle system
+  private obstacleSystem: ObstacleSystem;
+  private playerBurnAccumulator = 0;
+  private playerObstacleSpeedMult = 1;
+  private playerObstacleDmgMult = 1;
+
   // Auto-save timer
   private autoSaveTimer = 0;
   private readonly AUTO_SAVE_INTERVAL = 30; // seconds
@@ -136,6 +143,7 @@ export class Game {
     this.skillTree = new SkillTree();
     this.inventory = new Inventory();
     this.lootDrops = new LootDropManager();
+    this.obstacleSystem = new ObstacleSystem();
 
     // Compute initial stats
     this.computedStats = this.recomputeStats();
@@ -252,6 +260,7 @@ export class Game {
     if (this.dungeonGroup) {
       this.combatSystem.clearEnemies();
       this.lootDrops.clear();
+      this.obstacleSystem.setDungeon(null);
       this.sceneManager.removeGroup(this.dungeonGroup);
       this.dungeonGroup = null;
       this.dungeonData = null;
@@ -337,6 +346,12 @@ export class Game {
     // Set up loot drop manager
     this.lootDrops.setScene(this.sceneManager.scene);
 
+    // Set up obstacle system
+    this.obstacleSystem.setDungeon(this.dungeonData);
+    this.playerBurnAccumulator = 0;
+    this.playerObstacleSpeedMult = 1;
+    this.playerObstacleDmgMult = 1;
+
     // Set up player collision and position
     this.player.setDungeonCollision(this.dungeonData);
     this.player.teleportTo(
@@ -420,6 +435,7 @@ export class Game {
           this.lootDrops.update(dt, this.player.position.x, this.player.position.z);
           this.sceneManager.updateLightPosition(this.player.position.x, this.player.position.z);
           this.updateBuffTimers(dt);
+          this.updateObstacleEffects(dt);
         }
         this.damageNumbers.update(dt);
         this.xpBar.update(dt);
@@ -677,8 +693,8 @@ export class Game {
     if (this.player.isNear(exit.x, exit.z)) {
       // Only allow exit if boss is defeated
       if (this.combatSystem.bossDefeated) {
-        // Floor 5 boss defeated = game won!
-        if (this.currentFloor === 5) {
+        // Floor 10 boss defeated = game won!
+        if (this.currentFloor === 10) {
           this.hud.showPrompt('Press E to claim victory!');
           if (this.input.wasPressed('KeyE')) {
             this.showWinScreen();
@@ -688,7 +704,7 @@ export class Game {
           this.hud.showPrompt('Press E to ascend to hub');
           if (this.input.wasPressed('KeyE')) {
             // Unlock next floor
-            if (this.currentFloor >= this.maxUnlockedFloor && this.currentFloor < 5) {
+            if (this.currentFloor >= this.maxUnlockedFloor && this.currentFloor < 10) {
               this.maxUnlockedFloor = this.currentFloor + 1;
             }
             this.hud.hideFloorIndicator();
@@ -784,6 +800,46 @@ export class Game {
         this.recomputeStats(); // restore normal damage
       }
     }
+  }
+
+  // --- Obstacle effects ---
+
+  private updateObstacleEffects(dt: number): void {
+    if (!this.player.alive) return;
+
+    const effects = this.obstacleSystem.getEffectsAt(this.player.position.x, this.player.position.z);
+
+    // Apply speed modifier from obstacles
+    this.playerObstacleSpeedMult = effects.speedMult;
+    this.player.setObstacleSpeedMult(effects.speedMult);
+
+    // Store damage modifier for combat
+    this.playerObstacleDmgMult = effects.damageMult;
+
+    // Apply fire burn damage
+    if (effects.burnDps > 0) {
+      this.playerBurnAccumulator += effects.burnDps * dt;
+      if (this.playerBurnAccumulator >= 1) {
+        const burnDmg = Math.floor(this.playerBurnAccumulator);
+        this.playerBurnAccumulator -= burnDmg;
+        this.player.takeDamage(burnDmg);
+        events.emit('damageNumber', this.player.position.x, this.player.position.z, burnDmg, true);
+      }
+    } else {
+      this.playerBurnAccumulator = 0;
+    }
+
+    // Check for trap triggers
+    const trapDmg = this.obstacleSystem.checkTrap(this.player.position.x, this.player.position.z);
+    if (trapDmg > 0) {
+      this.player.takeDamage(trapDmg);
+      events.emit('damageNumber', this.player.position.x, this.player.position.z, trapDmg, true);
+      this.hud.showPrompt('Trap exploded!');
+      setTimeout(() => this.hud.hidePrompt(), 1500);
+    }
+
+    // Apply obstacle effects to enemies
+    this.combatSystem.updateObstacleEffects(dt, this.obstacleSystem);
   }
 
   // --- RPG event handlers ---
@@ -998,7 +1054,7 @@ export class Game {
       textShadow: '1px 1px 4px #000',
       marginBottom: '0.5rem',
     });
-    subtitle.textContent = 'You have conquered all 5 floors of the dungeon.';
+    subtitle.textContent = 'You have conquered all 10 floors of the dungeon.';
     this.winOverlay.appendChild(subtitle);
 
     const stats = document.createElement('div');
@@ -1009,7 +1065,7 @@ export class Game {
       textAlign: 'center',
       lineHeight: '1.6',
     });
-    stats.innerHTML = `Level ${this.levelSystem.level}<br>Floors Cleared: 5/5`;
+    stats.innerHTML = `Level ${this.levelSystem.level}<br>Floors Cleared: 10/10`;
     this.winOverlay.appendChild(stats);
 
     const continueText = document.createElement('div');

@@ -56,6 +56,10 @@ export class Boss {
   private dungeonOffsetZ = 0;
   readonly collisionRadius: number;
 
+  // Obstacle effects
+  private obstacleSpeedMult = 1;
+  private burnAccumulator = 0;
+
   constructor(x: number, z: number, floor: number, config: BossConfig) {
     this.config = config;
     this.floor = floor;
@@ -132,6 +136,21 @@ export class Boss {
     this.dungeonOffsetZ = -(dungeon.height * TILE_SIZE) / 2;
   }
 
+  /** Set obstacle-based speed modifier for this boss. */
+  setObstacleSpeedMult(mult: number): void {
+    this.obstacleSpeedMult = mult;
+  }
+
+  /** Apply accumulated burn damage from fire obstacles. */
+  applyBurnDamage(amount: number): void {
+    this.burnAccumulator += amount;
+    if (this.burnAccumulator >= 1) {
+      const dmg = Math.floor(this.burnAccumulator);
+      this.burnAccumulator -= dmg;
+      this.takeDamage(dmg);
+    }
+  }
+
   takeDamage(amount: number): void {
     if (!this.alive) return;
     this.hp = Math.max(0, this.hp - amount);
@@ -206,7 +225,7 @@ export class Boss {
     }
 
     // Standard melee behavior
-    const speed = this.config.speed * this.enrageBonus;
+    const speed = this.config.speed * this.enrageBonus * this.obstacleSpeedMult;
     if (dist > 1.5) {
       // Chase
       const moveX = (dx / dist) * speed * dt;

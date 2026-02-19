@@ -1,5 +1,5 @@
 import { TILE_SIZE } from '../utils/constants';
-import { getFloorConfig } from './FloorConfig';
+import { getFloorConfig, ObstacleConfig } from './FloorConfig';
 
 export interface Room {
   id: number;
@@ -29,10 +29,21 @@ export enum TileType {
   Entrance = 5,
 }
 
+export enum ObstacleType {
+  None = 0,
+  Furniture = 1,  // Solid object, blocks movement
+  Water = 2,      // Weakens player/enemy on contact (reduced damage)
+  Mud = 3,        // Slows player/enemy on contact
+  Fire = 4,       // Burns player/enemy on contact (periodic damage)
+  Trap = 5,       // Explodes on contact (one-time burst damage)
+}
+
 export interface DungeonData {
   width: number;
   height: number;
   tiles: TileType[][];
+  obstacles: ObstacleType[][];
+  triggeredTraps: Set<string>;
   rooms: Room[];
   entranceRoom: Room;
   exitRoom: Room;
@@ -62,10 +73,12 @@ export function generateDungeon(floor: number, seed?: number): DungeonData {
   const gridWidth = diff.gridSize;
   const gridHeight = diff.gridSize;
 
-  // Initialize grid
+  // Initialize grids
   const tiles: TileType[][] = [];
+  const obstacles: ObstacleType[][] = [];
   for (let z = 0; z < gridHeight; z++) {
     tiles[z] = new Array(gridWidth).fill(TileType.Empty);
+    obstacles[z] = new Array(gridWidth).fill(ObstacleType.None);
   }
 
   const rooms: Room[] = [];
@@ -153,7 +166,14 @@ export function generateDungeon(floor: number, seed?: number): DungeonData {
   tiles[entranceRoom.centerZ][entranceRoom.centerX] = TileType.Entrance;
   tiles[exitRoom.centerZ][exitRoom.centerX] = TileType.Exit;
 
-  return { width: gridWidth, height: gridHeight, tiles, rooms, entranceRoom, exitRoom };
+  // Place obstacles in rooms
+  const obstacleConfig = config.obstacleConfig;
+  if (obstacleConfig && obstacleConfig.types.length > 0) {
+    placeObstacles(rooms, tiles, obstacles, rng, gridWidth, gridHeight, obstacleConfig, entranceRoom, exitRoom);
+  }
+
+  const triggeredTraps = new Set<string>();
+  return { width: gridWidth, height: gridHeight, tiles, obstacles, triggeredTraps, rooms, entranceRoom, exitRoom };
 }
 
 function carveRoom(tiles: TileType[][], room: Room, gridWidth: number, gridHeight: number): void {
@@ -376,4 +396,59 @@ function pickEntranceExit(rooms: Room[]): [Room, Room] {
   }
 
   return [entrance, bossRoom];
+}
+
+function placeObstacles(
+  rooms: Room[],
+  tiles: TileType[][],
+  obstacles: ObstacleType[][],
+  rng: () => number,
+  gridWidth: number,
+  gridHeight: number,
+  config: ObstacleConfig,
+  entranceRoom: Room,
+  exitRoom: Room,
+): void {
+  for (const room of rooms) {
+    // Skip entrance room (safe spawn area)
+    if (room === entranceRoom) continue;
+    // Skip boss room — keep it clean for boss fight
+    if (room === exitRoom) continue;
+
+    // Each room has a chance of containing obstacles
+    if (rng() > config.roomChance) continue;
+
+    const count = config.minCount + Math.floor(rng() * (config.maxCount - config.minCount + 1));
+
+    for (let i = 0; i < count; i++) {
+      // Pick a random floor tile inside the room (avoid edges)
+      const ox = room.x + 2 + Math.floor(rng() * Math.max(1, room.width - 4));
+      const oz = room.z + 2 + Math.floor(rng() * Math.max(1, room.height - 4));
+
+      if (ox < 0 || ox >= gridWidth || oz < 0 || oz >= gridHeight) continue;
+
+      // Only place on walkable floor tiles, not on doors/exits/entrances
+      if (tiles[oz][ox] !== TileType.Floor) continue;
+
+      // Don't place on room center (entrance/exit might be here)
+      if (ox === room.centerX && oz === room.centerZ) continue;
+
+      // Don't stack obstacles
+      if (obstacles[oz][ox] !== ObstacleType.None) continue;
+
+      // Pick random obstacle type from available types
+      const obstacleType = config.types[Math.floor(rng() * config.types.length)];
+      obstacles[oz][ox] = obstacleType;
+
+      // Furniture blocks movement — mark tile as wall
+      if (obstacleType === ObstacleType.Furniture) {
+        tiles[oz][ox] = TileType.Wall;
+      }
+    }
+  }
+}
+
+/** Helper to get the trap key for a tile position (used for triggered traps). */
+export function trapKey(tileX: number, tileZ: number): string {
+  return `${tileX},${tileZ}`;
 }
