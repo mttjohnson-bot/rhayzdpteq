@@ -95,6 +95,35 @@ Target: Chromebook-playable (60 FPS mid-range, 30 FPS minimum low-end)
 - Keep initial download under 5MB
 - Profile regularly on low-end hardware/throttled Chrome DevTools
 
+## Changelog Maintenance
+
+**IMPORTANT: The changelog MUST be updated as part of every development session.** Do not wait to be asked — this is a standing requirement.
+
+### Rules
+
+1. **Update `CHANGELOG.md` before creating a commit or pull request.** Every session that modifies code, configuration, or assets must include a corresponding changelog update in the same commit(s).
+2. **Add entries under the `[Unreleased]` section** at the top of the file. When a PR is merged or a release is cut, unreleased entries get moved under a dated heading.
+3. **Match entries to actual changes.** Each changelog bullet should reflect a real change made during the session. Do not add speculative or planned items — only document what was actually implemented, fixed, or changed.
+4. **Use the existing format.** Follow the style already in `CHANGELOG.md`:
+   - A short summary line under the date/section heading describing the theme of the changes.
+   - Bulleted entries with **bold lead text** followed by an em dash and description.
+   - Group related changes logically (features, fixes, infrastructure, etc.).
+5. **Keep it user-facing.** Write entries from the perspective of someone playing or developing the game. Focus on *what changed and why*, not implementation minutiae.
+6. **Verify accuracy before committing.** Review the changelog entries against the actual diff to confirm they accurately reflect the work done. If a PR is being created, the changelog should cover all commits in the branch, not just the last one.
+
+### What to include
+
+- New features or gameplay changes
+- Bug fixes
+- Configuration or build changes
+- Refactors that affect behavior or architecture
+- Asset additions or modifications
+
+### What to skip
+
+- Trivial whitespace or formatting-only changes
+- Changes that are immediately reverted in the same session
+
 ## Git Workflow
 
 - Default branch: `main`
