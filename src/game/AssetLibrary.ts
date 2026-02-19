@@ -390,9 +390,10 @@ const LIB_WALL_COLOR = 0x6a5a5a;
 
 const PEDESTAL_COLOR = 0x8b7355;
 const PEDESTAL_HIGHLIGHT = 0xffd700;
-const HIGHLIGHT_RANGE = 4.0;
-const HIGHLIGHT_DOT_MIN = 0.65; // ~49° half-cone
-const ROTATION_SPEED = 0.5; // rad/s
+const HIGHLIGHT_RANGE = 2.5;       // must be close to inspect (similar to attack range)
+const HIGHLIGHT_DOT_MIN = 0.5;     // ~60° half-cone (wider to compensate for shorter range)
+const ROTATION_SPEED = 0.5;        // rad/s
+const PEDESTAL_COLLISION_HALF = 0.45; // half-size of pedestal collision AABB
 
 /** Axis-aligned wall bounding box in the XZ plane */
 export interface WallAABB {
@@ -471,8 +472,8 @@ export class AssetLibrary {
       const dot = (fx * dx + fz * dz) / dist;
       if (dot < HIGHLIGHT_DOT_MIN) continue;
 
-      // Higher score = more directly faced AND closer
-      const score = dot - dist * 0.05;
+      // Higher score = closer AND directly faced (distance is primary factor)
+      const score = dot - dist * 0.25;
       if (score > bestScore) {
         bestScore = score;
         best = asset;
@@ -535,16 +536,16 @@ export class AssetLibrary {
     this._buildWall(1, 3.2, 20.5, -7.5);
   }
 
-  /** Enemy wing: 18×14 floor centered at (20.5, -16) */
+  /** Enemy wing: 18×16 floor centered at (20.5, -17) */
   private _buildEnemyWing(): void {
-    this._buildFloor(18, 14, 20.5, -16);
+    this._buildFloor(18, 16, 20.5, -17);
 
     // West wall
-    this._buildWall(1, 14, 11, -16);
+    this._buildWall(1, 16, 11, -17);
     // East wall
-    this._buildWall(1, 14, 30, -16);
+    this._buildWall(1, 16, 30, -17);
     // North wall (solid)
-    this._buildWall(18, 1, 20.5, -23.5);
+    this._buildWall(18, 1, 20.5, -25.5);
     // South wall — two segments around corridor opening at x=17→20
     this._buildWall(5.5, 1, 14.25, -9.5);
     this._buildWall(9.5, 1, 24.75, -9.5);
@@ -559,13 +560,13 @@ export class AssetLibrary {
     this._buildWall(1, 3.2, 20.5, 7.5);
   }
 
-  /** Items wing: 18×14 floor centered at (20.5, +16) */
+  /** Items wing: 18×16 floor centered at (20.5, +17) */
   private _buildItemsWing(): void {
-    this._buildFloor(18, 14, 20.5, 16);
+    this._buildFloor(18, 16, 20.5, 17);
 
-    this._buildWall(1, 14, 11, 16);
-    this._buildWall(1, 14, 30, 16);
-    this._buildWall(18, 1, 20.5, 23.5);
+    this._buildWall(1, 16, 11, 17);
+    this._buildWall(1, 16, 30, 17);
+    this._buildWall(18, 1, 20.5, 25.5);
     // North wall — two segments around corridor opening at x=17→20
     this._buildWall(5.5, 1, 14.25, 9.5);
     this._buildWall(9.5, 1, 24.75, 9.5);
@@ -687,9 +688,9 @@ export class AssetLibrary {
     // Sorted alphabetically by typeId — order never changes
     const sortedTypes = (Object.keys(ENEMY_TYPES) as EnemyTypeId[]).sort();
 
-    // Row 1: Regular mobs — z = -11.5, x starting at 14 with spacing 2.5
+    // Row 1: Regular mobs — z = -11.5, x starting at 14 with spacing 3.0
     sortedTypes.forEach((typeId, i) => {
-      const pos = { x: 14 + i * 2.5, z: -11.5 };
+      const pos = { x: 14 + i * 3.0, z: -11.5 };
       this._addAsset(pos, {
         key: `mob_${typeId}`,
         name: ENEMY_TYPES[typeId].name,
@@ -699,10 +700,10 @@ export class AssetLibrary {
       });
     });
 
-    // Row 2: Captain variants — z = -14.5
+    // Row 2: Captain variants — z = -15
     sortedTypes.forEach((typeId, i) => {
       const type = ENEMY_TYPES[typeId];
-      const pos = { x: 14 + i * 2.5, z: -14.5 };
+      const pos = { x: 14 + i * 3.0, z: -15 };
       this._addAsset(pos, {
         key: `captain_${typeId}`,
         name: `${type.name} Captain`,
@@ -712,10 +713,10 @@ export class AssetLibrary {
       });
     });
 
-    // Row 3: Bosses for floors 1-5 — z = -18, spacing 3.0
+    // Row 3: Bosses for floors 1-5 — z = -18.5, spacing 3.0
     for (let floor = 1; floor <= 5; floor++) {
       const config = getFloorConfig(floor).boss;
-      const pos = { x: 13 + (floor - 1) * 3.0, z: -18 };
+      const pos = { x: 13 + (floor - 1) * 3.0, z: -18.5 };
       this._addAsset(pos, {
         key: `boss_floor${floor}`,
         name: config.name,
@@ -725,10 +726,10 @@ export class AssetLibrary {
       });
     }
 
-    // Row 4: Bosses for floors 6-10 — z = -21, spacing 3.0
+    // Row 4: Bosses for floors 6-10 — z = -22, spacing 3.0
     for (let floor = 6; floor <= 10; floor++) {
       const config = getFloorConfig(floor).boss;
-      const pos = { x: 13 + (floor - 6) * 3.0, z: -21 };
+      const pos = { x: 13 + (floor - 6) * 3.0, z: -22 };
       this._addAsset(pos, {
         key: `boss_floor${floor}`,
         name: config.name,
@@ -747,7 +748,7 @@ export class AssetLibrary {
     // Weapons: 5 types × 4 rarities, laid out as rows=rarity, cols=category
     weaponCategories.forEach((cat, ci) => {
       rarities.forEach((rarity, ri) => {
-        const pos = { x: 14 + ci * 2.0, z: 11 + ri * 2.5 };
+        const pos = { x: 13 + ci * 2.5, z: 11 + ri * 3.0 };
         this._addAsset(pos, {
           key: `weapon_${cat}_${rarity}`,
           name: `${this._capitalize(rarity)} ${this._capitalize(cat)}`,
@@ -760,7 +761,7 @@ export class AssetLibrary {
 
     // Armor: 4 rarities, single column at x=26
     rarities.forEach((rarity, ri) => {
-      const pos = { x: 26, z: 11 + ri * 2.5 };
+      const pos = { x: 26, z: 11 + ri * 3.0 };
       this._addAsset(pos, {
         key: `armor_${rarity}`,
         name: `${this._capitalize(rarity)} Armor`,
@@ -772,7 +773,7 @@ export class AssetLibrary {
 
     // Rings: 4 rarities, single column at x=28
     rarities.forEach((rarity, ri) => {
-      const pos = { x: 28, z: 11 + ri * 2.5 };
+      const pos = { x: 28, z: 11 + ri * 3.0 };
       this._addAsset(pos, {
         key: `ring_${rarity}`,
         name: `${this._capitalize(rarity)} Ring`,
@@ -782,7 +783,7 @@ export class AssetLibrary {
       });
     });
 
-    // Potions: 4 types, single row at z=21, spacing 2.0
+    // Potions: 4 types, single row at z=22, spacing 3.0
     const potionDefs: Array<{ effect: ConsumeEffect; name: string }> = [
       { effect: 'heal', name: 'Health Potion' },
       { effect: 'manaShield', name: 'Shield Draught' },
@@ -790,7 +791,7 @@ export class AssetLibrary {
       { effect: 'strengthBoost', name: 'Might Tonic' },
     ];
     potionDefs.forEach((p, i) => {
-      const pos = { x: 14 + i * 2.5, z: 21 };
+      const pos = { x: 14 + i * 3.0, z: 22 };
       this._addAsset(pos, {
         key: `potion_${p.effect}`,
         name: p.name,
@@ -942,6 +943,14 @@ export class AssetLibrary {
     this.group.add(data.displayMesh);
 
     this.assets.push({ ...data, position: pos, pedestalMesh });
+
+    // Register collision AABB so the player cannot walk through display items
+    this.wallAABBs.push({
+      minX: pos.x - PEDESTAL_COLLISION_HALF,
+      maxX: pos.x + PEDESTAL_COLLISION_HALF,
+      minZ: pos.z - PEDESTAL_COLLISION_HALF,
+      maxZ: pos.z + PEDESTAL_COLLISION_HALF,
+    });
   }
 
   // -------------------------------------------------------------------------
