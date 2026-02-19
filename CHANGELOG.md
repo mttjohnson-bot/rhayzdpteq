@@ -4,7 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Asset Library usability improvements — item selection, collision, and spacing.
+
 - **Centralized floor count constant** — Introduced a `TOTAL_FLOORS` constant derived from the floor config array so that all UI displays (HUD, save slots, floor select, win screen) automatically reflect the correct number of floors. Fixed the HUD and menu save-slot displays which still showed "/5" instead of "/10".
+- **Library item selection fix** — Reworked the highlight algorithm to strongly prioritize proximity over facing direction. Reduced the detection range from 4.0 to 2.5 tiles and increased the distance penalty 5x so the closest item in front of the player is always selected first, similar to melee attack range.
+- **Library pedestal collision** — Display pedestals now have collision boxes, preventing the player from walking through items on display. The player must navigate around them like any other solid object.
+- **Library item spacing** — Increased spacing between displayed assets in all library wings (enemies, items, structures) so the player can comfortably walk between pedestals. Expanded the Enemy and Items wing rooms to accommodate the wider layouts.
 
 ## 2026-02-18
 
