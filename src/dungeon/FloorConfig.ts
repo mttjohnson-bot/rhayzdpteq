@@ -7,7 +7,7 @@
  */
 
 import { EnemyTypeId } from '../utils/constants';
-import { ObstacleType } from './DungeonGenerator';
+import { ObstacleType } from './types';
 
 export interface FloorTheme {
   name: string;
