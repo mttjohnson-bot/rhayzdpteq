@@ -20,7 +20,7 @@ import { SkillTreeUI } from '../ui/SkillTreeUI';
 import { BossHealthBar } from '../ui/BossHealthBar';
 import { generateDungeon, DungeonData } from '../dungeon/DungeonGenerator';
 import { buildDungeonMesh, DungeonMeshData } from '../dungeon/FloorRenderer';
-import { getFloorConfig } from '../dungeon/FloorConfig';
+import { getFloorConfig, TOTAL_FLOORS } from '../dungeon/FloorConfig';
 import { ObstacleSystem } from '../dungeon/ObstacleSystem';
 import { CombatSystem } from '../combat/CombatSystem';
 import { TestDummy } from '../combat/TestDummy';
@@ -696,7 +696,7 @@ export class Game {
       // Only allow exit if boss is defeated
       if (this.combatSystem.bossDefeated) {
         // Floor 10 boss defeated = game won!
-        if (this.currentFloor === 10) {
+        if (this.currentFloor === TOTAL_FLOORS) {
           this.hud.showPrompt('Press E to claim victory!');
           if (this.input.wasPressed('KeyE')) {
             this.showWinScreen();
@@ -706,7 +706,7 @@ export class Game {
           this.hud.showPrompt('Press E to ascend to hub');
           if (this.input.wasPressed('KeyE')) {
             // Unlock next floor
-            if (this.currentFloor >= this.maxUnlockedFloor && this.currentFloor < 10) {
+            if (this.currentFloor >= this.maxUnlockedFloor && this.currentFloor < TOTAL_FLOORS) {
               this.maxUnlockedFloor = this.currentFloor + 1;
             }
             this.hud.hideFloorIndicator();
@@ -1056,7 +1056,7 @@ export class Game {
       textShadow: '1px 1px 4px #000',
       marginBottom: '0.5rem',
     });
-    subtitle.textContent = 'You have conquered all 10 floors of the dungeon.';
+    subtitle.textContent = `You have conquered all ${TOTAL_FLOORS} floors of the dungeon.`;
     this.winOverlay.appendChild(subtitle);
 
     const stats = document.createElement('div');
@@ -1067,7 +1067,7 @@ export class Game {
       textAlign: 'center',
       lineHeight: '1.6',
     });
-    stats.innerHTML = `Level ${this.levelSystem.level}<br>Floors Cleared: 10/10`;
+    stats.innerHTML = `Level ${this.levelSystem.level}<br>Floors Cleared: ${TOTAL_FLOORS}/${TOTAL_FLOORS}`;
     this.winOverlay.appendChild(stats);
 
     const continueText = document.createElement('div');

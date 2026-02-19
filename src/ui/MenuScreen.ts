@@ -1,4 +1,5 @@
 import { SaveManager, MAX_SAVE_SLOTS } from '../game/SaveManager';
+import { TOTAL_FLOORS } from '../dungeon/FloorConfig';
 
 export class MenuScreen {
   private container: HTMLDivElement;
@@ -203,7 +204,7 @@ export class MenuScreen {
       Object.assign(info.style, { fontSize: '0.65rem', color: '#999' });
       if (slot.exists) {
         const status = slot.gameCompleted ? ' (Done)' : '';
-        info.textContent = `Lv.${slot.level} | Floor ${slot.floor}/5${status}`;
+        info.textContent = `Lv.${slot.level} | Floor ${slot.floor}/${TOTAL_FLOORS}${status}`;
       } else {
         info.textContent = 'Empty';
       }

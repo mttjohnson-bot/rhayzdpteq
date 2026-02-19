@@ -1,3 +1,5 @@
+import { TOTAL_FLOORS } from '../dungeon/FloorConfig';
+
 export class HUD {
   private container: HTMLDivElement;
   private promptEl: HTMLDivElement;
@@ -118,7 +120,7 @@ export class HUD {
   }
 
   showLevelInfo(level: number, maxFloor: number): void {
-    this.levelInfoEl.textContent = `Lv.${level} | Floor ${maxFloor}/5`;
+    this.levelInfoEl.textContent = `Lv.${level} | Floor ${maxFloor}/${TOTAL_FLOORS}`;
     this.levelInfoEl.style.display = 'block';
   }
 

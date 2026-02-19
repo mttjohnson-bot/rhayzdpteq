@@ -1,4 +1,4 @@
-import { getFloorConfig } from '../dungeon/FloorConfig';
+import { getFloorConfig, TOTAL_FLOORS } from '../dungeon/FloorConfig';
 
 export class FloorSelectUI {
   private container: HTMLDivElement;
@@ -109,7 +109,7 @@ export class FloorSelectUI {
   }
 
   private handleKey(e: KeyboardEvent): void {
-    const totalFloors = 10;
+    const totalFloors = TOTAL_FLOORS;
 
     // Number keys: 1-9 for floors 1-9, 0 for floor 10
     const num = parseInt(e.key, 10);
@@ -174,7 +174,7 @@ export class FloorSelectUI {
   private buildList(): void {
     this.listEl.innerHTML = '';
     this.buttons = [];
-    const totalFloors = 10;
+    const totalFloors = TOTAL_FLOORS;
 
     for (let i = 1; i <= totalFloors; i++) {
       const btn = document.createElement('button');
