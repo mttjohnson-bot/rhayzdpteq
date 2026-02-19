@@ -11,6 +11,7 @@ import { events } from '../utils/EventBus';
 import { DungeonData } from '../dungeon/DungeonGenerator';
 import { ComputedStats } from '../rpg/Stats';
 import { getFloorConfig } from '../dungeon/FloorConfig';
+import { ObstacleSystem } from '../dungeon/ObstacleSystem';
 
 export class CombatSystem {
   private enemies: Enemy[] = [];
@@ -99,6 +100,43 @@ export class CombatSystem {
         this.scene.remove(boss.mesh);
         boss.dispose();
         this.bosses.splice(i, 1);
+      }
+    }
+  }
+
+  /** Apply obstacle effects (slow, burn, traps) to all living enemies. */
+  updateObstacleEffects(dt: number, obstacleSystem: ObstacleSystem): void {
+    for (const enemy of this.enemies) {
+      if (!enemy.alive) continue;
+      const effects = obstacleSystem.getEffectsAt(enemy.position.x, enemy.position.z);
+      enemy.setObstacleSpeedMult(effects.speedMult);
+      enemy.setObstacleDmgMult(effects.damageMult);
+
+      // Apply fire burn to enemies
+      if (effects.burnDps > 0) {
+        enemy.applyBurnDamage(effects.burnDps * dt);
+      }
+
+      // Check trap triggers for enemies
+      const trapDmg = obstacleSystem.checkTrap(enemy.position.x, enemy.position.z);
+      if (trapDmg > 0) {
+        enemy.takeDamage(trapDmg);
+      }
+    }
+
+    for (const boss of this.bosses) {
+      if (!boss.alive) continue;
+      const effects = obstacleSystem.getEffectsAt(boss.position.x, boss.position.z);
+      // Bosses are resistant to obstacle slowing (50% effect)
+      boss.setObstacleSpeedMult(1 - (1 - effects.speedMult) * 0.5);
+
+      if (effects.burnDps > 0) {
+        boss.applyBurnDamage(effects.burnDps * dt * 0.5); // bosses take half burn
+      }
+
+      const trapDmg = obstacleSystem.checkTrap(boss.position.x, boss.position.z);
+      if (trapDmg > 0) {
+        boss.takeDamage(trapDmg);
       }
     }
   }

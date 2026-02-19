@@ -49,10 +49,17 @@ export class Enemy {
 
   // Scaling per floor
   private speed: number;
+  private baseSpeed: number;
   damage: number;
+  private baseDamage: number;
   private attackRange: number;
   private attackCooldownBase: number;
   readonly collisionRadius: number;
+
+  // Obstacle effects
+  private obstacleSpeedMult = 1;
+  private obstacleDmgMult = 1;
+  private burnAccumulator = 0;
 
   constructor(
     x: number, z: number, floor: number,
@@ -74,8 +81,10 @@ export class Enemy {
 
     this.maxHp = Math.round(ENEMY_HP * hpScale * type.hpMult * captainHpMult);
     this.hp = this.maxHp;
-    this.speed = ENEMY_SPEED * spdScale * type.speedMult;
-    this.damage = Math.round(ENEMY_ATTACK_DAMAGE * dmgScale * type.dmgMult * captainDmgMult);
+    this.baseSpeed = ENEMY_SPEED * spdScale * type.speedMult;
+    this.speed = this.baseSpeed;
+    this.baseDamage = Math.round(ENEMY_ATTACK_DAMAGE * dmgScale * type.dmgMult * captainDmgMult);
+    this.damage = this.baseDamage;
     this.attackRange = type.attackRange;
     this.attackCooldownBase = type.attackCooldown;
 
@@ -193,6 +202,28 @@ export class Enemy {
     this.dungeonData = dungeon;
     this.dungeonOffsetX = -(dungeon.width * TILE_SIZE) / 2;
     this.dungeonOffsetZ = -(dungeon.height * TILE_SIZE) / 2;
+  }
+
+  /** Set obstacle-based speed modifier for this enemy. */
+  setObstacleSpeedMult(mult: number): void {
+    this.obstacleSpeedMult = mult;
+    this.speed = this.baseSpeed * this.obstacleSpeedMult;
+  }
+
+  /** Set obstacle-based damage modifier for this enemy. */
+  setObstacleDmgMult(mult: number): void {
+    this.obstacleDmgMult = mult;
+    this.damage = Math.round(this.baseDamage * this.obstacleDmgMult);
+  }
+
+  /** Apply accumulated burn damage from fire obstacles. */
+  applyBurnDamage(amount: number): void {
+    this.burnAccumulator += amount;
+    if (this.burnAccumulator >= 1) {
+      const dmg = Math.floor(this.burnAccumulator);
+      this.burnAccumulator -= dmg;
+      this.takeDamage(dmg);
+    }
   }
 
   takeDamage(amount: number): void {
