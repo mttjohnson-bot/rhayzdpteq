@@ -203,7 +203,7 @@ export class Boss {
     const dist = Math.sqrt(dx * dx + dz * dz);
 
     // Face player
-    this.mesh.rotation.y = Math.atan2(dx, dz);
+    this.mesh.rotation.y = Math.atan2(-dx, -dz);
 
     // Execute current ability
     if (this.currentAbility) {

@@ -272,7 +272,7 @@ export class Enemy {
 
     // Face towards player when in chase/attack range
     if (distToPlayer < ENEMY_CHASE_RANGE) {
-      const faceAngle = Math.atan2(dx, dz);
+      const faceAngle = Math.atan2(-dx, -dz);
       this.mesh.rotation.y = faceAngle;
     }
 
@@ -319,7 +319,7 @@ export class Enemy {
     this.tryMove(moveX, moveZ);
 
     // Face patrol direction
-    this.mesh.rotation.y = Math.atan2(dx, dz);
+    this.mesh.rotation.y = Math.atan2(-dx, -dz);
   }
 
   private updateChase(dt: number, playerX: number, playerZ: number, dist: number): void {
