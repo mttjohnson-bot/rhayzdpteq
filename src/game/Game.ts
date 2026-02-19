@@ -598,6 +598,7 @@ export class Game {
     this.player.teleportTo(10, 0);
     this.player.setBounds(8.5, 49.5, -23.5, 23.5);
     this.player.setDungeonCollision(null);
+    this.player.setWallSegments(this.assetLibrary.getWallSegments());
 
     this.sceneManager.resetLighting();
     this.camera.snapTo(this.player.position);
@@ -619,6 +620,7 @@ export class Game {
     events.off('playerAttack', this.onPlayerAttackInLibrary);
     this.sceneManager.scene.remove(this.player.attackIndicator);
     this.damageNumbers.hide();
+    this.player.setWallSegments([]);
 
     this.enterHub();
   }

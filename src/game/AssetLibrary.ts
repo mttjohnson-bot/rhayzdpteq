@@ -3,11 +3,14 @@
  *
  * Layout (top-down, positive X is east, negative Z is north):
  *
- *   Hub → [entry corridor] → [Entry Hall] ──── east corr ────→ [Structure Wing]
+ *   Hub → [entry corridor] → [Entry Hall] ── east corr ──→ [Structure Wing]
  *                                 |        |
  *                           north corr  south corr
  *                                 |        |
  *                          [Enemy Wing]  [Items Wing]
+ *
+ * Side wings (Enemy/Items) span x=11.5..29.5 so they do not overlap with
+ * the Structure Wing (x=29.5..49.5).  Interior walls have AABB collision.
  *
  * Assets sit on pedestals sorted by stable string keys so positions never change
  * as new assets are added — new entries always append to the end of their section.
@@ -391,11 +394,20 @@ const HIGHLIGHT_RANGE = 4.0;
 const HIGHLIGHT_DOT_MIN = 0.65; // ~49° half-cone
 const ROTATION_SPEED = 0.5; // rad/s
 
+/** Axis-aligned wall bounding box in the XZ plane */
+export interface WallAABB {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
 export class AssetLibrary {
   readonly group: THREE.Group;
   private assets: LibraryAsset[] = [];
   private highlightedAsset: LibraryAsset | null = null;
   private testDummies: TestDummy[] = [];
+  private wallAABBs: WallAABB[] = [];
 
   constructor() {
     this.group = new THREE.Group();
@@ -432,6 +444,10 @@ export class AssetLibrary {
 
   getTestDummies(): TestDummy[] {
     return this.testDummies;
+  }
+
+  getWallSegments(): WallAABB[] {
+    return this.wallAABBs;
   }
 
   // -------------------------------------------------------------------------
@@ -519,19 +535,19 @@ export class AssetLibrary {
     this._buildWall(1, 3.2, 20.5, -7.5);
   }
 
-  /** Enemy wing: 24×14 floor centered at (23.5, -16) */
+  /** Enemy wing: 18×14 floor centered at (20.5, -16) */
   private _buildEnemyWing(): void {
-    this._buildFloor(24, 14, 23.5, -16);
+    this._buildFloor(18, 14, 20.5, -16);
 
     // West wall
     this._buildWall(1, 14, 11, -16);
     // East wall
-    this._buildWall(1, 14, 36, -16);
+    this._buildWall(1, 14, 30, -16);
     // North wall (solid)
-    this._buildWall(24, 1, 23.5, -23.5);
+    this._buildWall(18, 1, 20.5, -23.5);
     // South wall — two segments around corridor opening at x=17→20
     this._buildWall(5.5, 1, 14.25, -9.5);
-    this._buildWall(15.5, 1, 27.75, -9.5);
+    this._buildWall(9.5, 1, 24.75, -9.5);
 
     this._addEnemySection();
   }
@@ -543,16 +559,16 @@ export class AssetLibrary {
     this._buildWall(1, 3.2, 20.5, 7.5);
   }
 
-  /** Items wing: 24×14 floor centered at (23.5, +16) */
+  /** Items wing: 18×14 floor centered at (20.5, +16) */
   private _buildItemsWing(): void {
-    this._buildFloor(24, 14, 23.5, 16);
+    this._buildFloor(18, 14, 20.5, 16);
 
     this._buildWall(1, 14, 11, 16);
-    this._buildWall(1, 14, 36, 16);
-    this._buildWall(24, 1, 23.5, 23.5);
+    this._buildWall(1, 14, 30, 16);
+    this._buildWall(18, 1, 20.5, 23.5);
     // North wall — two segments around corridor opening at x=17→20
     this._buildWall(5.5, 1, 14.25, 9.5);
-    this._buildWall(15.5, 1, 27.75, 9.5);
+    this._buildWall(9.5, 1, 24.75, 9.5);
 
     this._addItemsSection();
   }
@@ -965,6 +981,14 @@ export class AssetLibrary {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
     this.group.add(mesh);
+
+    // Track AABB for collision
+    this.wallAABBs.push({
+      minX: cx - width / 2,
+      maxX: cx + width / 2,
+      minZ: cz - depth / 2,
+      maxZ: cz + depth / 2,
+    });
   }
 
   // -------------------------------------------------------------------------
