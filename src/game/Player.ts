@@ -10,7 +10,7 @@ import { events } from '../utils/EventBus';
 import { ComputedStats } from '../rpg/Stats';
 import { createOcclusionSilhouette } from '../rendering/OcclusionOutline';
 import { ItemRarity } from '../rpg/LootTable';
-import { RARITY_HEX } from './AssetLibrary';
+import { RARITY_HEX, type WallAABB } from './AssetLibrary';
 
 export class Player {
   readonly mesh: THREE.Mesh;
@@ -37,6 +37,7 @@ export class Player {
   private dungeonData: DungeonData | null = null;
   private dungeonOffsetX = 0;
   private dungeonOffsetZ = 0;
+  private wallSegments: WallAABB[] = [];
 
   private moveSpeedMultiplier = 1;
   private obstacleSpeedMult = 1;
@@ -126,6 +127,10 @@ export class Player {
       this.dungeonOffsetX = -(dungeon.width * TILE_SIZE) / 2;
       this.dungeonOffsetZ = -(dungeon.height * TILE_SIZE) / 2;
     }
+  }
+
+  setWallSegments(segments: WallAABB[]): void {
+    this.wallSegments = segments;
   }
 
   teleportTo(x: number, z: number): void {
@@ -279,13 +284,34 @@ export class Player {
         this.position.z = newZ;
       }
     } else {
+      // Hub/Library: bounds clamping + wall segment collision
       if (!this.isBlockedByMob(newX, this.position.z)) {
-        this.position.x = clamp(newX, this.bounds.minX + half, this.bounds.maxX - half);
+        const clampedX = clamp(newX, this.bounds.minX + half, this.bounds.maxX - half);
+        if (!this.collidesWithWall(clampedX, this.position.z, half)) {
+          this.position.x = clampedX;
+        }
       }
       if (!this.isBlockedByMob(this.position.x, newZ)) {
-        this.position.z = clamp(newZ, this.bounds.minZ + half, this.bounds.maxZ - half);
+        const clampedZ = clamp(newZ, this.bounds.minZ + half, this.bounds.maxZ - half);
+        if (!this.collidesWithWall(this.position.x, clampedZ, half)) {
+          this.position.z = clampedZ;
+        }
       }
     }
+  }
+
+  /** Check if a player-sized AABB at (cx, cz) overlaps any wall segment. */
+  private collidesWithWall(cx: number, cz: number, half: number): boolean {
+    const pMinX = cx - half;
+    const pMaxX = cx + half;
+    const pMinZ = cz - half;
+    const pMaxZ = cz + half;
+    for (const w of this.wallSegments) {
+      if (pMaxX > w.minX && pMinX < w.maxX && pMaxZ > w.minZ && pMinZ < w.maxZ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private startAttack(cooldown: number): void {
