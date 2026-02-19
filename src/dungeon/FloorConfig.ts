@@ -509,6 +509,9 @@ const FLOOR_CONFIGS: FloorConfig[] = [
   },
 ];
 
+/** Total number of dungeon floors, derived from the config array. */
+export const TOTAL_FLOORS = FLOOR_CONFIGS.length;
+
 export function getFloorConfig(floor: number): FloorConfig {
   const idx = Math.min(floor - 1, FLOOR_CONFIGS.length - 1);
   return FLOOR_CONFIGS[Math.max(0, idx)];
