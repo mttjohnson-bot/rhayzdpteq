@@ -28,6 +28,7 @@ import {
 } from '../utils/constants';
 import { TestDummy } from '../combat/TestDummy';
 import { getFloorConfig } from '../dungeon/FloorConfig';
+import { ObstacleType } from '../dungeon/DungeonGenerator';
 import { buildEnemyDisplayMesh } from '../combat/Enemy';
 import { buildBossDisplayMesh } from '../combat/Boss';
 import { type ItemRarity, type ConsumeEffect, rarityColor } from '../rpg/LootTable';
@@ -45,6 +46,7 @@ export type LibraryAssetCategory =
   | 'item_ring'
   | 'item_potion'
   | 'structure'
+  | 'obstacle'
   | 'npc';
 
 export interface LibraryAssetStats {
@@ -232,6 +234,116 @@ function buildStructureDisplayMesh(
     const panel = new THREE.Mesh(panelGeo, panelMat);
     panel.position.set(0, 0.6, -0.38);
     group.add(panel);
+  }
+
+  return group;
+}
+
+export function buildObstacleDisplayMesh(type: ObstacleType): THREE.Group {
+  const group = new THREE.Group();
+
+  switch (type) {
+    case ObstacleType.Furniture: {
+      // Crate body
+      const bodyMat = new THREE.MeshLambertMaterial({ color: 0x8b6914 });
+      const bodyGeo = new THREE.BoxGeometry(0.5, 0.55, 0.5);
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.position.y = 0.275;
+      body.castShadow = true;
+      group.add(body);
+      // Crate top (lighter)
+      const topMat = new THREE.MeshLambertMaterial({ color: 0xa07828 });
+      const topGeo = new THREE.BoxGeometry(0.52, 0.06, 0.52);
+      const top = new THREE.Mesh(topGeo, topMat);
+      top.position.y = 0.58;
+      group.add(top);
+      break;
+    }
+    case ObstacleType.Water: {
+      // Translucent blue pool
+      const mat = new THREE.MeshLambertMaterial({
+        color: 0x2266cc,
+        transparent: true,
+        opacity: 0.55,
+      });
+      const geo = new THREE.BoxGeometry(0.65, 0.08, 0.65);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.y = 0.04;
+      group.add(mesh);
+      // Ripple ring on surface
+      const ringMat = new THREE.MeshLambertMaterial({
+        color: 0x4488ee,
+        transparent: true,
+        opacity: 0.4,
+      });
+      const ringGeo = new THREE.TorusGeometry(0.2, 0.02, 4, 12);
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.1;
+      group.add(ring);
+      break;
+    }
+    case ObstacleType.Mud: {
+      // Brown muddy patch
+      const mat = new THREE.MeshLambertMaterial({
+        color: 0x665533,
+        transparent: true,
+        opacity: 0.7,
+      });
+      const geo = new THREE.BoxGeometry(0.65, 0.06, 0.65);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.y = 0.03;
+      group.add(mesh);
+      // Small lumps on surface
+      const lumpMat = new THREE.MeshLambertMaterial({ color: 0x554422 });
+      const lumpGeo = new THREE.BoxGeometry(0.12, 0.06, 0.12);
+      for (const [lx, lz] of [[-0.15, -0.1], [0.18, 0.12], [-0.08, 0.2]] as [number, number][]) {
+        const lump = new THREE.Mesh(lumpGeo, lumpMat);
+        lump.position.set(lx, 0.09, lz);
+        group.add(lump);
+      }
+      break;
+    }
+    case ObstacleType.Fire: {
+      // Glowing orange/red fire
+      const mat = new THREE.MeshLambertMaterial({ color: 0xff4400 });
+      mat.emissive = new THREE.Color(0xff2200);
+      mat.emissiveIntensity = 0.6;
+      const geo = new THREE.BoxGeometry(0.45, 0.3, 0.45);
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.y = 0.15;
+      group.add(mesh);
+      // Flame tip
+      const tipMat = new THREE.MeshLambertMaterial({ color: 0xffaa00 });
+      tipMat.emissive = new THREE.Color(0xff6600);
+      tipMat.emissiveIntensity = 0.5;
+      const tipGeo = new THREE.ConeGeometry(0.15, 0.25, 5);
+      const tip = new THREE.Mesh(tipGeo, tipMat);
+      tip.position.y = 0.42;
+      group.add(tip);
+      break;
+    }
+    case ObstacleType.Trap: {
+      // Metallic pressure plate
+      const plateMat = new THREE.MeshLambertMaterial({ color: 0xccaa22 });
+      const plateGeo = new THREE.BoxGeometry(0.44, 0.08, 0.44);
+      const plate = new THREE.Mesh(plateGeo, plateMat);
+      plate.position.y = 0.04;
+      group.add(plate);
+      // Red warning dot
+      const dotMat = new THREE.MeshLambertMaterial({ color: 0xff2222 });
+      dotMat.emissive = new THREE.Color(0xff0000);
+      dotMat.emissiveIntensity = 0.8;
+      const dotGeo = new THREE.BoxGeometry(0.1, 0.06, 0.1);
+      const dot = new THREE.Mesh(dotGeo, dotMat);
+      dot.position.y = 0.11;
+      group.add(dot);
+      break;
+    }
+    default: {
+      // Fallback empty group
+      break;
+    }
   }
 
   return group;
@@ -452,20 +564,20 @@ export class AssetLibrary {
     this._buildWall(3.2, 1, 28, 2);
   }
 
-  /** Structure wing: 20×12 floor centered at (39.5, 0) */
+  /** Structure wing: 20×26 floor centered at (39.5, 5) — expanded for floors 6-10 + obstacles */
   private _buildStructureWing(): void {
-    this._buildFloor(20, 12, 39.5, 0);
+    this._buildFloor(20, 26, 39.5, 5);
 
     // West wall — two segments around east corridor gap at z=±1.5
-    this._buildWall(1, 4.5, 29, -3.75);
-    this._buildWall(1, 4.5, 29, 3.75);
+    this._buildWall(1, 6, 29, -5);     // north of corridor (z=-8 to -2)
+    this._buildWall(1, 16, 29, 10);    // south of corridor (z=+2 to +18)
 
     // East wall (solid)
-    this._buildWall(1, 12, 50, 0);
+    this._buildWall(1, 26, 50, 5);
     // North wall (solid)
-    this._buildWall(20, 1, 39.5, -6.5);
+    this._buildWall(20, 1, 39.5, -8.5);
     // South wall (solid)
-    this._buildWall(20, 1, 39.5, 6.5);
+    this._buildWall(20, 1, 39.5, 18.5);
 
     this._addStructureSection();
   }
@@ -584,10 +696,23 @@ export class AssetLibrary {
       });
     });
 
-    // Row 3: Bosses sorted by floor number — z = -18.5, spacing 3.0
+    // Row 3: Bosses for floors 1-5 — z = -18, spacing 3.0
     for (let floor = 1; floor <= 5; floor++) {
       const config = getFloorConfig(floor).boss;
-      const pos = { x: 13 + (floor - 1) * 3.0, z: -18.5 };
+      const pos = { x: 13 + (floor - 1) * 3.0, z: -18 };
+      this._addAsset(pos, {
+        key: `boss_floor${floor}`,
+        name: config.name,
+        category: 'enemy_boss',
+        displayMesh: buildBossDisplayMesh(config),
+        stats: this._bossStats(config, floor),
+      });
+    }
+
+    // Row 4: Bosses for floors 6-10 — z = -21, spacing 3.0
+    for (let floor = 6; floor <= 10; floor++) {
+      const config = getFloorConfig(floor).boss;
+      const pos = { x: 13 + (floor - 6) * 3.0, z: -21 };
       this._addAsset(pos, {
         key: `boss_floor${floor}`,
         name: config.name,
@@ -661,18 +786,22 @@ export class AssetLibrary {
   }
 
   private _addStructureSection(): void {
-    // 5 floor themes × 3 tile types
-    // Columns = floor themes (x: 31, 34, 37, 40, 43)
-    // Rows = tile types (z: -3=floor, 0=wall, +3=door)
+    // 10 floor themes × 3 tile types, split into two groups
+    // Group 1 (Floors 1-5): columns x=31..43, rows z=-3 (floor), 0 (wall), +3 (door)
+    // Group 2 (Floors 6-10): columns x=31..43, rows z=+7 (floor), +10 (wall), +13 (door)
+    // Obstacle displays: z=+16
     const tileTypes: Array<'floor' | 'wall' | 'door'> = ['floor', 'wall', 'door'];
 
-    for (let floorNum = 1; floorNum <= 5; floorNum++) {
+    for (let floorNum = 1; floorNum <= 10; floorNum++) {
       const config = getFloorConfig(floorNum);
       const theme = config.theme;
-      const cx = 31 + (floorNum - 1) * 3;
+      const group = floorNum <= 5 ? 0 : 1;
+      const indexInGroup = group === 0 ? floorNum - 1 : floorNum - 6;
+      const cx = 31 + indexInGroup * 3;
+      const zBase = group === 0 ? -3 : 7;
 
       tileTypes.forEach((tileType, ti) => {
-        const cz = -3 + ti * 3;
+        const cz = zBase + ti * 3;
         this._addAsset(
           { x: cx, z: cz },
           {
@@ -703,6 +832,77 @@ export class AssetLibrary {
         );
       });
     }
+
+    // Obstacle displays — 5 obstacle types at z=+16
+    const obstacleDefs: Array<{
+      type: ObstacleType;
+      name: string;
+      effect: string;
+      value: string;
+      color: number;
+      flavorText: string;
+    }> = [
+      {
+        type: ObstacleType.Furniture,
+        name: 'Furniture',
+        effect: 'Blocks movement',
+        value: 'Impassable',
+        color: 0x8b6914,
+        flavorText: 'Solid crates and barrels that block all movement. Plan your path around them.',
+      },
+      {
+        type: ObstacleType.Water,
+        name: 'Water',
+        effect: 'Weakens attacks',
+        value: '0.5\u00d7 damage',
+        color: 0x2266cc,
+        flavorText: 'Shallow pools that dampen the force of all attacks made while standing in them.',
+      },
+      {
+        type: ObstacleType.Mud,
+        name: 'Mud',
+        effect: 'Slows movement',
+        value: '0.45\u00d7 speed',
+        color: 0x665533,
+        flavorText: 'Thick mire that drastically slows anyone trudging through it.',
+      },
+      {
+        type: ObstacleType.Fire,
+        name: 'Fire',
+        effect: 'Burns on contact',
+        value: '12 DPS',
+        color: 0xff4400,
+        flavorText: 'Raging flames that continuously burn anyone standing in them.',
+      },
+      {
+        type: ObstacleType.Trap,
+        name: 'Trap',
+        effect: 'Explodes on contact',
+        value: '40 damage (one-time)',
+        color: 0xccaa22,
+        flavorText: 'A concealed pressure plate that detonates once when first stepped on.',
+      },
+    ];
+
+    obstacleDefs.forEach((def, i) => {
+      const pos = { x: 31 + i * 3, z: 16 };
+      this._addAsset(pos, {
+        key: `obstacle_${def.type}`,
+        name: def.name,
+        category: 'obstacle',
+        displayMesh: buildObstacleDisplayMesh(def.type),
+        stats: {
+          rows: [
+            { label: 'Type', value: def.name },
+            { label: 'Effect', value: def.effect },
+            { label: 'Value', value: def.value },
+            { label: 'Appears on', value: 'Floors 6-10' },
+          ],
+          accentColor: toHex(def.color),
+          flavorText: def.flavorText,
+        },
+      });
+    });
   }
 
   // -------------------------------------------------------------------------
