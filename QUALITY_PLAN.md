@@ -17,7 +17,7 @@ Captured 2026-02-20. Update this section as phases are completed.
 | **Build** | `tsc && vite build` succeeds; 122 KB gzipped production bundle |
 | **TypeScript** | Strict mode enabled; `npx tsc --noEmit` passes |
 | **Linting** | ESLint v9 + Prettier installed; `npm run lint` and `npm run format:check` both pass |
-| **Testing** | No test framework; `npm test` prints a placeholder message and exits 0 |
+| **Testing** | Vitest with 335 tests across 13 files; 98% statement, 94% branch, 100% function coverage on pure-logic modules |
 | **Pre-commit hooks** | None |
 | **CI** | `.github/workflows/deploy.yml` deploys to GitHub Pages on push to main; `.github/workflows/quality.yml` runs lint, format check, and typecheck on PRs and pushes to main |
 | **Security** | No Dependabot, no CodeQL, no npm audit integration |
@@ -45,7 +45,7 @@ that are immediately testable:
 | Phase | Focus | Key Tools | Status |
 |-------|-------|-----------|--------|
 | 1 | Linting & Formatting | ESLint v9, Prettier | [x] |
-| 2 | Unit & Integration Testing | Vitest, @vitest/coverage-v8 | [ ] |
+| 2 | Unit & Integration Testing | Vitest, @vitest/coverage-v8 | [x] |
 | 3 | Build & Developer Experience | Husky, lint-staged, bundle analysis | [ ] |
 | 4 | E2E & Visual Testing | Playwright | [ ] |
 | 5 | Security Scanning | Dependabot, CodeQL, npm audit | [ ] |
