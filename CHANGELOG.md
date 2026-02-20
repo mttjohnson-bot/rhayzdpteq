@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Unit & integration testing infrastructure — Phase 2 of the quality roadmap.
+
+- **Vitest test framework** — Installed Vitest, @vitest/coverage-v8, and jsdom. Created `vitest.config.ts` with v8 coverage provider targeting `src/utils/`, `src/rpg/`, `src/dungeon/`, and `src/game/SaveManager.ts`. Added `test`, `test:watch`, and `test:coverage` scripts to `package.json`.
+- **335 unit tests across 13 test files** — Comprehensive test coverage for all pure-logic modules: math utilities (clamp, lerp, lerpVector3), EventBus (subscribe/emit/unsubscribe/clear), constants validation (numeric ranges, unique enemy type IDs, valid hex colors), PlayerStats (base stats, level scaling, modifier stacking, crit cap), LevelSystem (XP thresholds, level-up, skill points, max level, serialization), LootTable (drop generation, rarity distribution, slot coverage, weapon subtypes), DungeonGenerator (room placement, no overlaps, connectivity, boss room, exit reachability, seeded determinism, obstacles), FloorConfig (all 10 floors validated, difficulty scaling, boss abilities, obstacle configs), SaveManager (save/load round-trip, slot isolation, corrupt data, localStorage failure), SkillTree (node structure, prerequisites, rank-up, modifiers, serialization), Inventory (equip/unequip, bag capacity, weapon migration, serialization), ObstacleSystem (mud/water/fire/trap effects, trap one-time trigger), and dungeon types (enum members, no duplicates).
+- **98% test coverage** — Achieved 98% statement, 94% branch, 100% function, and 99% line coverage across all tested modules, well above the 80% target.
+- **CI test job** — Added a `test` job to `.github/workflows/quality.yml` that runs after lint and typecheck, executes `npm run test:coverage`, and uploads the coverage report as a workflow artifact.
+- **TypeScript config updated** — Added `tests/` to `tsconfig.json` include array so test files receive full type checking.
+
+---
+
 Linting & formatting infrastructure — Phase 1 of the quality roadmap.
 
 - **ESLint v9 with TypeScript support** — Installed ESLint v9, the unified `typescript-eslint` package, and `eslint-config-prettier`. Created a flat config (`eslint.config.js`) extending recommended TypeScript rules with `no-explicit-any` as a warning, `no-unused-vars` as an error, and `no-empty-function` disabled for Three.js lifecycle patterns.
