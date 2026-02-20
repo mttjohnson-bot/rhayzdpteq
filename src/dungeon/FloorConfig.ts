@@ -48,7 +48,7 @@ export interface BossConfig {
   abilities: BossAbility[];
 }
 
-export type BossAbility = 'charge' | 'slam' | 'summon' | 'enrage' | 'teleport';
+export type BossAbility = 'charge' | 'slam' | 'summon' | 'enrage' | 'teleport' | 'invisibility';
 
 export interface ObstacleConfig {
   types: ObstacleType[];   // available obstacle types for this floor
@@ -267,7 +267,7 @@ const FLOOR_CONFIGS: FloorConfig[] = [
       dmgMultiplier: 2.5,
       speed: 2.2,
       attackCooldown: 0.7,
-      abilities: ['charge', 'slam', 'summon', 'teleport', 'enrage'],
+      abilities: ['charge', 'slam', 'summon', 'teleport', 'enrage', 'invisibility'],
     },
   },
 

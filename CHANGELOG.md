@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Shadow Lord fading invisibility — a haunting phase-cycling transparency effect.
+
+- **Boss fading invisibility ability** — Added a new `invisibility` boss ability that cycles the Shadow Lord (Floor 5) between a ghostly peek state and full concealment. The boss fades to only 25% opacity at peak visibility — still mostly transparent for a haunting effect — then fades back to invisible over a 0.5 s transition and stays hidden for ~4 s before reappearing. Eyes retain a faint red ember glow (4% opacity) even when fully hidden so the player can track the boss's position. Damage hits briefly snap the boss to near-full opacity so hit feedback always reads clearly.
+
+---
+
 Asset Library usability improvements — item selection, collision, and spacing.
 
 - **Centralized floor count constant** — Introduced a `TOTAL_FLOORS` constant derived from the floor config array so that all UI displays (HUD, save slots, floor select, win screen) automatically reflect the correct number of floors. Fixed the HUD and menu save-slot displays which still showed "/5" instead of "/10".

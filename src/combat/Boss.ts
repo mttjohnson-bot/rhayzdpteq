@@ -47,8 +47,15 @@ export class Boss {
 
   // Visual
   private bodyMaterial: THREE.MeshLambertMaterial;
+  private hornMaterial!: THREE.MeshLambertMaterial;
+  private eyeMaterial!: THREE.MeshBasicMaterial;
   private hitFlashTimer = 0;
   private healthBarFg: THREE.Mesh;
+
+  // Invisibility
+  private invisActive = false;
+  private invisPhase: 'fadingIn' | 'peeking' | 'fadingOut' | 'hidden' = 'fadingIn';
+  private invisPhaseTimer = 0;
 
   // Collision
   private dungeonData: DungeonData | null = null;
@@ -74,7 +81,7 @@ export class Boss {
     const size = config.scale;
     const height = size * 1.2;
     const bodyGeo = new THREE.BoxGeometry(size * 0.7, height, size * 0.7);
-    this.bodyMaterial = new THREE.MeshLambertMaterial({ color: config.color });
+    this.bodyMaterial = new THREE.MeshLambertMaterial({ color: config.color, transparent: true, opacity: 1.0 });
     const body = new THREE.Mesh(bodyGeo, this.bodyMaterial);
     body.castShadow = true;
     body.position.y = height / 2;
@@ -86,12 +93,12 @@ export class Boss {
 
     // Boss horns
     const hornGeo = new THREE.ConeGeometry(size * 0.1, size * 0.4, 4);
-    const hornMat = new THREE.MeshLambertMaterial({ color: 0xdddddd });
-    const leftHorn = new THREE.Mesh(hornGeo, hornMat);
+    this.hornMaterial = new THREE.MeshLambertMaterial({ color: 0xdddddd, transparent: true, opacity: 1.0 });
+    const leftHorn = new THREE.Mesh(hornGeo, this.hornMaterial);
     leftHorn.position.set(-size * 0.25, height + size * 0.15, 0);
     leftHorn.rotation.z = 0.3;
     this.mesh.add(leftHorn);
-    const rightHorn = new THREE.Mesh(hornGeo, hornMat);
+    const rightHorn = new THREE.Mesh(hornGeo, this.hornMaterial);
     rightHorn.position.set(size * 0.25, height + size * 0.15, 0);
     rightHorn.rotation.z = -0.3;
     this.mesh.add(rightHorn);
@@ -99,11 +106,11 @@ export class Boss {
     // Eyes (larger, menacing)
     const eyeSize = size * 0.08;
     const eyeGeo = new THREE.BoxGeometry(eyeSize, eyeSize * 1.5, eyeSize);
-    const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff2200 });
-    const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+    this.eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 1.0 });
+    const leftEye = new THREE.Mesh(eyeGeo, this.eyeMaterial);
     leftEye.position.set(-size * 0.15, height * 0.75, -size * 0.35 - 0.01);
     this.mesh.add(leftEye);
-    const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+    const rightEye = new THREE.Mesh(eyeGeo, this.eyeMaterial);
     rightEye.position.set(size * 0.15, height * 0.75, -size * 0.35 - 0.01);
     this.mesh.add(rightEye);
 
@@ -184,11 +191,22 @@ export class Boss {
       this.bodyMaterial.color.setHex(this.enraged ? 0xff2200 : this.config.color);
     }
 
+    // Invisibility cycling (runs every frame; hit flash temporarily overrides opacity)
+    if (this.invisActive) {
+      this.updateInvisibility(dt);
+    }
+
     if (!this.alive) {
       this.deathTimer -= dt;
       const t = Math.max(0, this.deathTimer / this.deathDuration);
       this.mesh.scale.set(t, t, t);
       this.mesh.position.y = (1 - t) * -1;
+      // Fade out body opacity in sync with the shrink so the death reads clearly
+      if (this.invisActive) {
+        this.bodyMaterial.opacity = t;
+        this.hornMaterial.opacity = t;
+        this.eyeMaterial.opacity = t;
+      }
       return;
     }
 
@@ -280,6 +298,17 @@ export class Boss {
         this.abilityCooldowns.set('teleport', 6);
         break;
       }
+      case 'invisibility': {
+        // One-shot activation: enable the passive cycling loop and never re-trigger.
+        if (!this.invisActive) {
+          this.invisActive = true;
+          this.invisPhase = 'fadingOut';
+          this.invisPhaseTimer = 0.5;
+        }
+        this.abilityTimer = 0.1; // end the "ability" immediately; cycling runs passively
+        this.abilityCooldowns.set('invisibility', 9999);
+        break;
+      }
     }
   }
 
@@ -331,6 +360,81 @@ export class Boss {
 
     if (this.abilityTimer <= 0) {
       this.currentAbility = null;
+    }
+  }
+
+  /**
+   * Cycles boss opacity for the fading-invisibility effect.
+   * Peak opacity is 25% so the boss is ghostly even at its most visible.
+   * Eyes stay slightly brighter than the body for a haunting glow effect.
+   * Hit flashes override opacity momentarily so damage feedback still reads.
+   */
+  private updateInvisibility(dt: number): void {
+    // Opacity targets
+    const BODY_PEEK   = 0.25;  // body/horns at most-visible point
+    const EYE_PEEK    = 0.40;  // eyes slightly brighter for the haunting glow
+    const EYE_FLOOR   = 0.04;  // faint ember glow when fully hidden
+
+    // Phase durations (seconds)
+    const FADE_DUR    = 0.5;   // cross-fade length
+    const PEEK_DUR    = 1.8;   // how long the boss is at peak visibility
+    const HIDDEN_DUR  = 4.2;   // how long the boss is fully invisible
+
+    // During a hit flash, snap visible so the player sees the damage register
+    if (this.hitFlashTimer > 0) {
+      this.bodyMaterial.opacity = 0.9;
+      this.hornMaterial.opacity = 0.9;
+      this.eyeMaterial.opacity  = 1.0;
+      return;
+    }
+
+    this.invisPhaseTimer -= dt;
+
+    switch (this.invisPhase) {
+      case 'fadingIn': {
+        // 0 → PEEK_OPACITY as timer counts down from FADE_DUR to 0
+        const t = 1.0 - Math.max(0, this.invisPhaseTimer / FADE_DUR);
+        this.bodyMaterial.opacity = t * BODY_PEEK;
+        this.hornMaterial.opacity = t * BODY_PEEK;
+        this.eyeMaterial.opacity  = EYE_FLOOR + t * (EYE_PEEK - EYE_FLOOR);
+        if (this.invisPhaseTimer <= 0) {
+          this.invisPhase      = 'peeking';
+          this.invisPhaseTimer = PEEK_DUR;
+        }
+        break;
+      }
+      case 'peeking': {
+        this.bodyMaterial.opacity = BODY_PEEK;
+        this.hornMaterial.opacity = BODY_PEEK;
+        this.eyeMaterial.opacity  = EYE_PEEK;
+        if (this.invisPhaseTimer <= 0) {
+          this.invisPhase      = 'fadingOut';
+          this.invisPhaseTimer = FADE_DUR;
+        }
+        break;
+      }
+      case 'fadingOut': {
+        // PEEK_OPACITY → 0 as timer counts down from FADE_DUR to 0
+        const t = Math.max(0, this.invisPhaseTimer / FADE_DUR);
+        this.bodyMaterial.opacity = t * BODY_PEEK;
+        this.hornMaterial.opacity = t * BODY_PEEK;
+        this.eyeMaterial.opacity  = EYE_FLOOR + t * (EYE_PEEK - EYE_FLOOR);
+        if (this.invisPhaseTimer <= 0) {
+          this.invisPhase      = 'hidden';
+          this.invisPhaseTimer = HIDDEN_DUR;
+        }
+        break;
+      }
+      case 'hidden': {
+        this.bodyMaterial.opacity = 0;
+        this.hornMaterial.opacity = 0;
+        this.eyeMaterial.opacity  = EYE_FLOOR;
+        if (this.invisPhaseTimer <= 0) {
+          this.invisPhase      = 'fadingIn';
+          this.invisPhaseTimer = FADE_DUR;
+        }
+        break;
+      }
     }
   }
 
