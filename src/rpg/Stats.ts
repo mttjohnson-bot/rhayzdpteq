@@ -13,10 +13,10 @@ export interface StatModifier {
   flatDamage?: number;
   flatDefense?: number;
   flatMaxHp?: number;
-  attackSpeed?: number;   // multiplier bonus (0.1 = +10%)
-  moveSpeed?: number;     // multiplier bonus
-  critChance?: number;    // flat addition (0.05 = +5%)
-  hpRegen?: number;       // HP per second
+  attackSpeed?: number; // multiplier bonus (0.1 = +10%)
+  moveSpeed?: number; // multiplier bonus
+  critChance?: number; // flat addition (0.05 = +5%)
+  hpRegen?: number; // HP per second
 }
 
 export interface ComputedStats {
@@ -27,9 +27,9 @@ export interface ComputedStats {
   maxHp: number;
   attack: number;
   defense: number;
-  attackSpeed: number;   // multiplier (1.0 = normal)
-  moveSpeed: number;     // multiplier
-  critChance: number;    // 0-1
+  attackSpeed: number; // multiplier (1.0 = normal)
+  moveSpeed: number; // multiplier
+  critChance: number; // 0-1
   critMultiplier: number;
   hpRegen: number;
 }
@@ -38,7 +38,7 @@ const BASE_HP = 100;
 const HP_PER_VITALITY = 10;
 const ATTACK_PER_STRENGTH = 2;
 const DEFENSE_PER_VITALITY = 0.5;
-const CRIT_PER_LUCK = 0.005;    // 0.5% per luck
+const CRIT_PER_LUCK = 0.005; // 0.5% per luck
 const SPEED_PER_AGILITY = 0.01; // 1% per agility
 
 export class PlayerStats {

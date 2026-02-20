@@ -3,8 +3,10 @@ import { Enemy } from './Enemy';
 import { Boss } from './Boss';
 import { Player } from '../game/Player';
 import {
-  PLAYER_ATTACK_RANGE, PLAYER_ATTACK_ARC,
-  KNOCKBACK_FORCE, KNOCKBACK_CHANCE,
+  PLAYER_ATTACK_RANGE,
+  PLAYER_ATTACK_ARC,
+  KNOCKBACK_FORCE,
+  KNOCKBACK_CHANCE,
   EnemyTypeId,
 } from '../utils/constants';
 import { events } from '../utils/EventBus';
@@ -34,7 +36,12 @@ export class CombatSystem {
     this.computedStats = stats;
   }
 
-  spawnEnemiesForDungeon(dungeon: DungeonData, floor: number, offsetX: number, offsetZ: number): void {
+  spawnEnemiesForDungeon(
+    dungeon: DungeonData,
+    floor: number,
+    offsetX: number,
+    offsetZ: number,
+  ): void {
     this.clearEnemies();
     this.currentDungeon = dungeon;
 
@@ -55,18 +62,18 @@ export class CombatSystem {
         continue;
       }
 
-      const count = diff.enemyCountMin +
-        Math.floor(Math.random() * (diff.enemyCountExtra + 1));
+      const count = diff.enemyCountMin + Math.floor(Math.random() * (diff.enemyCountExtra + 1));
 
       // Determine if this mob group has a captain
       const hasCaptain = Math.random() < diff.captainChance;
 
       for (let i = 0; i < count; i++) {
-        const wx = (room.x + 1 + Math.random() * (room.width - 2)) + offsetX + 0.5;
-        const wz = (room.z + 1 + Math.random() * (room.height - 2)) + offsetZ + 0.5;
+        const wx = room.x + 1 + Math.random() * (room.width - 2) + offsetX + 0.5;
+        const wz = room.z + 1 + Math.random() * (room.height - 2) + offsetZ + 0.5;
 
         // Pick enemy type from available types for this floor
-        const typeId: EnemyTypeId = diff.enemyTypes[Math.floor(Math.random() * diff.enemyTypes.length)];
+        const typeId: EnemyTypeId =
+          diff.enemyTypes[Math.floor(Math.random() * diff.enemyTypes.length)];
         const isCaptain = hasCaptain && i === 0;
 
         const enemy = new Enemy(wx, wz, floor, diff, typeId, isCaptain);
@@ -156,12 +163,11 @@ export class CombatSystem {
   }
 
   get enemyCount(): number {
-    return this.enemies.filter(e => e.alive).length +
-           this.bosses.filter(b => b.alive).length;
+    return this.enemies.filter((e) => e.alive).length + this.bosses.filter((b) => b.alive).length;
   }
 
   get bossDefeated(): boolean {
-    return this.bosses.length === 0 || this.bosses.every(b => !b.alive);
+    return this.bosses.length === 0 || this.bosses.every((b) => !b.alive);
   }
 
   getColliders(): Array<{ position: THREE.Vector3; collisionRadius: number; alive: boolean }> {
@@ -217,8 +223,12 @@ export class CombatSystem {
 
   private tryHitTarget(
     target: { position: THREE.Vector3; alive: boolean; takeDamage: (n: number) => void },
-    px: number, pz: number, angle: number,
-    baseDamage: number, critChance: number, critMult: number,
+    px: number,
+    pz: number,
+    angle: number,
+    baseDamage: number,
+    critChance: number,
+    critMult: number,
   ): void {
     const dx = target.position.x - px;
     const dz = target.position.z - pz;
@@ -249,7 +259,8 @@ export class CombatSystem {
     const dz = this.player.position.z - enemy.position.z;
     const dist = Math.sqrt(dx * dx + dz * dz);
 
-    const maxHitRange = (enemy instanceof Enemy && enemy.enemyType.attackRange > 2) ? enemy.enemyType.attackRange : 1.5;
+    const maxHitRange =
+      enemy instanceof Enemy && enemy.enemyType.attackRange > 2 ? enemy.enemyType.attackRange : 1.5;
 
     if (dist <= maxHitRange && this.player.alive) {
       const defense = this.computedStats ? this.computedStats.defense : 0;
@@ -281,7 +292,10 @@ export class CombatSystem {
       const sx = x + Math.cos(angle) * dist;
       const sz = z + Math.sin(angle) * dist;
 
-      const typeId = config.difficulty.enemyTypes[Math.floor(Math.random() * config.difficulty.enemyTypes.length)];
+      const typeId =
+        config.difficulty.enemyTypes[
+          Math.floor(Math.random() * config.difficulty.enemyTypes.length)
+        ];
       const enemy = new Enemy(sx, sz, floor, config.difficulty, typeId);
       enemy.setDungeonCollision(this.currentDungeon);
       this.enemies.push(enemy);

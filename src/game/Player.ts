@@ -1,7 +1,13 @@
 import * as THREE from 'three';
 import {
-  PLAYER_SPEED, PLAYER_SIZE, PLAYER_HEIGHT, COLORS, TILE_SIZE,
-  PLAYER_MAX_HP, PLAYER_ATTACK_COOLDOWN, PLAYER_INVINCIBILITY_TIME,
+  PLAYER_SPEED,
+  PLAYER_SIZE,
+  PLAYER_HEIGHT,
+  COLORS,
+  TILE_SIZE,
+  PLAYER_MAX_HP,
+  PLAYER_ATTACK_COOLDOWN,
+  PLAYER_INVINCIBILITY_TIME,
 } from '../utils/constants';
 import { clamp } from '../utils/math';
 import { InputManager } from './InputManager';
@@ -52,10 +58,13 @@ export class Player {
   private readonly knockbackDuration = 0.15;
 
   // Auto-face callback
-  private autoFaceCallback: ((px: number, pz: number) => { x: number; z: number } | null) | null = null;
+  private autoFaceCallback: ((px: number, pz: number) => { x: number; z: number } | null) | null =
+    null;
 
   // Mob collision callback
-  private getMobColliders: (() => Array<{ position: THREE.Vector3; collisionRadius: number; alive: boolean }>) | null = null;
+  private getMobColliders:
+    | (() => Array<{ position: THREE.Vector3; collisionRadius: number; alive: boolean }>)
+    | null = null;
 
   // Equipment visuals
   private weaponPivot: THREE.Group | null = null;
@@ -91,7 +100,9 @@ export class Player {
     this.autoFaceCallback = cb;
   }
 
-  setMobColliders(cb: () => Array<{ position: THREE.Vector3; collisionRadius: number; alive: boolean }>): void {
+  setMobColliders(
+    cb: () => Array<{ position: THREE.Vector3; collisionRadius: number; alive: boolean }>,
+  ): void {
     this.getMobColliders = cb;
   }
 
@@ -196,7 +207,7 @@ export class Player {
 
     // Animate equipped weapon pivot (all rotations are in player-mesh local space)
     if (this.weaponPivot && this.weaponMesh) {
-      const swingT = this.isAttacking ? 1 - (this.attackTimer / this.attackDuration) : 0;
+      const swingT = this.isAttacking ? 1 - this.attackTimer / this.attackDuration : 0;
       const swingArc = Math.sin(swingT * Math.PI) * (Math.PI * 0.85);
       // Resting: weapon held 45° to the right of facing; sweeps through to the left during attack
       const sweepAngle = Math.PI / 4 - swingArc;
@@ -240,13 +251,20 @@ export class Player {
 
       const attackHeld = input.isMouseDown() || input.isDown('Space');
       const attackSpeedFactor = attackHeld ? 0.25 : 1;
-      const speed = PLAYER_SPEED * this.moveSpeedMultiplier * this.obstacleSpeedMult * attackSpeedFactor;
+      const speed =
+        PLAYER_SPEED * this.moveSpeedMultiplier * this.obstacleSpeedMult * attackSpeedFactor;
       this.applyMovement(worldX * speed * dt, worldZ * speed * dt);
     }
 
     // Attack input
     const adjustedCooldown = PLAYER_ATTACK_COOLDOWN / this.attackSpeedMultiplier;
-    if ((input.wasMousePressed() || input.wasPressed('Space') || input.isMouseDown() || input.isDown('Space')) && this.attackCooldown <= 0) {
+    if (
+      (input.wasMousePressed() ||
+        input.wasPressed('Space') ||
+        input.isMouseDown() ||
+        input.isDown('Space')) &&
+      this.attackCooldown <= 0
+    ) {
       // Auto-face nearest enemy when attacking
       if (this.autoFaceCallback) {
         const target = this.autoFaceCallback(this.position.x, this.position.z);
@@ -358,8 +376,12 @@ export class Player {
       const tileX = Math.floor((cx - this.dungeonOffsetX) / TILE_SIZE);
       const tileZ = Math.floor((cz - this.dungeonOffsetZ) / TILE_SIZE);
 
-      if (tileX < 0 || tileX >= this.dungeonData.width ||
-          tileZ < 0 || tileZ >= this.dungeonData.height) {
+      if (
+        tileX < 0 ||
+        tileX >= this.dungeonData.width ||
+        tileZ < 0 ||
+        tileZ >= this.dungeonData.height
+      ) {
         return false;
       }
 
@@ -398,8 +420,14 @@ export class Player {
 
   /** Show/update coloured shoulder pads based on equipped armor rarity. Pass null to remove. */
   updateArmorVisual(rarity: ItemRarity | null): void {
-    if (this.armorPadL) { this.mesh.remove(this.armorPadL); this.armorPadL = null; }
-    if (this.armorPadR) { this.mesh.remove(this.armorPadR); this.armorPadR = null; }
+    if (this.armorPadL) {
+      this.mesh.remove(this.armorPadL);
+      this.armorPadL = null;
+    }
+    if (this.armorPadR) {
+      this.mesh.remove(this.armorPadR);
+      this.armorPadR = null;
+    }
     if (!rarity) return;
     const color = RARITY_HEX[rarity];
     const padGeo = new THREE.BoxGeometry(0.18, 0.18, 0.14);
@@ -414,7 +442,10 @@ export class Player {
 
   /** Show/update a glowing ring indicator based on equipped ring rarity. Pass null to remove. */
   updateRingVisual(rarity: ItemRarity | null): void {
-    if (this.ringVisual) { this.mesh.remove(this.ringVisual); this.ringVisual = null; }
+    if (this.ringVisual) {
+      this.mesh.remove(this.ringVisual);
+      this.ringVisual = null;
+    }
     if (!rarity) return;
     const color = RARITY_HEX[rarity];
     const geo = new THREE.TorusGeometry(0.12, 0.03, 6, 12);

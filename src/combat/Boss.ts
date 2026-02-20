@@ -1,9 +1,5 @@
 import * as THREE from 'three';
-import {
-  ENEMY_HP, ENEMY_ATTACK_DAMAGE,
-  ENEMY_CHASE_RANGE,
-  COLORS, TILE_SIZE,
-} from '../utils/constants';
+import { ENEMY_HP, ENEMY_ATTACK_DAMAGE, COLORS, TILE_SIZE } from '../utils/constants';
 import { events } from '../utils/EventBus';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { BossConfig, BossAbility } from '../dungeon/FloorConfig';
@@ -81,19 +77,33 @@ export class Boss {
     const size = config.scale;
     const height = size * 1.2;
     const bodyGeo = new THREE.BoxGeometry(size * 0.7, height, size * 0.7);
-    this.bodyMaterial = new THREE.MeshLambertMaterial({ color: config.color, transparent: true, opacity: 1.0 });
+    this.bodyMaterial = new THREE.MeshLambertMaterial({
+      color: config.color,
+      transparent: true,
+      opacity: 1.0,
+    });
     const body = new THREE.Mesh(bodyGeo, this.bodyMaterial);
     body.castShadow = true;
     body.position.y = height / 2;
     this.mesh.add(body);
 
     // Occlusion silhouette: visible through walls
-    const silhouette = createOcclusionSilhouette(size * 0.7, height, size * 0.7, 0xff4444, height / 2);
+    const silhouette = createOcclusionSilhouette(
+      size * 0.7,
+      height,
+      size * 0.7,
+      0xff4444,
+      height / 2,
+    );
     this.mesh.add(silhouette);
 
     // Boss horns
     const hornGeo = new THREE.ConeGeometry(size * 0.1, size * 0.4, 4);
-    this.hornMaterial = new THREE.MeshLambertMaterial({ color: 0xdddddd, transparent: true, opacity: 1.0 });
+    this.hornMaterial = new THREE.MeshLambertMaterial({
+      color: 0xdddddd,
+      transparent: true,
+      opacity: 1.0,
+    });
     const leftHorn = new THREE.Mesh(hornGeo, this.hornMaterial);
     leftHorn.position.set(-size * 0.25, height + size * 0.15, 0);
     leftHorn.rotation.z = 0.3;
@@ -106,7 +116,11 @@ export class Boss {
     // Eyes (larger, menacing)
     const eyeSize = size * 0.08;
     const eyeGeo = new THREE.BoxGeometry(eyeSize, eyeSize * 1.5, eyeSize);
-    this.eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xff2200, transparent: true, opacity: 1.0 });
+    this.eyeMaterial = new THREE.MeshBasicMaterial({
+      color: 0xff2200,
+      transparent: true,
+      opacity: 1.0,
+    });
     const leftEye = new THREE.Mesh(eyeGeo, this.eyeMaterial);
     leftEye.position.set(-size * 0.15, height * 0.75, -size * 0.35 - 0.01);
     this.mesh.add(leftEye);
@@ -230,7 +244,7 @@ export class Boss {
     }
 
     // Try to use an ability
-    const availableAbilities = this.config.abilities.filter(a => {
+    const availableAbilities = this.config.abilities.filter((a) => {
       if (a === 'enrage') return false; // passive
       const cd = this.abilityCooldowns.get(a) ?? 0;
       return cd <= 0;
@@ -251,13 +265,15 @@ export class Boss {
       this.tryMove(moveX, moveZ);
     } else if (this.attackCooldown <= 0) {
       // Melee attack
-      const dmg = Math.round(ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * this.enrageDamageBonus);
+      const dmg = Math.round(
+        ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * this.enrageDamageBonus,
+      );
       this.attackCooldown = this.config.attackCooldown * (this.enraged ? 0.4 : 1);
       events.emit('enemyAttack', this, dmg);
     }
   }
 
-  private startAbility(ability: BossAbility, dx: number, dz: number, dist: number): void {
+  private startAbility(ability: BossAbility, dx: number, dz: number, _dist: number): void {
     this.currentAbility = ability;
 
     switch (ability) {
@@ -326,7 +342,9 @@ export class Boss {
         const dz = playerZ - this.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
         if (dist < 1.5) {
-          const dmg = Math.round(ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * 2.5 * this.enrageDamageBonus);
+          const dmg = Math.round(
+            ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * 2.5 * this.enrageDamageBonus,
+          );
           events.emit('enemyAttack', this, dmg);
         }
         break;
@@ -348,7 +366,9 @@ export class Boss {
             const dz = playerZ - this.position.z;
             const dist = Math.sqrt(dx * dx + dz * dz);
             if (dist < 5) {
-              const dmg = Math.round(ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * 3.5 * this.enrageDamageBonus);
+              const dmg = Math.round(
+                ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * 3.5 * this.enrageDamageBonus,
+              );
               events.emit('enemyAttack', this, dmg);
             }
             events.emit('bossSlam', this.position.x, this.position.z);
@@ -371,20 +391,20 @@ export class Boss {
    */
   private updateInvisibility(dt: number): void {
     // Opacity targets
-    const BODY_PEEK   = 0.25;  // body/horns at most-visible point
-    const EYE_PEEK    = 0.40;  // eyes slightly brighter for the haunting glow
-    const EYE_FLOOR   = 0.04;  // faint ember glow when fully hidden
+    const BODY_PEEK = 0.25; // body/horns at most-visible point
+    const EYE_PEEK = 0.4; // eyes slightly brighter for the haunting glow
+    const EYE_FLOOR = 0.04; // faint ember glow when fully hidden
 
     // Phase durations (seconds)
-    const FADE_DUR    = 0.5;   // cross-fade length
-    const PEEK_DUR    = 1.8;   // how long the boss is at peak visibility
-    const HIDDEN_DUR  = 4.2;   // how long the boss is fully invisible
+    const FADE_DUR = 0.5; // cross-fade length
+    const PEEK_DUR = 1.8; // how long the boss is at peak visibility
+    const HIDDEN_DUR = 4.2; // how long the boss is fully invisible
 
     // During a hit flash, snap visible so the player sees the damage register
     if (this.hitFlashTimer > 0) {
       this.bodyMaterial.opacity = 0.9;
       this.hornMaterial.opacity = 0.9;
-      this.eyeMaterial.opacity  = 1.0;
+      this.eyeMaterial.opacity = 1.0;
       return;
     }
 
@@ -396,9 +416,9 @@ export class Boss {
         const t = 1.0 - Math.max(0, this.invisPhaseTimer / FADE_DUR);
         this.bodyMaterial.opacity = t * BODY_PEEK;
         this.hornMaterial.opacity = t * BODY_PEEK;
-        this.eyeMaterial.opacity  = EYE_FLOOR + t * (EYE_PEEK - EYE_FLOOR);
+        this.eyeMaterial.opacity = EYE_FLOOR + t * (EYE_PEEK - EYE_FLOOR);
         if (this.invisPhaseTimer <= 0) {
-          this.invisPhase      = 'peeking';
+          this.invisPhase = 'peeking';
           this.invisPhaseTimer = PEEK_DUR;
         }
         break;
@@ -406,9 +426,9 @@ export class Boss {
       case 'peeking': {
         this.bodyMaterial.opacity = BODY_PEEK;
         this.hornMaterial.opacity = BODY_PEEK;
-        this.eyeMaterial.opacity  = EYE_PEEK;
+        this.eyeMaterial.opacity = EYE_PEEK;
         if (this.invisPhaseTimer <= 0) {
-          this.invisPhase      = 'fadingOut';
+          this.invisPhase = 'fadingOut';
           this.invisPhaseTimer = FADE_DUR;
         }
         break;
@@ -418,9 +438,9 @@ export class Boss {
         const t = Math.max(0, this.invisPhaseTimer / FADE_DUR);
         this.bodyMaterial.opacity = t * BODY_PEEK;
         this.hornMaterial.opacity = t * BODY_PEEK;
-        this.eyeMaterial.opacity  = EYE_FLOOR + t * (EYE_PEEK - EYE_FLOOR);
+        this.eyeMaterial.opacity = EYE_FLOOR + t * (EYE_PEEK - EYE_FLOOR);
         if (this.invisPhaseTimer <= 0) {
-          this.invisPhase      = 'hidden';
+          this.invisPhase = 'hidden';
           this.invisPhaseTimer = HIDDEN_DUR;
         }
         break;
@@ -428,9 +448,9 @@ export class Boss {
       case 'hidden': {
         this.bodyMaterial.opacity = 0;
         this.hornMaterial.opacity = 0;
-        this.eyeMaterial.opacity  = EYE_FLOOR;
+        this.eyeMaterial.opacity = EYE_FLOOR;
         if (this.invisPhaseTimer <= 0) {
-          this.invisPhase      = 'fadingIn';
+          this.invisPhase = 'fadingIn';
           this.invisPhaseTimer = FADE_DUR;
         }
         break;
@@ -472,8 +492,12 @@ export class Boss {
       const tileX = Math.floor((cx - this.dungeonOffsetX) / TILE_SIZE);
       const tileZ = Math.floor((cz - this.dungeonOffsetZ) / TILE_SIZE);
 
-      if (tileX < 0 || tileX >= this.dungeonData.width ||
-          tileZ < 0 || tileZ >= this.dungeonData.height) {
+      if (
+        tileX < 0 ||
+        tileX >= this.dungeonData.width ||
+        tileZ < 0 ||
+        tileZ >= this.dungeonData.height
+      ) {
         return false;
       }
 

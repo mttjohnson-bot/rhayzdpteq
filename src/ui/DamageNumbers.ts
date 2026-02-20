@@ -83,7 +83,12 @@ export class DamageNumbers {
     this.popups = [];
   }
 
-  private spawnPopup(worldX: number, worldZ: number, amount: number, isPlayerDamage: boolean): void {
+  private spawnPopup(
+    worldX: number,
+    worldZ: number,
+    amount: number,
+    isPlayerDamage: boolean,
+  ): void {
     const el = document.createElement('div');
     Object.assign(el.style, {
       position: 'absolute',
@@ -112,7 +117,12 @@ export class DamageNumbers {
     this.spawnPopup(_x as number, _z as number, _amount as number, false);
   };
 
-  private onDamageNumber = (_x: unknown, _z: unknown, _amount: unknown, _isPlayer: unknown): void => {
+  private onDamageNumber = (
+    _x: unknown,
+    _z: unknown,
+    _amount: unknown,
+    _isPlayer: unknown,
+  ): void => {
     this.spawnPopup(_x as number, _z as number, _amount as number, _isPlayer as boolean);
   };
 

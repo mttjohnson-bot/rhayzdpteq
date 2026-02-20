@@ -1,10 +1,20 @@
 import * as THREE from 'three';
 import {
-  ENEMY_HP, ENEMY_SPEED, ENEMY_ATTACK_DAMAGE,
-  ENEMY_CHASE_RANGE, ENEMY_PATROL_RANGE,
-  ENEMY_SIZE, ENEMY_HEIGHT, COLORS, TILE_SIZE,
-  EnemyTypeId, EnemyTypeConfig, ENEMY_TYPES,
-  CAPTAIN_SCALE, CAPTAIN_HP_MULT, CAPTAIN_DMG_MULT,
+  ENEMY_HP,
+  ENEMY_SPEED,
+  ENEMY_ATTACK_DAMAGE,
+  ENEMY_CHASE_RANGE,
+  ENEMY_PATROL_RANGE,
+  ENEMY_SIZE,
+  ENEMY_HEIGHT,
+  COLORS,
+  TILE_SIZE,
+  EnemyTypeId,
+  EnemyTypeConfig,
+  ENEMY_TYPES,
+  CAPTAIN_SCALE,
+  CAPTAIN_HP_MULT,
+  CAPTAIN_DMG_MULT,
 } from '../utils/constants';
 import { events } from '../utils/EventBus';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
@@ -62,7 +72,9 @@ export class Enemy {
   private burnAccumulator = 0;
 
   constructor(
-    x: number, z: number, floor: number,
+    x: number,
+    z: number,
+    floor: number,
     difficulty?: FloorDifficulty,
     typeId?: EnemyTypeId,
     captain?: boolean,
@@ -71,9 +83,9 @@ export class Enemy {
     this.enemyType = type;
     this.isCaptain = captain ?? false;
 
-    const hpScale = difficulty ? difficulty.enemyHpScale : (1 + (floor - 1) * 0.3);
-    const dmgScale = difficulty ? difficulty.enemyDmgScale : (1 + (floor - 1) * 0.2);
-    const spdScale = difficulty ? difficulty.enemySpeedScale : (1 + (floor - 1) * 0.05);
+    const hpScale = difficulty ? difficulty.enemyHpScale : 1 + (floor - 1) * 0.3;
+    const dmgScale = difficulty ? difficulty.enemyDmgScale : 1 + (floor - 1) * 0.2;
+    const spdScale = difficulty ? difficulty.enemySpeedScale : 1 + (floor - 1) * 0.05;
 
     const captainHpMult = this.isCaptain ? CAPTAIN_HP_MULT : 1;
     const captainDmgMult = this.isCaptain ? CAPTAIN_DMG_MULT : 1;
@@ -370,8 +382,12 @@ export class Enemy {
       const tileX = Math.floor((cx - this.dungeonOffsetX) / TILE_SIZE);
       const tileZ = Math.floor((cz - this.dungeonOffsetZ) / TILE_SIZE);
 
-      if (tileX < 0 || tileX >= this.dungeonData.width ||
-          tileZ < 0 || tileZ >= this.dungeonData.height) {
+      if (
+        tileX < 0 ||
+        tileX >= this.dungeonData.width ||
+        tileZ < 0 ||
+        tileZ >= this.dungeonData.height
+      ) {
         return false;
       }
 

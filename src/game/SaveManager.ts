@@ -108,7 +108,9 @@ export class SaveManager {
     localStorage.removeItem(slotKey(slot ?? this.activeSlot));
   }
 
-  static getSaveInfo(slot?: number): { level: number; floor: number; timestamp: number; gameCompleted?: boolean } | null {
+  static getSaveInfo(
+    slot?: number,
+  ): { level: number; floor: number; timestamp: number; gameCompleted?: boolean } | null {
     const data = SaveManager.load(slot ?? this.activeSlot);
     if (!data) return null;
     return {

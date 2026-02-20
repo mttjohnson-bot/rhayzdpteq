@@ -4,7 +4,7 @@ import { GameCamera } from './Camera';
 import { InputManager } from './InputManager';
 import { Player } from './Player';
 import { createHubScene, PortalInfo, LibraryDoorInfo } from './Hub';
-import { AssetLibrary, buildWeaponDisplayMesh, buildArmorDisplayMesh, buildRingDisplayMesh } from './AssetLibrary';
+import { AssetLibrary, buildWeaponDisplayMesh } from './AssetLibrary';
 import { LibraryAssetDialog } from '../ui/LibraryAssetDialog';
 import { SaveManager } from './SaveManager';
 import { MenuScreen } from '../ui/MenuScreen';
@@ -23,7 +23,6 @@ import { buildDungeonMesh, DungeonMeshData } from '../dungeon/FloorRenderer';
 import { getFloorConfig, TOTAL_FLOORS } from '../dungeon/FloorConfig';
 import { ObstacleSystem } from '../dungeon/ObstacleSystem';
 import { CombatSystem } from '../combat/CombatSystem';
-import { TestDummy } from '../combat/TestDummy';
 import { PlayerStats, ComputedStats } from '../rpg/Stats';
 import { LevelSystem, enemyXP } from '../rpg/Leveling';
 import { SkillTree } from '../rpg/SkillTree';
@@ -181,13 +180,24 @@ export class Game {
   // --- Save/Load ---
 
   private saveGame(gameCompleted?: boolean): void {
-    SaveManager.save(this.maxUnlockedFloor, this.levelSystem, this.skillTree, this.inventory, gameCompleted);
+    SaveManager.save(
+      this.maxUnlockedFloor,
+      this.levelSystem,
+      this.skillTree,
+      this.inventory,
+      gameCompleted,
+    );
   }
 
   private loadGame(): void {
     const data = SaveManager.load();
     if (data) {
-      this.maxUnlockedFloor = SaveManager.apply(data, this.levelSystem, this.skillTree, this.inventory);
+      this.maxUnlockedFloor = SaveManager.apply(
+        data,
+        this.levelSystem,
+        this.skillTree,
+        this.inventory,
+      );
       this.recomputeStats();
     }
   }
@@ -428,7 +438,12 @@ export class Game {
 
       case 'dungeon':
         this.handleUIToggle();
-        if (!this.deathScreenVisible && !this.winScreenVisible && !this.inventoryOpen && !this.skillTreeOpen) {
+        if (
+          !this.deathScreenVisible &&
+          !this.winScreenVisible &&
+          !this.inventoryOpen &&
+          !this.skillTreeOpen
+        ) {
           this.player.update(dt, this.input);
           this.camera.follow(this.player.position, dt);
           this.combatSystem.update(dt);
@@ -527,7 +542,11 @@ export class Game {
     if (this.inventoryOpen || this.skillTreeOpen) return;
 
     // Check proximity to library door (east wall) — auto-enter on approach
-    if (this.libraryDoor && this.player.isNear(this.libraryDoor.x, this.libraryDoor.z, 2.5) && !this.floorSelectOpen) {
+    if (
+      this.libraryDoor &&
+      this.player.isNear(this.libraryDoor.x, this.libraryDoor.z, 2.5) &&
+      !this.floorSelectOpen
+    ) {
       this.enterLibrary();
       return;
     }
@@ -588,7 +607,11 @@ export class Game {
 
     // Collide with dummies so player can't walk through them
     this.player.setMobColliders(() =>
-      dummies.map(d => ({ position: d.position, collisionRadius: d.collisionRadius, alive: true as boolean })),
+      dummies.map((d) => ({
+        position: d.position,
+        collisionRadius: d.collisionRadius,
+        alive: true as boolean,
+      })),
     );
 
     // Register library attack handler
@@ -635,7 +658,12 @@ export class Game {
 
     if (this.libraryDialogOpen) return;
 
-    this.assetLibrary.update(dt, this.player.position.x, this.player.position.z, this.player.facingAngle);
+    this.assetLibrary.update(
+      dt,
+      this.player.position.x,
+      this.player.position.z,
+      this.player.facingAngle,
+    );
 
     // Walk west past the door threshold → return to hub
     if (this.player.position.x < 9.5) {
@@ -657,7 +685,9 @@ export class Game {
         });
       }
     } else if (nearTraining) {
-      this.hud.showPrompt('Training Area — Attack the dummies to test your damage!  |  I: Inventory');
+      this.hud.showPrompt(
+        'Training Area — Attack the dummies to test your damage!  |  I: Inventory',
+      );
     } else {
       this.hud.showPrompt('Walk toward an asset to highlight it  |  Walk west to return to Hub');
     }
@@ -674,7 +704,11 @@ export class Game {
 
     if (this.deathScreenVisible) {
       // Wait for respawn input — R key, Enter, or Space (gamepad A button)
-      if (this.input.wasPressed('KeyR') || this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
+      if (
+        this.input.wasPressed('KeyR') ||
+        this.input.wasPressed('Enter') ||
+        this.input.wasPressed('Space')
+      ) {
         this.hideDeathScreen();
         this.enterHub();
       }
@@ -683,7 +717,11 @@ export class Game {
 
     if (this.winScreenVisible) {
       // Wait for continue input
-      if (this.input.wasPressed('KeyR') || this.input.wasPressed('Enter') || this.input.wasPressed('Space')) {
+      if (
+        this.input.wasPressed('KeyR') ||
+        this.input.wasPressed('Enter') ||
+        this.input.wasPressed('Space')
+      ) {
         this.hideWinScreen();
         this.enterHub();
       }
@@ -809,7 +847,10 @@ export class Game {
   private updateObstacleEffects(dt: number): void {
     if (!this.player.alive) return;
 
-    const effects = this.obstacleSystem.getEffectsAt(this.player.position.x, this.player.position.z);
+    const effects = this.obstacleSystem.getEffectsAt(
+      this.player.position.x,
+      this.player.position.z,
+    );
 
     // Apply speed modifier from obstacles
     this.playerObstacleSpeedMult = effects.speedMult;
@@ -927,7 +968,9 @@ export class Game {
         if (item.consumeValue && item.consumeDuration) {
           this.strengthBuffDmg = item.consumeValue;
           this.strengthBuffTimer = item.consumeDuration;
-          this.hud.showPrompt(`Strength boost! +${item.consumeValue} dmg (${item.consumeDuration}s)`);
+          this.hud.showPrompt(
+            `Strength boost! +${item.consumeValue} dmg (${item.consumeDuration}s)`,
+          );
           setTimeout(() => this.hud.hidePrompt(), 1500);
         }
         break;

@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Linting & formatting infrastructure — Phase 1 of the quality roadmap.
+
+- **ESLint v9 with TypeScript support** — Installed ESLint v9, the unified `typescript-eslint` package, and `eslint-config-prettier`. Created a flat config (`eslint.config.js`) extending recommended TypeScript rules with `no-explicit-any` as a warning, `no-unused-vars` as an error, and `no-empty-function` disabled for Three.js lifecycle patterns.
+- **Prettier formatting** — Installed Prettier with single quotes, trailing commas, and 100-character line width. Applied formatting across all source files. Added `.prettierrc` and `.prettierignore` configs.
+- **Lint error fixes** — Fixed 8 lint errors in the existing codebase: removed unused imports (`ENEMY_CHASE_RANGE`, `TILE_SIZE`, `FloorTheme`, `buildArmorDisplayMesh`, `buildRingDisplayMesh`, `TestDummy`), prefixed an unused function parameter with underscore, and eliminated a useless assignment in `InventoryUI.ts`.
+- **New package.json scripts** — Added `lint:fix`, `format`, and `format:check` scripts. Updated the existing `lint` script to use `--max-warnings 0` for strict enforcement.
+- **CI quality workflow** — Created `.github/workflows/quality.yml` that runs lint, format check, and TypeScript type check on every PR and push to main.
+
+---
+
 Quality roadmap review — expanded and corrected the six-phase testing & quality improvement plan.
 
 - **QUALITY_PLAN.md revised** — Reviewed the quality roadmap against the actual codebase and made corrections and additions. Fixed ESLint Phase 1 to use the modern unified `typescript-eslint` package (v8+) instead of the older separate plugin/parser packages. Added a "Current State Baseline" section documenting the project's starting point. Added a "Testability Map" showing which modules are pure logic vs. Three.js-dependent. Expanded Phase 2 with four additional test files (SkillTree, Inventory, ObstacleSystem, dungeon types) and split tests into Core and Extended priority groups. Added visual regression testing details to Phase 4 using Playwright's screenshot comparison. Expanded Phase 5 error handling audit from 3 to 6 items including InputManager gamepad errors, Inventory migration failures, and global unhandled rejection handling. Added bundle size monitoring as a CI gate in Phase 6. Added phase dependency documentation and session reference instructions for future Claude Code sessions.

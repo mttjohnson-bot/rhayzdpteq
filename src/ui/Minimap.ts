@@ -48,8 +48,8 @@ export class Minimap {
   updatePlayerPosition(worldX: number, worldZ: number): void {
     if (!this.dungeon) return;
 
-    const offsetX = -(this.dungeon.width) / 2;
-    const offsetZ = -(this.dungeon.height) / 2;
+    const offsetX = -this.dungeon.width / 2;
+    const offsetZ = -this.dungeon.height / 2;
     const tileX = Math.floor(worldX - offsetX);
     const tileZ = Math.floor(worldZ - offsetZ);
 
@@ -94,12 +94,23 @@ export class Minimap {
         let color: string;
 
         switch (tile) {
-          case TileType.Floor: color = '#4a4a5a'; break;
-          case TileType.Wall: color = '#6a6a7a'; break;
-          case TileType.Door: color = '#6a5a4a'; break;
-          case TileType.Exit: color = '#44ff44'; break;
-          case TileType.Entrance: color = '#4488ff'; break;
-          default: continue;
+          case TileType.Floor:
+            color = '#4a4a5a';
+            break;
+          case TileType.Wall:
+            color = '#6a6a7a';
+            break;
+          case TileType.Door:
+            color = '#6a5a4a';
+            break;
+          case TileType.Exit:
+            color = '#44ff44';
+            break;
+          case TileType.Entrance:
+            color = '#4488ff';
+            break;
+          default:
+            continue;
         }
 
         ctx.fillStyle = color;

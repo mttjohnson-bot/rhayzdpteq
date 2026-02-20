@@ -300,7 +300,11 @@ export function buildObstacleDisplayMesh(type: ObstacleType): THREE.Group {
       // Small lumps on surface
       const lumpMat = new THREE.MeshLambertMaterial({ color: 0x554422 });
       const lumpGeo = new THREE.BoxGeometry(0.12, 0.06, 0.12);
-      for (const [lx, lz] of [[-0.15, -0.1], [0.18, 0.12], [-0.08, 0.2]] as [number, number][]) {
+      for (const [lx, lz] of [
+        [-0.15, -0.1],
+        [0.18, 0.12],
+        [-0.08, 0.2],
+      ] as [number, number][]) {
         const lump = new THREE.Mesh(lumpGeo, lumpMat);
         lump.position.set(lx, 0.09, lz);
         group.add(lump);
@@ -390,9 +394,9 @@ const LIB_WALL_COLOR = 0x6a5a5a;
 
 const PEDESTAL_COLOR = 0x8b7355;
 const PEDESTAL_HIGHLIGHT = 0xffd700;
-const HIGHLIGHT_RANGE = 2.5;       // must be close to inspect (similar to attack range)
-const HIGHLIGHT_DOT_MIN = 0.5;     // ~60° half-cone (wider to compensate for shorter range)
-const ROTATION_SPEED = 0.5;        // rad/s
+const HIGHLIGHT_RANGE = 2.5; // must be close to inspect (similar to attack range)
+const HIGHLIGHT_DOT_MIN = 0.5; // ~60° half-cone (wider to compensate for shorter range)
+const ROTATION_SPEED = 0.5; // rad/s
 const PEDESTAL_COLLISION_HALF = 0.45; // half-size of pedestal collision AABB
 
 /** Axis-aligned wall bounding box in the XZ plane */
@@ -482,12 +486,12 @@ export class AssetLibrary {
 
     if (best !== this.highlightedAsset) {
       if (this.highlightedAsset) {
-        (this.highlightedAsset.pedestalMesh.material as THREE.MeshLambertMaterial)
-          .color.setHex(PEDESTAL_COLOR);
+        (this.highlightedAsset.pedestalMesh.material as THREE.MeshLambertMaterial).color.setHex(
+          PEDESTAL_COLOR,
+        );
       }
       if (best) {
-        (best.pedestalMesh.material as THREE.MeshLambertMaterial)
-          .color.setHex(PEDESTAL_HIGHLIGHT);
+        (best.pedestalMesh.material as THREE.MeshLambertMaterial).color.setHex(PEDESTAL_HIGHLIGHT);
       }
       this.highlightedAsset = best;
     }
@@ -510,16 +514,16 @@ export class AssetLibrary {
     this._buildFloor(15, 12, 19, 0);
 
     // West wall — two segments (corridor gap at z=±1.5)
-    this._buildWall(1, 4.5, 11, -3.75);  // south of corridor
-    this._buildWall(1, 4.5, 11, 3.75);   // north of corridor
+    this._buildWall(1, 4.5, 11, -3.75); // south of corridor
+    this._buildWall(1, 4.5, 11, 3.75); // north of corridor
 
     // East wall — two segments (east corridor gap at z=±1.5)
     this._buildWall(1, 4.5, 27, -3.75);
     this._buildWall(1, 4.5, 27, 3.75);
 
     // North wall — two segments (north corridor gap at x=17→20)
-    this._buildWall(5.5, 1, 14.25, -6.5);  // west portion
-    this._buildWall(6.5, 1, 23.25, -6.5);  // east portion
+    this._buildWall(5.5, 1, 14.25, -6.5); // west portion
+    this._buildWall(6.5, 1, 23.25, -6.5); // east portion
 
     // South wall — two segments (south corridor gap at x=17→20)
     this._buildWall(5.5, 1, 14.25, 6.5);
@@ -586,8 +590,8 @@ export class AssetLibrary {
     this._buildFloor(20, 26, 39.5, 5);
 
     // West wall — two segments around east corridor gap at z=±1.5
-    this._buildWall(1, 6, 29, -5);     // north of corridor (z=-8 to -2)
-    this._buildWall(1, 16, 29, 10);    // south of corridor (z=+2 to +18)
+    this._buildWall(1, 6, 29, -5); // north of corridor (z=-8 to -2)
+    this._buildWall(1, 16, 29, 10); // south of corridor (z=+2 to +18)
 
     // East wall (solid)
     this._buildWall(1, 26, 50, 5);
@@ -645,9 +649,9 @@ export class AssetLibrary {
 
     // Create the three test dummies
     const positions: Array<[number, number]> = [
-      [14.5, 0],     // solo dummy — single-target & range testing
-      [17.5, -0.5],  // pair dummy — AoE testing
-      [17.5, 0.5],   // pair dummy — AoE testing
+      [14.5, 0], // solo dummy — single-target & range testing
+      [17.5, -0.5], // pair dummy — AoE testing
+      [17.5, 0.5], // pair dummy — AoE testing
     ];
 
     for (const [x, z] of positions) {
@@ -873,7 +877,8 @@ export class AssetLibrary {
         effect: 'Weakens attacks',
         value: '0.5\u00d7 damage',
         color: 0x2266cc,
-        flavorText: 'Shallow pools that dampen the force of all attacks made while standing in them.',
+        flavorText:
+          'Shallow pools that dampen the force of all attacks made while standing in them.',
       },
       {
         type: ObstacleType.Mud,
@@ -1019,7 +1024,11 @@ export class AssetLibrary {
         { label: 'Speed', value: speed },
         { label: 'Attack Range', value: `${type.attackRange.toFixed(1)} tiles` },
         { label: 'Attack Cooldown', value: `${type.attackCooldown.toFixed(1)}s` },
-        { label: 'Size Scale', value: `${type.bodyScale.toFixed(2)}× ${isCaptain ? `(×${CAPTAIN_SCALE} captain)` : ''}`.trim() },
+        {
+          label: 'Size Scale',
+          value:
+            `${type.bodyScale.toFixed(2)}× ${isCaptain ? `(×${CAPTAIN_SCALE} captain)` : ''}`.trim(),
+        },
       ],
       accentColor: toHex(type.color),
       flavorText: isCaptain
@@ -1028,7 +1037,10 @@ export class AssetLibrary {
     };
   }
 
-  private _bossStats(config: import('../dungeon/FloorConfig').BossConfig, floorNum: number): LibraryAssetStats {
+  private _bossStats(
+    config: import('../dungeon/FloorConfig').BossConfig,
+    floorNum: number,
+  ): LibraryAssetStats {
     return {
       rows: [
         { label: 'Name', value: config.name },
@@ -1052,11 +1064,27 @@ export class AssetLibrary {
     const details: string[] = [`+${flatDmg} damage`];
 
     switch (category) {
-      case 'sword': if (rarity !== 'common') details.push(`+${Math.round((1 + floor * 0.5) * (mult - 0.5))} strength`); break;
-      case 'axe': details[0] = `+${Math.round(flatDmg * 1.15)} damage`; if (rarity !== 'common') details.push(`+${(0.01 * mult * 100).toFixed(1)}% crit`); break;
-      case 'mace': if (rarity !== 'common') details.push(`+${Math.round((1 + floor * 0.3) * (mult - 0.5))} defense`); break;
-      case 'dagger': details[0] = `+${Math.round(flatDmg * 0.85)} damage`; details.push(`+${(0.03 * mult * 100).toFixed(0)}% atk speed`); if (rarity !== 'common') details.push(`+${(0.02 * mult * 100).toFixed(1)}% crit`); break;
-      case 'spear': if (rarity !== 'common') details.push(`+${Math.round((2 + floor * 0.4) * (mult - 0.5))} strength`); break;
+      case 'sword':
+        if (rarity !== 'common')
+          details.push(`+${Math.round((1 + floor * 0.5) * (mult - 0.5))} strength`);
+        break;
+      case 'axe':
+        details[0] = `+${Math.round(flatDmg * 1.15)} damage`;
+        if (rarity !== 'common') details.push(`+${(0.01 * mult * 100).toFixed(1)}% crit`);
+        break;
+      case 'mace':
+        if (rarity !== 'common')
+          details.push(`+${Math.round((1 + floor * 0.3) * (mult - 0.5))} defense`);
+        break;
+      case 'dagger':
+        details[0] = `+${Math.round(flatDmg * 0.85)} damage`;
+        details.push(`+${(0.03 * mult * 100).toFixed(0)}% atk speed`);
+        if (rarity !== 'common') details.push(`+${(0.02 * mult * 100).toFixed(1)}% crit`);
+        break;
+      case 'spear':
+        if (rarity !== 'common')
+          details.push(`+${Math.round((2 + floor * 0.4) * (mult - 0.5))} strength`);
+        break;
     }
 
     return {
@@ -1083,7 +1111,8 @@ export class AssetLibrary {
       { label: 'Defense (fl.3)', value: `+${def}` },
       { label: 'Max HP (fl.3)', value: `+${hp}` },
     ];
-    if (rarity !== 'common') rows.push({ label: 'Vitality', value: `+${Math.round((1 + floor * 0.3) * (mult - 0.5))}` });
+    if (rarity !== 'common')
+      rows.push({ label: 'Vitality', value: `+${Math.round((1 + floor * 0.3) * (mult - 0.5))}` });
     if (rarity === 'epic') rows.push({ label: 'HP Regen', value: '+0.5/s' });
     return {
       rows,
@@ -1101,8 +1130,10 @@ export class AssetLibrary {
       { label: 'Rarity', value: this._capitalize(rarity) },
       { label: 'Primary Stat', value: `+${statVal} (agility / luck / strength / vitality)` },
     ];
-    if (rarity !== 'common') rows.push({ label: 'Crit Chance', value: `+${(0.01 * mult * 100).toFixed(1)}%` });
-    if (rarity === 'rare' || rarity === 'epic') rows.push({ label: 'Move Speed', value: `+${(0.03 * mult * 100).toFixed(0)}%` });
+    if (rarity !== 'common')
+      rows.push({ label: 'Crit Chance', value: `+${(0.01 * mult * 100).toFixed(1)}%` });
+    if (rarity === 'rare' || rarity === 'epic')
+      rows.push({ label: 'Move Speed', value: `+${(0.03 * mult * 100).toFixed(0)}%` });
     return {
       rows,
       accentColor: rarityColor(rarity),
@@ -1112,11 +1143,34 @@ export class AssetLibrary {
 
   private _potionStats(effect: ConsumeEffect, name: string): LibraryAssetStats {
     const floor = 3;
-    const infoMap: Record<ConsumeEffect, { effect: string; value: string; duration: string; rarity: string }> = {
-      heal:          { effect: 'Restore health',        value: `${30 + floor * 10} HP`,       duration: 'Instant',  rarity: 'Common' },
-      manaShield:    { effect: 'Absorb incoming damage', value: `${40 + floor * 8} shield HP`, duration: '20s',      rarity: 'Rare' },
-      speedBoost:    { effect: 'Increase move speed',   value: '+50% speed',                   duration: '10s',      rarity: 'Uncommon' },
-      strengthBoost: { effect: 'Increase attack damage', value: `+${10 + floor * 3} flat dmg`, duration: '15s',      rarity: 'Uncommon' },
+    const infoMap: Record<
+      ConsumeEffect,
+      { effect: string; value: string; duration: string; rarity: string }
+    > = {
+      heal: {
+        effect: 'Restore health',
+        value: `${30 + floor * 10} HP`,
+        duration: 'Instant',
+        rarity: 'Common',
+      },
+      manaShield: {
+        effect: 'Absorb incoming damage',
+        value: `${40 + floor * 8} shield HP`,
+        duration: '20s',
+        rarity: 'Rare',
+      },
+      speedBoost: {
+        effect: 'Increase move speed',
+        value: '+50% speed',
+        duration: '10s',
+        rarity: 'Uncommon',
+      },
+      strengthBoost: {
+        effect: 'Increase attack damage',
+        value: `+${10 + floor * 3} flat dmg`,
+        duration: '15s',
+        rarity: 'Uncommon',
+      },
     };
     const info = infoMap[effect];
     return {

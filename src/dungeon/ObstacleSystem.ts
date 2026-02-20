@@ -23,8 +23,8 @@ const NO_EFFECTS: ObstacleEffects = { speedMult: 1, damageMult: 1, burnDps: 0 };
 // Obstacle tuning constants
 const MUD_SPEED_MULT = 0.45;
 const WATER_DAMAGE_MULT = 0.5;
-const FIRE_DPS = 12;          // damage per second while standing in fire
-const TRAP_DAMAGE = 40;       // one-time explosion damage
+const FIRE_DPS = 12; // damage per second while standing in fire
+const TRAP_DAMAGE = 40; // one-time explosion damage
 
 export class ObstacleSystem {
   private dungeon: DungeonData | null = null;
@@ -48,8 +48,7 @@ export class ObstacleSystem {
     const tileX = Math.floor((worldX - this.offsetX) / TILE_SIZE);
     const tileZ = Math.floor((worldZ - this.offsetZ) / TILE_SIZE);
 
-    if (tileX < 0 || tileX >= this.dungeon.width ||
-        tileZ < 0 || tileZ >= this.dungeon.height) {
+    if (tileX < 0 || tileX >= this.dungeon.width || tileZ < 0 || tileZ >= this.dungeon.height) {
       return ObstacleType.None;
     }
 
@@ -85,8 +84,7 @@ export class ObstacleSystem {
     const tileX = Math.floor((worldX - this.offsetX) / TILE_SIZE);
     const tileZ = Math.floor((worldZ - this.offsetZ) / TILE_SIZE);
 
-    if (tileX < 0 || tileX >= this.dungeon.width ||
-        tileZ < 0 || tileZ >= this.dungeon.height) {
+    if (tileX < 0 || tileX >= this.dungeon.width || tileZ < 0 || tileZ >= this.dungeon.height) {
       return 0;
     }
 
