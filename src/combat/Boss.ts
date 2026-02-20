@@ -166,8 +166,8 @@ export class Boss {
 
     events.emit('enemyDamaged', this.position.x, this.position.z, amount);
 
-    // Enrage trigger at 30% HP
-    if (!this.enraged && this.hp < this.maxHp * 0.3 && this.config.abilities.includes('enrage')) {
+    // Enrage trigger at 50% HP
+    if (!this.enraged && this.hp < this.maxHp * 0.5 && this.config.abilities.includes('enrage')) {
       this.triggerEnrage();
     }
 
@@ -236,7 +236,7 @@ export class Boss {
       return cd <= 0;
     });
 
-    if (availableAbilities.length > 0 && Math.random() < 0.02) {
+    if (availableAbilities.length > 0 && Math.random() < 0.04) {
       const ability = availableAbilities[Math.floor(Math.random() * availableAbilities.length)];
       this.startAbility(ability, dx, dz, dist);
       return;
@@ -252,7 +252,7 @@ export class Boss {
     } else if (this.attackCooldown <= 0) {
       // Melee attack
       const dmg = Math.round(ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * this.enrageDamageBonus);
-      this.attackCooldown = this.config.attackCooldown * (this.enraged ? 0.6 : 1);
+      this.attackCooldown = this.config.attackCooldown * (this.enraged ? 0.4 : 1);
       events.emit('enemyAttack', this, dmg);
     }
   }
@@ -264,30 +264,30 @@ export class Boss {
       case 'charge': {
         const len = Math.sqrt(dx * dx + dz * dz) || 1;
         this.chargeDir = { x: dx / len, z: dz / len };
-        this.chargeTimer = 0.6;
-        this.abilityTimer = 0.6;
-        this.abilityCooldowns.set('charge', 4);
+        this.chargeTimer = 0.8;
+        this.abilityTimer = 0.8;
+        this.abilityCooldowns.set('charge', 2.5);
         break;
       }
       case 'slam': {
         this.slamPhase = 'rise';
         this.slamTimer = 0.5;
         this.abilityTimer = 0.5;
-        this.abilityCooldowns.set('slam', 5);
+        this.abilityCooldowns.set('slam', 3);
         break;
       }
       case 'summon': {
-        if (this.summonCount < 3) {
+        if (this.summonCount < 6) {
           events.emit('bossSummon', this.position.x, this.position.z, this.floor);
           this.summonCount++;
         }
         this.abilityTimer = 0.5;
-        this.abilityCooldowns.set('summon', 8);
+        this.abilityCooldowns.set('summon', 5);
         break;
       }
       case 'teleport': {
         const angle = Math.random() * Math.PI * 2;
-        const tpDist = 2 + Math.random() * 2;
+        const tpDist = 3 + Math.random() * 3;
         const newX = this.position.x + Math.cos(angle) * tpDist;
         const newZ = this.position.z + Math.sin(angle) * tpDist;
         if (this.isWalkable(newX, newZ)) {
@@ -295,7 +295,7 @@ export class Boss {
           this.position.z = newZ;
         }
         this.abilityTimer = 0.3;
-        this.abilityCooldowns.set('teleport', 6);
+        this.abilityCooldowns.set('teleport', 3.5);
         break;
       }
       case 'invisibility': {
@@ -318,7 +318,7 @@ export class Boss {
     switch (this.currentAbility) {
       case 'charge': {
         this.chargeTimer -= dt;
-        const speed = this.config.speed * 4 * this.enrageBonus;
+        const speed = this.config.speed * 6 * this.enrageBonus;
         this.tryMove(this.chargeDir.x * speed * dt, this.chargeDir.z * speed * dt);
 
         // Damage on contact
@@ -326,7 +326,7 @@ export class Boss {
         const dz = playerZ - this.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
         if (dist < 1.5) {
-          const dmg = Math.round(ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * 1.5 * this.enrageDamageBonus);
+          const dmg = Math.round(ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * 2.5 * this.enrageDamageBonus);
           events.emit('enemyAttack', this, dmg);
         }
         break;
@@ -347,8 +347,8 @@ export class Boss {
             const dx = playerX - this.position.x;
             const dz = playerZ - this.position.z;
             const dist = Math.sqrt(dx * dx + dz * dz);
-            if (dist < 3) {
-              const dmg = Math.round(ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * 2 * this.enrageDamageBonus);
+            if (dist < 5) {
+              const dmg = Math.round(ENEMY_ATTACK_DAMAGE * this.config.dmgMultiplier * 3.5 * this.enrageDamageBonus);
               events.emit('enemyAttack', this, dmg);
             }
             events.emit('bossSlam', this.position.x, this.position.z);
@@ -440,8 +440,8 @@ export class Boss {
 
   private triggerEnrage(): void {
     this.enraged = true;
-    this.enrageBonus = 1.4;
-    this.enrageDamageBonus = 1.3;
+    this.enrageBonus = 1.8;
+    this.enrageDamageBonus = 1.6;
     events.emit('bossEnrage', this.config.name);
   }
 
