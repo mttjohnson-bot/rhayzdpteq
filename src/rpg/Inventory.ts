@@ -17,11 +17,26 @@ const BASE_BAG_SIZE = 24;
  * Used to migrate old saved weapons that predate the subtype field.
  */
 const WEAPON_NAME_TO_CATEGORY: Record<string, string> = {
-  Sword: 'sword', Blade: 'sword', Falchion: 'sword', Sabre: 'sword',
-  Axe: 'axe', Hatchet: 'axe', Cleaver: 'axe', Tomahawk: 'axe',
-  Mace: 'mace', Hammer: 'mace', Flail: 'mace', Morningstar: 'mace',
-  Dagger: 'dagger', Shiv: 'dagger', Stiletto: 'dagger', Dirk: 'dagger',
-  Halberd: 'spear', Pike: 'spear', Spear: 'spear', Glaive: 'spear',
+  Sword: 'sword',
+  Blade: 'sword',
+  Falchion: 'sword',
+  Sabre: 'sword',
+  Axe: 'axe',
+  Hatchet: 'axe',
+  Cleaver: 'axe',
+  Tomahawk: 'axe',
+  Mace: 'mace',
+  Hammer: 'mace',
+  Flail: 'mace',
+  Morningstar: 'mace',
+  Dagger: 'dagger',
+  Shiv: 'dagger',
+  Stiletto: 'dagger',
+  Dirk: 'dagger',
+  Halberd: 'spear',
+  Pike: 'spear',
+  Spear: 'spear',
+  Glaive: 'spear',
 };
 
 /** Backfill missing fields on items loaded from old save formats. */
@@ -61,7 +76,7 @@ export class Inventory {
   }
 
   removeItem(itemId: string): Item | null {
-    const idx = this.bag.findIndex(i => i.id === itemId);
+    const idx = this.bag.findIndex((i) => i.id === itemId);
     if (idx < 0) return null;
     const [item] = this.bag.splice(idx, 1);
     events.emit('inventoryChanged');
@@ -70,7 +85,7 @@ export class Inventory {
 
   /** Drop (destroy) an item from the bag */
   dropItem(itemId: string): boolean {
-    const idx = this.bag.findIndex(i => i.id === itemId);
+    const idx = this.bag.findIndex((i) => i.id === itemId);
     if (idx < 0) return false;
     this.bag.splice(idx, 1);
     events.emit('inventoryChanged');
@@ -78,7 +93,7 @@ export class Inventory {
   }
 
   equip(itemId: string): boolean {
-    const item = this.bag.find(i => i.id === itemId);
+    const item = this.bag.find((i) => i.id === itemId);
     if (!item || item.type !== 'equipment' || !item.slot) return false;
 
     const slot = item.slot;
@@ -109,7 +124,7 @@ export class Inventory {
   }
 
   useConsumable(itemId: string): Item | null {
-    const item = this.bag.find(i => i.id === itemId);
+    const item = this.bag.find((i) => i.id === itemId);
     if (!item || item.type !== 'consumable') return null;
     this.bag.splice(this.bag.indexOf(item), 1);
     events.emit('inventoryChanged');

@@ -32,8 +32,8 @@ export class SkillTreeUI {
   private visible = false;
 
   // Gamepad / keyboard navigation state
-  private selectedBranch = 0;  // 0=warrior, 1=guardian, 2=scout
-  private selectedNode = 0;    // index within sorted branch nodes
+  private selectedBranch = 0; // 0=warrior, 1=guardian, 2=scout
+  private selectedNode = 0; // index within sorted branch nodes
   private _keyHandler: (e: KeyboardEvent) => void;
 
   constructor() {
@@ -58,7 +58,10 @@ export class SkillTreeUI {
     // Header
     const header = document.createElement('div');
     Object.assign(header.style, {
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem',
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '0.8rem',
     });
 
     const title = document.createElement('h2');
@@ -73,8 +76,12 @@ export class SkillTreeUI {
     const closeBtn = document.createElement('button');
     closeBtn.textContent = 'X';
     Object.assign(closeBtn.style, {
-      background: 'transparent', border: '1px solid rgba(255,255,255,0.3)',
-      borderRadius: '4px', color: '#aaa', cursor: 'pointer', fontSize: '1rem',
+      background: 'transparent',
+      border: '1px solid rgba(255,255,255,0.3)',
+      borderRadius: '4px',
+      color: '#aaa',
+      cursor: 'pointer',
+      fontSize: '1rem',
       padding: '0.2rem 0.6rem',
     });
     closeBtn.addEventListener('click', () => this.hide());
@@ -88,9 +95,16 @@ export class SkillTreeUI {
 
     // Hint
     const hint = document.createElement('div');
-    hint.innerHTML = 'K/Esc: close | Click: allocate point'
-      + '<br>Gamepad: D-pad navigate | A: allocate | B: close';
-    Object.assign(hint.style, { marginTop: '0.8rem', fontSize: '0.7rem', color: '#777', textAlign: 'center', lineHeight: '1.4' });
+    hint.innerHTML =
+      'K/Esc: close | Click: allocate point' +
+      '<br>Gamepad: D-pad navigate | A: allocate | B: close';
+    Object.assign(hint.style, {
+      marginTop: '0.8rem',
+      fontSize: '0.7rem',
+      color: '#777',
+      textAlign: 'center',
+      lineHeight: '1.4',
+    });
     this.container.appendChild(hint);
 
     const overlay = document.getElementById('ui-overlay');
@@ -183,14 +197,14 @@ export class SkillTreeUI {
 
   private getBranchNodeCount(branch: string): number {
     if (!this.skillTree) return 0;
-    return this.skillTree.nodes.filter(n => n.branch === branch).length;
+    return this.skillTree.nodes.filter((n) => n.branch === branch).length;
   }
 
   private activateSelected(): void {
     if (!this.skillTree || !this.levelSystem) return;
     const branch = BRANCHES[this.selectedBranch];
     const nodes = this.skillTree.nodes
-      .filter(n => n.branch === branch)
+      .filter((n) => n.branch === branch)
       .sort((a, b) => a.tier - b.tier);
     const node = nodes[this.selectedNode];
     if (!node) return;
@@ -210,7 +224,7 @@ export class SkillTreeUI {
       // First child is the branch header, skill nodes start at index 1
       for (let n = 1; n < col.children.length; n++) {
         const nodeEl = col.children[n] as HTMLElement;
-        if (b === this.selectedBranch && (n - 1) === this.selectedNode) {
+        if (b === this.selectedBranch && n - 1 === this.selectedNode) {
           nodeEl.style.outline = `2px solid ${BRANCH_COLORS[BRANCHES[b]]}`;
           nodeEl.style.outlineOffset = '-2px';
         } else {
@@ -227,15 +241,20 @@ export class SkillTreeUI {
     for (const branch of ['warrior', 'guardian', 'scout'] as const) {
       const col = document.createElement('div');
       Object.assign(col.style, {
-        flex: '1', display: 'flex', flexDirection: 'column', gap: '0.4rem',
+        flex: '1',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '0.4rem',
       });
 
       // Branch header
       const branchHeader = document.createElement('div');
       branchHeader.textContent = BRANCH_LABELS[branch];
       Object.assign(branchHeader.style, {
-        fontSize: '0.85rem', fontWeight: 'bold',
-        color: BRANCH_COLORS[branch], textAlign: 'center',
+        fontSize: '0.85rem',
+        fontWeight: 'bold',
+        color: BRANCH_COLORS[branch],
+        textAlign: 'center',
         marginBottom: '0.3rem',
         borderBottom: `1px solid ${BRANCH_COLORS[branch]}40`,
         paddingBottom: '0.3rem',
@@ -244,7 +263,7 @@ export class SkillTreeUI {
 
       // Nodes sorted by tier
       const nodes = this.skillTree.nodes
-        .filter(n => n.branch === branch)
+        .filter((n) => n.branch === branch)
         .sort((a, b) => a.tier - b.tier);
 
       for (const node of nodes) {
@@ -263,9 +282,7 @@ export class SkillTreeUI {
     const el = document.createElement('div');
     Object.assign(el.style, {
       padding: '0.4rem 0.5rem',
-      background: isAllocated
-        ? `${BRANCH_COLORS[branch]}20`
-        : 'rgba(30,30,40,0.6)',
+      background: isAllocated ? `${BRANCH_COLORS[branch]}20` : 'rgba(30,30,40,0.6)',
       border: `1px solid ${canUnlock ? BRANCH_COLORS[branch] : isAllocated ? BRANCH_COLORS[branch] + '80' : 'rgba(60,60,80,0.4)'}`,
       borderRadius: '4px',
       cursor: canUnlock ? 'pointer' : 'default',
@@ -273,12 +290,17 @@ export class SkillTreeUI {
     });
 
     const nameRow = document.createElement('div');
-    Object.assign(nameRow.style, { display: 'flex', justifyContent: 'space-between', alignItems: 'center' });
+    Object.assign(nameRow.style, {
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    });
 
     const nameEl = document.createElement('span');
     nameEl.textContent = node.name;
     Object.assign(nameEl.style, {
-      fontSize: '0.8rem', fontWeight: 'bold',
+      fontSize: '0.8rem',
+      fontWeight: 'bold',
       color: isAllocated ? BRANCH_COLORS[branch] : '#aaa',
     });
     nameRow.appendChild(nameEl);
@@ -304,7 +326,9 @@ export class SkillTreeUI {
           this.refresh();
         }
       });
-      el.addEventListener('mouseenter', () => { el.style.background = `${BRANCH_COLORS[branch]}30`; });
+      el.addEventListener('mouseenter', () => {
+        el.style.background = `${BRANCH_COLORS[branch]}30`;
+      });
       el.addEventListener('mouseleave', () => {
         el.style.background = isAllocated ? `${BRANCH_COLORS[branch]}20` : 'rgba(30,30,40,0.6)';
       });

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { DungeonData, TileType, ObstacleType } from './DungeonGenerator';
 import { TILE_SIZE, WALL_HEIGHT } from '../utils/constants';
-import { getFloorConfig, FloorTheme } from './FloorConfig';
+import { getFloorConfig } from './FloorConfig';
 
 export interface DungeonMeshData {
   group: THREE.Group;
@@ -87,10 +87,15 @@ export function buildDungeonMesh(dungeon: DungeonData, floor: number = 1): Dunge
   if (floorPositions.length > 0) {
     const mesh = createBatchedBoxes(
       floorPositions,
-      TILE_SIZE, 0.2, TILE_SIZE,
-      0, -0.1, 0,
+      TILE_SIZE,
+      0.2,
+      TILE_SIZE,
+      0,
+      -0.1,
+      0,
       theme.floorColor,
-      false, true,
+      false,
+      true,
     );
     group.add(mesh);
   }
@@ -99,20 +104,30 @@ export function buildDungeonMesh(dungeon: DungeonData, floor: number = 1): Dunge
   if (wallPositions.length > 0) {
     const mesh = createBatchedBoxes(
       wallPositions,
-      TILE_SIZE, WALL_HEIGHT, TILE_SIZE,
-      0, WALL_HEIGHT / 2, 0,
+      TILE_SIZE,
+      WALL_HEIGHT,
+      TILE_SIZE,
+      0,
+      WALL_HEIGHT / 2,
+      0,
       theme.wallColor,
-      true, true,
+      true,
+      true,
     );
     group.add(mesh);
 
     // Wall tops (slightly lighter)
     const topMesh = createBatchedBoxes(
       wallPositions,
-      TILE_SIZE, 0.15, TILE_SIZE,
-      0, WALL_HEIGHT + 0.075, 0,
+      TILE_SIZE,
+      0.15,
+      TILE_SIZE,
+      0,
+      WALL_HEIGHT + 0.075,
+      0,
       theme.wallTopColor,
-      false, false,
+      false,
+      false,
     );
     group.add(topMesh);
   }
@@ -121,10 +136,15 @@ export function buildDungeonMesh(dungeon: DungeonData, floor: number = 1): Dunge
   if (doorPositions.length > 0) {
     const mesh = createBatchedBoxes(
       doorPositions,
-      TILE_SIZE, 0.2, TILE_SIZE,
-      0, -0.1, 0,
+      TILE_SIZE,
+      0.2,
+      TILE_SIZE,
+      0,
+      -0.1,
+      0,
       theme.doorColor,
-      false, true,
+      false,
+      true,
     );
     group.add(mesh);
   }
@@ -180,10 +200,15 @@ export function buildDungeonMesh(dungeon: DungeonData, floor: number = 1): Dunge
   if (waterPositions.length > 0) {
     const mesh = createBatchedBoxes(
       waterPositions,
-      TILE_SIZE * 0.95, 0.08, TILE_SIZE * 0.95,
-      0, 0.04, 0,
+      TILE_SIZE * 0.95,
+      0.08,
+      TILE_SIZE * 0.95,
+      0,
+      0.04,
+      0,
       0x2266cc,
-      false, false,
+      false,
+      false,
     );
     (mesh.material as THREE.MeshLambertMaterial).transparent = true;
     (mesh.material as THREE.MeshLambertMaterial).opacity = 0.55;
@@ -194,10 +219,15 @@ export function buildDungeonMesh(dungeon: DungeonData, floor: number = 1): Dunge
   if (mudPositions.length > 0) {
     const mesh = createBatchedBoxes(
       mudPositions,
-      TILE_SIZE * 0.95, 0.06, TILE_SIZE * 0.95,
-      0, 0.03, 0,
+      TILE_SIZE * 0.95,
+      0.06,
+      TILE_SIZE * 0.95,
+      0,
+      0.03,
+      0,
       0x665533,
-      false, false,
+      false,
+      false,
     );
     (mesh.material as THREE.MeshLambertMaterial).transparent = true;
     (mesh.material as THREE.MeshLambertMaterial).opacity = 0.7;
@@ -208,10 +238,15 @@ export function buildDungeonMesh(dungeon: DungeonData, floor: number = 1): Dunge
   if (firePositions.length > 0) {
     const mesh = createBatchedBoxes(
       firePositions,
-      TILE_SIZE * 0.7, 0.3, TILE_SIZE * 0.7,
-      0, 0.15, 0,
+      TILE_SIZE * 0.7,
+      0.3,
+      TILE_SIZE * 0.7,
+      0,
+      0.15,
+      0,
       0xff4400,
-      false, false,
+      false,
+      false,
     );
     (mesh.material as THREE.MeshLambertMaterial).emissive = new THREE.Color(0xff2200);
     (mesh.material as THREE.MeshLambertMaterial).emissiveIntensity = 0.6;
@@ -222,19 +257,29 @@ export function buildDungeonMesh(dungeon: DungeonData, floor: number = 1): Dunge
   if (trapPositions.length > 0) {
     const mesh = createBatchedBoxes(
       trapPositions,
-      TILE_SIZE * 0.6, 0.1, TILE_SIZE * 0.6,
-      0, 0.05, 0,
+      TILE_SIZE * 0.6,
+      0.1,
+      TILE_SIZE * 0.6,
+      0,
+      0.05,
+      0,
       0xccaa22,
-      false, false,
+      false,
+      false,
     );
     group.add(mesh);
     // Add small indicator dot on top
     const dotMesh = createBatchedBoxes(
       trapPositions,
-      0.15, 0.08, 0.15,
-      0, 0.14, 0,
+      0.15,
+      0.08,
+      0.15,
+      0,
+      0.14,
+      0,
       0xff2222,
-      false, false,
+      false,
+      false,
     );
     (dotMesh.material as THREE.MeshLambertMaterial).emissive = new THREE.Color(0xff0000);
     (dotMesh.material as THREE.MeshLambertMaterial).emissiveIntensity = 0.8;
@@ -246,19 +291,29 @@ export function buildDungeonMesh(dungeon: DungeonData, floor: number = 1): Dunge
     // Crate body
     const mesh = createBatchedBoxes(
       furniturePositions,
-      TILE_SIZE * 0.7, 0.8, TILE_SIZE * 0.7,
-      0, 0.4, 0,
-      0x8B6914,
-      true, true,
+      TILE_SIZE * 0.7,
+      0.8,
+      TILE_SIZE * 0.7,
+      0,
+      0.4,
+      0,
+      0x8b6914,
+      true,
+      true,
     );
     group.add(mesh);
     // Crate top (lighter color)
     const topMesh = createBatchedBoxes(
       furniturePositions,
-      TILE_SIZE * 0.72, 0.08, TILE_SIZE * 0.72,
-      0, 0.84, 0,
-      0xA07828,
-      false, false,
+      TILE_SIZE * 0.72,
+      0.08,
+      TILE_SIZE * 0.72,
+      0,
+      0.84,
+      0,
+      0xa07828,
+      false,
+      false,
     );
     group.add(topMesh);
   }
@@ -303,13 +358,20 @@ function computeWalkableBounds(
   offsetX: number,
   offsetZ: number,
 ): { minX: number; maxX: number; minZ: number; maxZ: number } {
-  let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+  let minX = Infinity,
+    maxX = -Infinity,
+    minZ = Infinity,
+    maxZ = -Infinity;
 
   for (let z = 0; z < dungeon.height; z++) {
     for (let x = 0; x < dungeon.width; x++) {
       const tile = dungeon.tiles[z][x];
-      if (tile === TileType.Floor || tile === TileType.Door ||
-          tile === TileType.Exit || tile === TileType.Entrance) {
+      if (
+        tile === TileType.Floor ||
+        tile === TileType.Door ||
+        tile === TileType.Exit ||
+        tile === TileType.Entrance
+      ) {
         const wx = x * TILE_SIZE + offsetX;
         const wz = z * TILE_SIZE + offsetZ;
         minX = Math.min(minX, wx);

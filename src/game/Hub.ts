@@ -1,11 +1,5 @@
 import * as THREE from 'three';
-import {
-  TILE_SIZE,
-  WALL_HEIGHT,
-  HUB_WIDTH,
-  HUB_DEPTH,
-  COLORS,
-} from '../utils/constants';
+import { TILE_SIZE, WALL_HEIGHT, HUB_WIDTH, HUB_DEPTH, COLORS } from '../utils/constants';
 
 export interface PortalInfo {
   x: number;
@@ -22,7 +16,11 @@ export interface LibraryDoorInfo {
   z: number;
 }
 
-export function createHubScene(): { group: THREE.Group; portal: PortalInfo; libraryDoor: LibraryDoorInfo } {
+export function createHubScene(): {
+  group: THREE.Group;
+  portal: PortalInfo;
+  libraryDoor: LibraryDoorInfo;
+} {
   const group = new THREE.Group();
 
   const halfW = (HUB_WIDTH * TILE_SIZE) / 2;
@@ -95,7 +93,7 @@ export function createHubScene(): { group: THREE.Group; portal: PortalInfo; libr
   ];
   for (const [px, , pz] of pillarPositions) {
     const pillar = new THREE.Mesh(pillarGeo, pillarMat);
-    pillar.position.set(px, WALL_HEIGHT * 1.3 / 2, pz);
+    pillar.position.set(px, (WALL_HEIGHT * 1.3) / 2, pz);
     pillar.castShadow = true;
     group.add(pillar);
   }
@@ -112,7 +110,12 @@ export function createHubScene(): { group: THREE.Group; portal: PortalInfo; libr
   group.add(portalBase);
 
   // Portal glow column
-  const portalGeo = new THREE.CylinderGeometry(TILE_SIZE * 0.5, TILE_SIZE * 0.5, WALL_HEIGHT * 1.5, 8);
+  const portalGeo = new THREE.CylinderGeometry(
+    TILE_SIZE * 0.5,
+    TILE_SIZE * 0.5,
+    WALL_HEIGHT * 1.5,
+    8,
+  );
   const portalMat = new THREE.MeshBasicMaterial({
     color: COLORS.portal,
     transparent: true,

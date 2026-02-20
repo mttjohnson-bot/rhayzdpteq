@@ -16,12 +16,12 @@ Captured 2026-02-20. Update this section as phases are completed.
 |------|--------|
 | **Build** | `tsc && vite build` succeeds; 122 KB gzipped production bundle |
 | **TypeScript** | Strict mode enabled; `npx tsc --noEmit` passes |
-| **Linting** | `npm run lint` script exists but ESLint is not installed — fails immediately |
+| **Linting** | ESLint v9 + Prettier installed; `npm run lint` and `npm run format:check` both pass |
 | **Testing** | No test framework; `npm test` prints a placeholder message and exits 0 |
 | **Pre-commit hooks** | None |
-| **CI** | `.github/workflows/deploy.yml` deploys to GitHub Pages on push to main; no quality gates |
+| **CI** | `.github/workflows/deploy.yml` deploys to GitHub Pages on push to main; `.github/workflows/quality.yml` runs lint, format check, and typecheck on PRs and pushes to main |
 | **Security** | No Dependabot, no CodeQL, no npm audit integration |
-| **Dependencies** | `three` (runtime); `typescript`, `vite`, `@types/three` (dev) |
+| **Dependencies** | `three` (runtime); `typescript`, `vite`, `@types/three`, `eslint`, `@eslint/js`, `typescript-eslint`, `prettier`, `eslint-config-prettier` (dev) |
 
 ### Testability Map
 
@@ -44,7 +44,7 @@ that are immediately testable:
 
 | Phase | Focus | Key Tools | Status |
 |-------|-------|-----------|--------|
-| 1 | Linting & Formatting | ESLint v9, Prettier | [ ] |
+| 1 | Linting & Formatting | ESLint v9, Prettier | [x] |
 | 2 | Unit & Integration Testing | Vitest, @vitest/coverage-v8 | [ ] |
 | 3 | Build & Developer Experience | Husky, lint-staged, bundle analysis | [ ] |
 | 4 | E2E & Visual Testing | Playwright | [ ] |

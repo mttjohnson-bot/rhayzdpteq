@@ -121,7 +121,8 @@ function generateEquipment(floor: number, slot?: ItemSlot): Item {
           if (rarity !== 'common') modifier.critChance = 0.01 * mult;
           break;
         case 'mace': // defense bonus
-          if (rarity !== 'common') modifier.flatDefense = Math.round((1 + floor * 0.3) * (mult - 0.5));
+          if (rarity !== 'common')
+            modifier.flatDefense = Math.round((1 + floor * 0.3) * (mult - 0.5));
           break;
         case 'dagger': // speed + crit
           modifier.flatDamage = Math.round(modifier.flatDamage * 0.85);

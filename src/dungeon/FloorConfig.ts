@@ -34,7 +34,7 @@ export interface FloorDifficulty {
   corridorWidth: number;
   bossRoomSize: number;
   enemyTypes: EnemyTypeId[];
-  captainChance: number;  // chance a mob group has a captain
+  captainChance: number; // chance a mob group has a captain
 }
 
 export interface BossConfig {
@@ -51,10 +51,10 @@ export interface BossConfig {
 export type BossAbility = 'charge' | 'slam' | 'summon' | 'enrage' | 'teleport' | 'invisibility';
 
 export interface ObstacleConfig {
-  types: ObstacleType[];   // available obstacle types for this floor
-  roomChance: number;      // probability each room gets obstacles (0-1)
-  minCount: number;        // minimum obstacles per room
-  maxCount: number;        // maximum obstacles per room
+  types: ObstacleType[]; // available obstacle types for this floor
+  roomChance: number; // probability each room gets obstacles (0-1)
+  minCount: number; // minimum obstacles per room
+  maxCount: number; // maximum obstacles per room
 }
 
 export interface FloorConfig {
@@ -454,7 +454,13 @@ const FLOOR_CONFIGS: FloorConfig[] = [
       abilities: ['charge', 'slam', 'summon', 'teleport', 'enrage'],
     },
     obstacleConfig: {
-      types: [ObstacleType.Fire, ObstacleType.Trap, ObstacleType.Mud, ObstacleType.Water, ObstacleType.Furniture],
+      types: [
+        ObstacleType.Fire,
+        ObstacleType.Trap,
+        ObstacleType.Mud,
+        ObstacleType.Water,
+        ObstacleType.Furniture,
+      ],
       roomChance: 0.6,
       minCount: 4,
       maxCount: 8,
@@ -501,7 +507,13 @@ const FLOOR_CONFIGS: FloorConfig[] = [
       abilities: ['charge', 'slam', 'summon', 'teleport', 'enrage'],
     },
     obstacleConfig: {
-      types: [ObstacleType.Fire, ObstacleType.Trap, ObstacleType.Mud, ObstacleType.Water, ObstacleType.Furniture],
+      types: [
+        ObstacleType.Fire,
+        ObstacleType.Trap,
+        ObstacleType.Mud,
+        ObstacleType.Water,
+        ObstacleType.Furniture,
+      ],
       roomChance: 0.7,
       minCount: 5,
       maxCount: 10,

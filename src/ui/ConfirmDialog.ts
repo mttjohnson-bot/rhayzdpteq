@@ -96,8 +96,7 @@ export class ConfirmDialog {
     box.appendChild(btnRow);
 
     this.hintEl = document.createElement('div');
-    this.hintEl.innerHTML = 'Enter: drop | Esc: cancel'
-      + '<br>Gamepad: A: drop | B: cancel';
+    this.hintEl.innerHTML = 'Enter: drop | Esc: cancel' + '<br>Gamepad: A: drop | B: cancel';
     Object.assign(this.hintEl.style, {
       marginTop: '0.8rem',
       fontSize: '0.65rem',
@@ -127,7 +126,7 @@ export class ConfirmDialog {
           this.confirm(this.selectedButton === 'yes');
           break;
         case 'Escape':
-        case 'e':  // B button on gamepad dispatches 'e'
+        case 'e': // B button on gamepad dispatches 'e'
           this.confirm(false);
           break;
       }

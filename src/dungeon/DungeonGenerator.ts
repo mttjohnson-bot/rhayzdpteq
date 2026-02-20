@@ -1,4 +1,3 @@
-import { TILE_SIZE } from '../utils/constants';
 import { getFloorConfig, ObstacleConfig } from './FloorConfig';
 import { TileType, ObstacleType } from './types';
 
@@ -50,7 +49,7 @@ function randInt(rng: () => number, min: number, max: number): number {
 }
 
 export function generateDungeon(floor: number, seed?: number): DungeonData {
-  const rng = seededRandom(seed ?? (Date.now() + floor * 9973));
+  const rng = seededRandom(seed ?? Date.now() + floor * 9973);
 
   const config = getFloorConfig(floor);
   const diff = config.difficulty;
@@ -70,8 +69,16 @@ export function generateDungeon(floor: number, seed?: number): DungeonData {
 
   // Place boss room first (largest room, near far edge)
   const bossSize = diff.bossRoomSize;
-  const bossX = randInt(rng, gridWidth - bossSize - ROOM_PADDING * 2, gridWidth - bossSize - ROOM_PADDING);
-  const bossZ = randInt(rng, gridHeight - bossSize - ROOM_PADDING * 2, gridHeight - bossSize - ROOM_PADDING);
+  const bossX = randInt(
+    rng,
+    gridWidth - bossSize - ROOM_PADDING * 2,
+    gridWidth - bossSize - ROOM_PADDING,
+  );
+  const bossZ = randInt(
+    rng,
+    gridHeight - bossSize - ROOM_PADDING * 2,
+    gridHeight - bossSize - ROOM_PADDING,
+  );
   const bossRoom: Room = {
     id: 0,
     x: Math.max(ROOM_PADDING, bossX),
@@ -126,8 +133,12 @@ export function generateDungeon(floor: number, seed?: number): DungeonData {
       if (rooms.length >= 2) break;
       const room: Room = {
         id: rooms.length,
-        x: fx, z: fz, width: fw, height: fh,
-        centerX: fx + 4, centerZ: fz + 4,
+        x: fx,
+        z: fz,
+        width: fw,
+        height: fh,
+        centerX: fx + 4,
+        centerZ: fz + 4,
         connected: false,
       };
       rooms.push(room);
@@ -154,11 +165,30 @@ export function generateDungeon(floor: number, seed?: number): DungeonData {
   // Place obstacles in rooms
   const obstacleConfig = config.obstacleConfig;
   if (obstacleConfig && obstacleConfig.types.length > 0) {
-    placeObstacles(rooms, tiles, obstacles, rng, gridWidth, gridHeight, obstacleConfig, entranceRoom, exitRoom);
+    placeObstacles(
+      rooms,
+      tiles,
+      obstacles,
+      rng,
+      gridWidth,
+      gridHeight,
+      obstacleConfig,
+      entranceRoom,
+      exitRoom,
+    );
   }
 
   const triggeredTraps = new Set<string>();
-  return { width: gridWidth, height: gridHeight, tiles, obstacles, triggeredTraps, rooms, entranceRoom, exitRoom };
+  return {
+    width: gridWidth,
+    height: gridHeight,
+    tiles,
+    obstacles,
+    triggeredTraps,
+    rooms,
+    entranceRoom,
+    exitRoom,
+  };
 }
 
 function carveRoom(tiles: TileType[][], room: Room, gridWidth: number, gridHeight: number): void {
@@ -287,9 +317,11 @@ function carveCorridor(
 
 function carveCorridorTile(
   tiles: TileType[][],
-  cx: number, cz: number,
+  cx: number,
+  cz: number,
   halfW: number,
-  gridWidth: number, gridHeight: number,
+  gridWidth: number,
+  gridHeight: number,
 ): void {
   for (let dz = -halfW; dz <= halfW; dz++) {
     for (let dx = -halfW; dx <= halfW; dx++) {
@@ -306,9 +338,14 @@ function carveCorridorTile(
 
 function addWalls(tiles: TileType[][], width: number, height: number): void {
   const directions = [
-    [-1, -1], [0, -1], [1, -1],
-    [-1, 0],           [1, 0],
-    [-1, 1],  [0, 1],  [1, 1],
+    [-1, -1],
+    [0, -1],
+    [1, -1],
+    [-1, 0],
+    [1, 0],
+    [-1, 1],
+    [0, 1],
+    [1, 1],
   ];
 
   for (let z = 0; z < height; z++) {
@@ -319,8 +356,12 @@ function addWalls(tiles: TileType[][], width: number, height: number): void {
         const nz = z + dz;
         if (nx >= 0 && nx < width && nz >= 0 && nz < height) {
           const neighbor = tiles[nz][nx];
-          if (neighbor === TileType.Floor || neighbor === TileType.Door ||
-              neighbor === TileType.Exit || neighbor === TileType.Entrance) {
+          if (
+            neighbor === TileType.Floor ||
+            neighbor === TileType.Door ||
+            neighbor === TileType.Exit ||
+            neighbor === TileType.Entrance
+          ) {
             tiles[z][x] = TileType.Wall;
             break;
           }
@@ -347,7 +388,12 @@ function placeDoors(rooms: Room[], tiles: TileType[][], width: number, height: n
       if (ex < 0 || ex >= width || ez < 0 || ez >= height) continue;
       if (tiles[ez][ex] !== TileType.Floor) continue;
 
-      const neighbors: [number, number][] = [[ex - 1, ez], [ex + 1, ez], [ex, ez - 1], [ex, ez + 1]];
+      const neighbors: [number, number][] = [
+        [ex - 1, ez],
+        [ex + 1, ez],
+        [ex, ez - 1],
+        [ex, ez + 1],
+      ];
       for (const [nx, nz] of neighbors) {
         if (nx < 0 || nx >= width || nz < 0 || nz >= height) continue;
         if (tiles[nz][nx] === TileType.Floor && !isInsideRoom(room, nx, nz)) {
@@ -365,15 +411,14 @@ function isInsideRoom(room: Room, x: number, z: number): boolean {
 
 function pickEntranceExit(rooms: Room[]): [Room, Room] {
   // Exit is always the boss room (first room placed)
-  const bossRoom = rooms.find(r => r.isBossRoom) ?? rooms[rooms.length - 1];
+  const bossRoom = rooms.find((r) => r.isBossRoom) ?? rooms[rooms.length - 1];
 
   let bestDist = 0;
   let entrance = rooms[1] ?? rooms[0];
 
   for (const r of rooms) {
     if (r === bossRoom) continue;
-    const dist = Math.abs(r.centerX - bossRoom.centerX) +
-                 Math.abs(r.centerZ - bossRoom.centerZ);
+    const dist = Math.abs(r.centerX - bossRoom.centerX) + Math.abs(r.centerZ - bossRoom.centerZ);
     if (dist > bestDist) {
       bestDist = dist;
       entrance = r;

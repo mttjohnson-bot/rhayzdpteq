@@ -119,38 +119,64 @@ export class InputManager {
   /** Map gamepad button index to KeyboardEvent.key value (for synthetic events) */
   private gamepadButtonToKey(index: number): string | null {
     switch (index) {
-      case 0: return ' ';            // A = space
-      case 1: return 'e';            // B = interact
-      case 2: return 'i';            // X = inventory
-      case 3: return 'k';            // Y = skill tree
-      case 4: return 'r';            // L1 = respawn
-      case 5: return 'x';            // R1 = drop (inventory)
-      case 8: return 'Escape';       // Select
-      case 9: return 'Escape';       // Start
-      case 12: return 'ArrowUp';     // D-pad up
-      case 13: return 'ArrowDown';   // D-pad down
-      case 14: return 'ArrowLeft';   // D-pad left
-      case 15: return 'ArrowRight';  // D-pad right
-      default: return null;
+      case 0:
+        return ' '; // A = space
+      case 1:
+        return 'e'; // B = interact
+      case 2:
+        return 'i'; // X = inventory
+      case 3:
+        return 'k'; // Y = skill tree
+      case 4:
+        return 'r'; // L1 = respawn
+      case 5:
+        return 'x'; // R1 = drop (inventory)
+      case 8:
+        return 'Escape'; // Select
+      case 9:
+        return 'Escape'; // Start
+      case 12:
+        return 'ArrowUp'; // D-pad up
+      case 13:
+        return 'ArrowDown'; // D-pad down
+      case 14:
+        return 'ArrowLeft'; // D-pad left
+      case 15:
+        return 'ArrowRight'; // D-pad right
+      default:
+        return null;
     }
   }
 
   /** Map standard gamepad buttons to key codes */
   private mapGamepadButton(index: number): string | null {
     switch (index) {
-      case 0: return 'Space';         // A = attack
-      case 1: return 'KeyE';          // B = interact
-      case 2: return 'KeyI';          // X = inventory
-      case 3: return 'KeyK';          // Y = skill tree
-      case 4: return 'KeyR';          // L1 = respawn
-      case 5: return 'KeyX';          // R1 = drop (inventory)
-      case 8: return 'Escape';        // Select = cancel/close
-      case 9: return 'Escape';        // Start = pause/cancel
-      case 12: return 'ArrowUp';      // D-pad up
-      case 13: return 'ArrowDown';    // D-pad down
-      case 14: return 'ArrowLeft';    // D-pad left
-      case 15: return 'ArrowRight';   // D-pad right
-      default: return null;
+      case 0:
+        return 'Space'; // A = attack
+      case 1:
+        return 'KeyE'; // B = interact
+      case 2:
+        return 'KeyI'; // X = inventory
+      case 3:
+        return 'KeyK'; // Y = skill tree
+      case 4:
+        return 'KeyR'; // L1 = respawn
+      case 5:
+        return 'KeyX'; // R1 = drop (inventory)
+      case 8:
+        return 'Escape'; // Select = cancel/close
+      case 9:
+        return 'Escape'; // Start = pause/cancel
+      case 12:
+        return 'ArrowUp'; // D-pad up
+      case 13:
+        return 'ArrowDown'; // D-pad down
+      case 14:
+        return 'ArrowLeft'; // D-pad left
+      case 15:
+        return 'ArrowRight'; // D-pad right
+      default:
+        return null;
     }
   }
 
@@ -175,11 +201,17 @@ export class InputManager {
   }
 
   /** Normalized mouse position (-1 to 1) */
-  get mouseX(): number { return this._mouseX; }
-  get mouseY(): number { return this._mouseY; }
+  get mouseX(): number {
+    return this._mouseX;
+  }
+  get mouseY(): number {
+    return this._mouseY;
+  }
 
   /** Whether a gamepad is connected */
-  get hasGamepad(): boolean { return this.gamepadIndex !== null; }
+  get hasGamepad(): boolean {
+    return this.gamepadIndex !== null;
+  }
 
   /** Call at the end of each frame to reset per-frame state */
   endFrame(): void {

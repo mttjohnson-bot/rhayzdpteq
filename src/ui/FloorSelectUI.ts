@@ -64,7 +64,8 @@ export class FloorSelectUI {
     this.container.appendChild(closeBtn);
 
     const hint = document.createElement('div');
-    hint.textContent = '0-9 or arrows to select, Enter to confirm. Gamepad: D-pad + A, B to cancel.';
+    hint.textContent =
+      '0-9 or arrows to select, Enter to confirm. Gamepad: D-pad + A, B to cancel.';
     Object.assign(hint.style, {
       textAlign: 'center',
       fontSize: '0.65rem',
@@ -187,12 +188,18 @@ export class FloorSelectUI {
         : `${i}. Floor ${i} - ${floorConfig.theme.name} (Locked)`;
       Object.assign(btn.style, {
         padding: '0.6rem 1rem',
-        background: selected && unlocked
-          ? 'rgba(170, 68, 255, 0.5)'
-          : unlocked ? 'rgba(170, 68, 255, 0.2)' : 'rgba(50, 50, 50, 0.5)',
-        border: selected && unlocked
-          ? '1px solid rgba(170, 68, 255, 0.8)'
-          : unlocked ? '1px solid rgba(170, 68, 255, 0.5)' : '1px solid rgba(100, 100, 100, 0.3)',
+        background:
+          selected && unlocked
+            ? 'rgba(170, 68, 255, 0.5)'
+            : unlocked
+              ? 'rgba(170, 68, 255, 0.2)'
+              : 'rgba(50, 50, 50, 0.5)',
+        border:
+          selected && unlocked
+            ? '1px solid rgba(170, 68, 255, 0.8)'
+            : unlocked
+              ? '1px solid rgba(170, 68, 255, 0.5)'
+              : '1px solid rgba(100, 100, 100, 0.3)',
         borderRadius: '4px',
         color: unlocked ? '#eee' : '#666',
         cursor: unlocked ? 'pointer' : 'default',
