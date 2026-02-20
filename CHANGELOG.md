@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Testing & quality roadmap — six-phase plan for automated testing, linting, and security scanning.
+
+- **QUALITY_PLAN.md added** — Committed a detailed, phase-by-phase testing and quality improvement roadmap to the repository. Covers ESLint/Prettier setup (Phase 1), Vitest unit tests (Phase 2), Husky pre-commit hooks and bundle analysis (Phase 3), Playwright E2E tests (Phase 4), Dependabot and CodeQL security scanning (Phase 5), and coverage threshold enforcement (Phase 6). Each phase is self-contained and can be worked on independently in future sessions.
+
+---
+
 Boss difficulty overhaul — all floor bosses are significantly more dangerous.
 
 - **4× boss HP and damage** — Every boss's health and melee damage multipliers are quadrupled, making boss fights a true test of the player's build and skill rather than an afterthought.
