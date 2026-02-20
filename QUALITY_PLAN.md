@@ -3,6 +3,41 @@
 This document is the canonical reference for planned testing, tooling, and security improvements.
 Each phase is self-contained and can be requested as a discrete unit of work in a future session.
 
+To begin work on a specific phase, reference this file in a new Claude Code session with a prompt
+like: *"Please implement Phase N from QUALITY_PLAN.md."*
+
+---
+
+## Current State Baseline
+
+Captured 2026-02-20. Update this section as phases are completed.
+
+| Area | Status |
+|------|--------|
+| **Build** | `tsc && vite build` succeeds; 122 KB gzipped production bundle |
+| **TypeScript** | Strict mode enabled; `npx tsc --noEmit` passes |
+| **Linting** | `npm run lint` script exists but ESLint is not installed — fails immediately |
+| **Testing** | No test framework; `npm test` prints a placeholder message and exits 0 |
+| **Pre-commit hooks** | None |
+| **CI** | `.github/workflows/deploy.yml` deploys to GitHub Pages on push to main; no quality gates |
+| **Security** | No Dependabot, no CodeQL, no npm audit integration |
+| **Dependencies** | `three` (runtime); `typescript`, `vite`, `@types/three` (dev) |
+
+### Testability Map
+
+The codebase has good separation of concerns. Pure-logic modules (no Three.js/DOM dependency)
+that are immediately testable:
+
+| Directory | Pure-Logic Modules | Needs Three.js/DOM |
+|-----------|-------------------|--------------------|
+| `src/utils/` | `math.ts`, `EventBus.ts`, `constants.ts` | — |
+| `src/rpg/` | `Stats.ts`, `Leveling.ts`, `LootTable.ts`, `SkillTree.ts`, `Inventory.ts` | `LootDrop.ts` |
+| `src/dungeon/` | `types.ts`, `FloorConfig.ts`, `DungeonGenerator.ts`, `ObstacleSystem.ts` | `FloorRenderer.ts` |
+| `src/game/` | `SaveManager.ts` | `Game.ts`, `Player.ts`, `Camera.ts`, `Hub.ts`, `AssetLibrary.ts`, `InputManager.ts` (DOM events) |
+| `src/combat/` | — | `CombatSystem.ts`, `Enemy.ts`, `Boss.ts`, `TestDummy.ts` |
+| `src/rendering/` | — | All files |
+| `src/ui/` | — | All files |
+
 ---
 
 ## Phase Summary
@@ -34,9 +69,13 @@ future CI quality checks.
 ### Packages to Install
 
 ```sh
-npm install -D eslint @eslint/js @typescript-eslint/eslint-plugin @typescript-eslint/parser
+npm install -D eslint @eslint/js typescript-eslint
 npm install -D prettier eslint-config-prettier
 ```
+
+> **Note:** Use the unified `typescript-eslint` package (v8+), not the older separate
+> `@typescript-eslint/eslint-plugin` + `@typescript-eslint/parser` packages. The unified
+> package provides a `tseslint.config()` helper designed for ESLint v9 flat config.
 
 ### Files to Create or Modify
 
@@ -46,16 +85,39 @@ npm install -D prettier eslint-config-prettier
 | Create | `.prettierrc` | Prettier formatting options |
 | Create | `.prettierignore` | Exclude dist/, node_modules/, *.md |
 | Modify | `package.json` | Fix lint script; add `format` and `format:check` scripts |
-| Create | `.github/workflows/quality.yml` | Run lint on every PR and push to main |
+| Create | `.github/workflows/quality.yml` | Run lint + typecheck on every PR and push to main |
 
 ### ESLint Configuration Notes
 
 - Use ESLint v9 flat config (`eslint.config.js`, not `.eslintrc`)
-- Base ruleset: `@typescript-eslint/recommended`
+- Import `tseslint` from `typescript-eslint` and use `tseslint.config()` helper
+- Extend `tseslint.configs.recommended` (replaces the old `@typescript-eslint/recommended` plugin ruleset)
 - Enable `@typescript-eslint/no-explicit-any` as a warning
 - Enable `@typescript-eslint/no-unused-vars` as an error
 - Disable `@typescript-eslint/no-empty-function` if needed for Three.js lifecycle patterns
 - Add `eslint-config-prettier` last to turn off rules that conflict with Prettier
+
+Example skeleton:
+
+```js
+// eslint.config.js
+import eslint from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import eslintConfigPrettier from 'eslint-config-prettier';
+
+export default tseslint.config(
+  eslint.configs.recommended,
+  ...tseslint.configs.recommended,
+  eslintConfigPrettier,
+  {
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': 'error',
+    },
+  },
+  { ignores: ['dist/'] },
+);
+```
 
 ### Updated package.json Scripts
 
@@ -107,28 +169,48 @@ transforms, and is TypeScript-first with no additional setup.
 
 ### Test Files to Create
 
+Tests are grouped by priority. **Core** tests cover the most critical and most testable modules.
+**Extended** tests round out coverage for remaining pure-logic files.
+
+#### Core Tests
+
 | Test File | Modules Under Test | What to Verify |
 |-----------|-------------------|----------------|
-| `tests/utils/math.test.ts` | `src/utils/math.ts` | clamp, lerp, distance, angle helpers; edge cases (NaN, Infinity, zero) |
-| `tests/utils/EventBus.test.ts` | `src/utils/EventBus.ts` | subscribe/emit/unsubscribe; listener ordering; no duplicate calls; cleanup |
-| `tests/utils/constants.test.ts` | `src/utils/constants.ts` | Key constants are defined, numeric, and within valid ranges |
-| `tests/rpg/Stats.test.ts` | `src/rpg/Stats.ts` | Derived stat formulas; bonus stacking; clamping to min/max |
-| `tests/rpg/Leveling.test.ts` | `src/rpg/Leveling.ts` | XP thresholds; level-up logic; max level boundary; XP overflow |
-| `tests/rpg/LootTable.test.ts` | `src/rpg/LootTable.ts` | Drop generation; rarity distribution; no undefined items; seeded randomness |
-| `tests/dungeon/DungeonGenerator.test.ts` | `src/dungeon/DungeonGenerator.ts` | Room count in range; rooms do not overlap; all rooms connected; valid tile types |
-| `tests/dungeon/FloorConfig.test.ts` | `src/dungeon/FloorConfig.ts` | All 10 floors have required fields; colors are valid hex/CSS values |
-| `tests/game/SaveManager.test.ts` | `src/game/SaveManager.ts` | Save/load round-trip; slot isolation; corrupt data handled gracefully (mock localStorage) |
+| `tests/utils/math.test.ts` | `src/utils/math.ts` | clamp, lerp, lerpVector3; edge cases (NaN, Infinity, zero, negative) |
+| `tests/utils/EventBus.test.ts` | `src/utils/EventBus.ts` | subscribe/emit/unsubscribe; listener ordering; no duplicate calls; cleanup; emitting unknown event is safe |
+| `tests/utils/constants.test.ts` | `src/utils/constants.ts` | Key constants are defined, numeric, and within valid ranges; enemy type IDs are unique |
+| `tests/rpg/Stats.test.ts` | `src/rpg/Stats.ts` | Derived stat formulas; bonus stacking; clamping to min/max; modifier application |
+| `tests/rpg/Leveling.test.ts` | `src/rpg/Leveling.ts` | XP thresholds; level-up logic; max level boundary; XP overflow; skill point grants |
+| `tests/rpg/LootTable.test.ts` | `src/rpg/LootTable.ts` | Drop generation; rarity distribution; no undefined items; all item slots represented; weapon subtypes assigned |
+| `tests/dungeon/DungeonGenerator.test.ts` | `src/dungeon/DungeonGenerator.ts` | Room count in range; rooms do not overlap; all rooms connected via corridors; valid tile types; boss room present; exit tile reachable |
+| `tests/dungeon/FloorConfig.test.ts` | `src/dungeon/FloorConfig.ts` | All 10 floors have required fields; colors are valid hex numbers; boss defined for each floor; enemy types reference valid IDs |
+| `tests/game/SaveManager.test.ts` | `src/game/SaveManager.ts` | Save/load round-trip; slot isolation; corrupt data handled gracefully; migration of old save formats (mock localStorage) |
+
+#### Extended Tests
+
+| Test File | Modules Under Test | What to Verify |
+|-----------|-------------------|----------------|
+| `tests/rpg/SkillTree.test.ts` | `src/rpg/SkillTree.ts` | All nodes defined with valid branches/tiers; prerequisite chains are valid; allocating points applies modifiers correctly; cannot exceed maxRank; resetting tree restores all points |
+| `tests/rpg/Inventory.test.ts` | `src/rpg/Inventory.ts` | Equip/unequip swaps correctly; bag capacity enforced; dropping items removes them; weapon migration backfills subtype; stat modifiers from equipment are collected; full bag rejects new items |
+| `tests/dungeon/ObstacleSystem.test.ts` | `src/dungeon/ObstacleSystem.ts` | Mud applies speed reduction; water applies damage reduction; fire applies burn DPS; trap deals one-time explosion damage; no effects on normal tiles; effects reset each frame |
+| `tests/dungeon/types.test.ts` | `src/dungeon/types.ts` | TileType and ObstacleType enums have expected members; no duplicate values |
 
 ### What NOT to Unit Test
 
-Do not attempt to unit test the following — they require a WebGL context and belong in E2E tests:
+Do not attempt to unit test the following — they require a WebGL context or DOM and belong in
+E2E tests (Phase 4):
 
-- `src/game/Game.ts`, `src/game/Player.ts`, `src/game/Camera.ts`
+- `src/game/Game.ts`, `src/game/Player.ts`, `src/game/Camera.ts`, `src/game/Hub.ts`, `src/game/AssetLibrary.ts`
+- `src/game/InputManager.ts` (constructor binds to `window` events; test via E2E or jsdom integration tests)
+- `src/rpg/LootDrop.ts` (creates Three.js meshes for world drops)
+- `src/dungeon/FloorRenderer.ts` (renders dungeon with InstancedMesh)
+- All files in `src/combat/` (enemies, bosses, and combat system depend on Three.js objects)
 - All files in `src/ui/`
 - All files in `src/rendering/`
 
-If `src/combat/CombatSystem.ts` has pure damage/hit calculation functions mixed with Three.js
-objects, extract those calculations into a pure helper function before writing tests.
+If any module mixes pure logic with Three.js calls (e.g., `CombatSystem.ts` has damage
+calculation interleaved with mesh updates), extract the pure logic into a separate helper
+file and test that helper in isolation.
 
 ### Updated package.json Scripts
 
@@ -233,12 +315,13 @@ npx playwright install --with-deps chromium
 
 | Action | File | Purpose |
 |--------|------|---------|
-| Create | `playwright.config.ts` | Playwright config: base URL, headless Chromium, screenshot on failure |
+| Create | `playwright.config.ts` | Playwright config: base URL, headless Chromium, screenshot on failure, snapshot directory |
 | Create | `tests/e2e/` directory | E2E test files (separate from unit tests) |
 | Create | `tests/e2e/game-load.test.ts` | Game loads without JS errors, canvas element appears |
-| Create | `tests/e2e/menu.test.ts` | Title screen renders, new game button is visible |
+| Create | `tests/e2e/menu.test.ts` | Title screen renders, new game button is visible, save slots shown |
 | Create | `tests/e2e/new-game.test.ts` | Can start a new game and the hub scene loads |
-| Modify | `package.json` | Add `"test:e2e"` script |
+| Create | `tests/e2e/hub-navigation.test.ts` | Player can move in the hub; portal is interactive |
+| Modify | `package.json` | Add `"test:e2e"` and `"test:e2e:update-snapshots"` scripts |
 | Modify | `.github/workflows/quality.yml` | Add E2E job: build, start preview server, run Playwright |
 
 ### E2E Test Strategy
@@ -248,11 +331,30 @@ npx playwright install --with-deps chromium
 - Do NOT test gameplay mechanics (combat, loot, etc.) in E2E — those belong in unit tests
 - Capture screenshots on every failure; upload to CI as artifacts for debugging
 - Keep E2E test suite small and focused on critical render paths only
+- Listen for `console.error` events on the page and fail the test if any uncaught errors occur
+
+### Visual Regression Testing
+
+The title "Visual Testing" in this phase refers to screenshot-based regression testing using
+Playwright's built-in snapshot comparison. This catches unintended visual changes to the title
+screen, HUD, and menus without manual inspection.
+
+- Use `expect(page).toHaveScreenshot()` for key screens (title, hub, inventory overlay)
+- Store baseline screenshots in `tests/e2e/__snapshots__/` and commit them to the repo
+- Configure a pixel-difference threshold (e.g., `maxDiffPixelRatio: 0.01`) to allow minor
+  antialiasing differences across CI environments
+- Use `npm run test:e2e:update-snapshots` to regenerate baselines after intentional UI changes
+- CI uploads diff images as artifacts when a visual comparison fails
+
+> **Limitation:** Three.js canvas rendering may produce minor pixel differences across GPU
+> drivers. If this causes flaky CI results, restrict visual regression tests to the DOM-rendered
+> UI elements (menus, HUD overlays) rather than the 3D canvas, or increase the threshold.
 
 ### Updated package.json Scripts
 
 ```json
-"test:e2e": "playwright test"
+"test:e2e":                  "playwright test",
+"test:e2e:update-snapshots": "playwright test --update-snapshots"
 ```
 
 ### Success Criteria
@@ -261,6 +363,8 @@ npx playwright install --with-deps chromium
 - GitHub Actions runs E2E tests on every PR targeting `main`
 - Screenshots on failure are uploaded as CI artifacts
 - Game canvas renders and the title screen appears within 5 seconds on headless Chromium
+- Visual regression baselines exist for the title screen and hub HUD
+- A deliberate UI change fails the visual test until snapshots are updated
 
 ---
 
@@ -314,13 +418,16 @@ updates:
 
 ### Error Handling Audit
 
-Review these files for missing error handling and add try/catch where needed:
+Review these files for missing error handling and add defensive code where needed:
 
 | File | Risk | Recommended Fix |
 |------|------|----------------|
-| `src/game/SaveManager.ts` | localStorage can throw in private browsing | Wrap all `localStorage` calls in try/catch |
-| `src/main.ts` | Uncaught Game.start() error crashes with no UI | Add top-level try/catch with user-visible error message |
-| `src/dungeon/DungeonGenerator.ts` | Generation could theoretically loop forever | Add iteration limits and a fallback floor layout |
+| `src/main.ts` | Uncaught `Game.start()` error crashes with no UI feedback | Add top-level try/catch with a user-visible error overlay (e.g., a red `<div>` with the error message) |
+| `src/game/SaveManager.ts` | `localStorage` can throw in private browsing or when storage is full | Wrap all `localStorage.getItem`/`setItem`/`removeItem` calls in try/catch; return safe defaults on read failure |
+| `src/dungeon/DungeonGenerator.ts` | Room placement loop could theoretically run forever if rooms cannot be placed | Add iteration cap (already has `attempts` parameter — verify it is enforced); add fallback to a minimal valid floor layout on failure |
+| `src/game/InputManager.ts` | `navigator.getGamepads()` can throw in restrictive browser contexts | Wrap gamepad polling in try/catch; degrade gracefully to keyboard-only |
+| `src/rpg/Inventory.ts` | Old save format migration could fail on deeply corrupt data | Add validation before `migrateItem`; skip items that cannot be recovered |
+| **Global** | Unhandled promise rejections go silent in production | Add `window.addEventListener('unhandledrejection', ...)` in `main.ts` to log and surface errors |
 
 ### Updated package.json Scripts
 
@@ -333,7 +440,8 @@ Review these files for missing error handling and add try/catch where needed:
 - `npm audit` reports zero high or critical vulnerabilities in production dependencies
 - Dependabot creates automated PRs for outdated packages each week
 - CodeQL finds no high-severity issues in the initial baseline scan
-- The three error handling gaps above are addressed with defensive code
+- All error handling gaps above are addressed with defensive code
+- Unhandled promise rejections are caught and surfaced in the UI
 
 ---
 
@@ -382,6 +490,20 @@ security (independent, on schedule + PR)
 
 All jobs must pass before a PR can be merged into `main`.
 
+### Bundle Size Monitoring
+
+Add a CI step that records the gzipped production bundle size and fails if it exceeds the
+5 MB budget from CLAUDE.md. Approach:
+
+1. After `vite build`, run a script that sums the gzipped sizes of all files in `dist/assets/`
+2. Print the total to the CI log and compare against the threshold
+3. Fail the job if the budget is exceeded
+4. Optionally post a PR comment with the current bundle size vs. the main branch baseline
+
+This can be done with a simple shell script or the `bundlesize` npm package. The
+`rollup-plugin-visualizer` from Phase 3 provides detailed analysis; this step just enforces
+the budget as a CI gate.
+
 ### README Badges
 
 Add badges at the top of `README.md` for:
@@ -392,6 +514,7 @@ Add badges at the top of `README.md` for:
 ### Success Criteria
 
 - `npm run test:coverage` fails if coverage drops below thresholds
+- Bundle size check fails CI if gzipped output exceeds 5 MB
 - All quality jobs (lint, typecheck, unit-test, e2e-test) are required status checks on `main`
 - README shows live build/test status badges
 - A new contributor can run `npm install && npm test && npm run lint` and get a clean result
@@ -416,22 +539,39 @@ Add badges at the top of `README.md` for:
 Three.js requires a WebGL context that is not available in Node.js (the Vitest default
 environment). The split is:
 
-- **Unit test (Vitest/Node):** `src/utils/`, `src/rpg/`, `src/dungeon/`, `src/game/SaveManager.ts`
-- **E2E test (Playwright/Chromium):** `src/game/`, `src/combat/`, `src/ui/`, `src/rendering/`
+- **Unit test (Vitest/Node):** `src/utils/`, `src/rpg/` (except `LootDrop.ts`), `src/dungeon/` (except `FloorRenderer.ts`), `src/game/SaveManager.ts`
+- **E2E test (Playwright/Chromium):** `src/game/` (most files), `src/combat/`, `src/ui/`, `src/rendering/`, `src/rpg/LootDrop.ts`, `src/dungeon/FloorRenderer.ts`
 
 If a module mixes pure logic with Three.js calls, extract the pure logic into a separate helper
-file and test that helper in isolation.
+file and test that helper in isolation. Do not try to mock Three.js constructors in unit tests —
+the mocks are fragile and the real behavior is better tested in E2E.
 
 ### Working on a Phase
 
-When starting a phase, reference this file and the relevant section above. The implementation
-agent should:
+When starting a phase in a new Claude Code session, use a prompt like:
 
-1. Read the "Files to Create or Modify" table for that phase
-2. Install listed packages
-3. Create/modify listed files
-4. Run the relevant `npm run` commands to verify the phase works locally
-5. Commit all changes (including this file if Status column was updated)
-6. Push to the feature branch and open a PR
+> *"Please implement Phase N from QUALITY_PLAN.md. Read the phase section for the full
+> specification, including packages to install, files to create/modify, and success criteria."*
 
-Mark the phase complete in the Status column of the summary table at the top of this document.
+The implementation agent should:
+
+1. Read this file and locate the relevant phase section
+2. Read the "Files to Create or Modify" table for that phase
+3. Install listed packages
+4. Create/modify listed files following the specifications
+5. Run the relevant `npm run` commands to verify the phase works locally
+6. Fix any issues until all success criteria pass
+7. Update the Status column in the Phase Summary table at the top of this document
+8. Update `CHANGELOG.md` with the changes made
+9. Commit all changes and push to the feature branch
+
+### Dependency Between Phases
+
+Phases are designed to be implemented in order. Each phase builds on the previous:
+
+- **Phase 1** has no prerequisites
+- **Phase 2** requires Phase 1 (ESLint must work for CI to pass)
+- **Phase 3** requires Phase 1 (lint-staged needs ESLint) and Phase 2 (pre-commit can run tests)
+- **Phase 4** requires Phase 2 (Vitest config must exist) and a working `npm run build`
+- **Phase 5** is largely independent but benefits from stable CI (Phases 1–4)
+- **Phase 6** requires all previous phases (consolidates all checks into a coherent CI pipeline)
