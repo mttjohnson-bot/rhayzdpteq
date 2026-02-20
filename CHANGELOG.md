@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Boss difficulty overhaul — all floor bosses are significantly more dangerous.
+
+- **4× boss HP and damage** — Every boss's health and melee damage multipliers are quadrupled, making boss fights a true test of the player's build and skill rather than an afterthought.
+- **Faster, more aggressive bosses** — Boss movement speed increased by ~30–40% and base attack cooldowns reduced by ~30–35% across all floors, so bosses pressure the player much harder.
+- **Amplified charge ability** — Charge speed increased from 4× to 6× normal speed, charge damage multiplier raised from 1.5× to 2.5×, charge duration extended from 0.6 s to 0.8 s, and cooldown cut from 4 s to 2.5 s.
+- **Wider slam AoE** — Slam's area-of-effect radius expanded from 3 to 5 units and its damage multiplier raised from 2× to 3.5×. Cooldown reduced from 5 s to 3 s so the boss uses it more frequently.
+- **More frequent summons** — Summon cooldown dropped from 8 s to 5 s and the per-boss summon cap doubled from 3 to 6, letting bosses flood the arena with minions throughout the fight.
+- **Aggressive teleport** — Teleport teleports 3–6 units (up from 2–4) and cooldown reduced from 6 s to 3.5 s, making the boss far harder to pin down.
+- **Earlier, stronger enrage** — Enrage now triggers at 50% HP (up from 30%), giving the player less time before the boss enters its frenzied state. Enrage speed bonus increased from 1.4× to 1.8× and damage bonus from 1.3× to 1.6×. Attack cooldown during enrage reduced to 0.4× of base (down from 0.6×).
+- **More frequent ability use** — The per-frame ability trigger chance doubled from 2% to 4%, so bosses rotate through their special attacks more aggressively throughout the encounter.
+
+---
+
 Shadow Lord fading invisibility — a haunting phase-cycling transparency effect.
 
 - **Boss fading invisibility ability** — Added a new `invisibility` boss ability that cycles the Shadow Lord (Floor 5) between a ghostly peek state and full concealment. The boss fades to only 25% opacity at peak visibility — still mostly transparent for a haunting effect — then fades back to invisible over a 0.5 s transition and stays hidden for ~4 s before reappearing. Eyes retain a faint red ember glow (4% opacity) even when fully hidden so the player can track the boss's position. Damage hits briefly snap the boss to near-full opacity so hit feedback always reads clearly.
