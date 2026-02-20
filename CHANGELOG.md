@@ -4,9 +4,9 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
-Testing & quality roadmap — six-phase plan for automated testing, linting, and security scanning.
+Quality roadmap review — expanded and corrected the six-phase testing & quality improvement plan.
 
-- **QUALITY_PLAN.md added** — Committed a detailed, phase-by-phase testing and quality improvement roadmap to the repository. Covers ESLint/Prettier setup (Phase 1), Vitest unit tests (Phase 2), Husky pre-commit hooks and bundle analysis (Phase 3), Playwright E2E tests (Phase 4), Dependabot and CodeQL security scanning (Phase 5), and coverage threshold enforcement (Phase 6). Each phase is self-contained and can be worked on independently in future sessions.
+- **QUALITY_PLAN.md revised** — Reviewed the quality roadmap against the actual codebase and made corrections and additions. Fixed ESLint Phase 1 to use the modern unified `typescript-eslint` package (v8+) instead of the older separate plugin/parser packages. Added a "Current State Baseline" section documenting the project's starting point. Added a "Testability Map" showing which modules are pure logic vs. Three.js-dependent. Expanded Phase 2 with four additional test files (SkillTree, Inventory, ObstacleSystem, dungeon types) and split tests into Core and Extended priority groups. Added visual regression testing details to Phase 4 using Playwright's screenshot comparison. Expanded Phase 5 error handling audit from 3 to 6 items including InputManager gamepad errors, Inventory migration failures, and global unhandled rejection handling. Added bundle size monitoring as a CI gate in Phase 6. Added phase dependency documentation and session reference instructions for future Claude Code sessions.
 
 ---
 
