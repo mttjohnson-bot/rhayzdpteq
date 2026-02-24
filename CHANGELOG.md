@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Input abstraction layer — Phase 3: Migrate UI components to actions.
+
+- **All UI components migrated to ActionManager** — Six UI components (MenuScreen, FloorSelectUI, InventoryUI, SkillTreeUI, ConfirmDialog, LibraryAssetDialog) now use the action-based input system instead of independent `window.addEventListener('keydown', ...)` listeners. Each component exposes a `handleActions(actions)` method that queries semantic actions (`uiUp`, `uiDown`, `uiConfirm`, `uiCancel`, `dropItem`, etc.) instead of checking raw key codes.
+- **Game.ts routes actions to active overlays** — Added a `routeUIActions()` method to Game.ts that delegates ActionManager input to whichever UI overlay is currently active (inventory, skill tree, floor select, or library dialog). The menu screen receives actions directly during the menu state. This eliminates the need for each overlay to register and unregister its own event listeners.
+- **Gamepad works natively in all UI** — Gamepad D-pad, A/B buttons, and shoulder buttons now work in every UI screen without synthetic keyboard event dispatch. The gamepad provider maps directly to actions that UI components query, providing a clean first-class gamepad experience.
+- **ConfirmDialog integrated with InventoryUI** — The drop-item confirmation dialog is now action-driven. When the confirm dialog is open, InventoryUI delegates all action handling to it, replacing the previous capture-phase keydown listener pattern.
+- **Floor selection uses selectFloor actions** — FloorSelectUI now uses `selectFloor0`–`selectFloor9` actions for direct number-key floor selection, replacing raw `parseInt(e.key)` parsing.
+
+---
+
 Input abstraction layer — Phase 2: Migrate game code to actions.
 
 - **Game.ts migrated to ActionManager** — Replaced all `InputManager` usage in Game.ts with the new `ActionManager`. UI toggle checks (`Escape`, `KeyI`, `KeyK`) now use semantic actions (`uiCancel`, `toggleInventory`, `toggleSkillTree`). Interaction checks (`KeyE`) use `interact`. Death/win screen respawn checks (`KeyR`, `Enter`, `Space`) consolidated to the single `respawn` action. The game loop now calls `ActionManager.update()` at the start of each frame and `endFrame()` at the end.

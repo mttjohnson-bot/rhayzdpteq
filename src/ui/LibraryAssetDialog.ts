@@ -6,6 +6,7 @@
  */
 
 import type { LibraryAsset } from '../game/AssetLibrary';
+import type { ActionManager } from '../game/ActionManager';
 
 export class LibraryAssetDialog {
   private overlay: HTMLDivElement;
@@ -16,7 +17,6 @@ export class LibraryAssetDialog {
   private flavorEl: HTMLDivElement;
   private _isOpen = false;
   private _closeCallback: (() => void) | null = null;
-  private _keyHandler: (e: KeyboardEvent) => void;
 
   constructor() {
     this.overlay = document.createElement('div');
@@ -104,15 +104,6 @@ export class LibraryAssetDialog {
 
     this.overlay.appendChild(this.box);
     document.getElementById('ui-overlay')?.appendChild(this.overlay);
-
-    this._keyHandler = (e: KeyboardEvent) => {
-      if (!this._isOpen) return;
-      if (e.code === 'KeyE' || e.code === 'Escape' || e.key === 'e') {
-        e.preventDefault();
-        e.stopPropagation();
-        this.hide();
-      }
-    };
   }
 
   show(asset: LibraryAsset, onClose: () => void): void {
@@ -150,14 +141,22 @@ export class LibraryAssetDialog {
     }
 
     this.overlay.style.display = 'flex';
-    window.addEventListener('keydown', this._keyHandler, true);
+  }
+
+  /** Called each frame by Game.ts while the dialog is open. */
+  handleActions(actions: ActionManager): void {
+    if (!this._isOpen) return;
+
+    // Close on cancel (Escape/B) or interact (E)
+    if (actions.wasActionPressed('uiCancel') || actions.wasActionPressed('interact')) {
+      this.hide();
+    }
   }
 
   hide(): void {
     if (!this._isOpen) return;
     this._isOpen = false;
     this.overlay.style.display = 'none';
-    window.removeEventListener('keydown', this._keyHandler, true);
     const cb = this._closeCallback;
     this._closeCallback = null;
     cb?.();

@@ -7,6 +7,7 @@
 
 import { SkillTree, SkillNode } from '../rpg/SkillTree';
 import { LevelSystem } from '../rpg/Leveling';
+import type { ActionManager } from '../game/ActionManager';
 
 const BRANCH_COLORS: Record<string, string> = {
   warrior: '#cc4444',
@@ -34,7 +35,6 @@ export class SkillTreeUI {
   // Gamepad / keyboard navigation state
   private selectedBranch = 0; // 0=warrior, 1=guardian, 2=scout
   private selectedNode = 0; // index within sorted branch nodes
-  private _keyHandler: (e: KeyboardEvent) => void;
 
   constructor() {
     this.container = document.createElement('div');
@@ -109,8 +109,6 @@ export class SkillTreeUI {
 
     const overlay = document.getElementById('ui-overlay');
     overlay?.appendChild(this.container);
-
-    this._keyHandler = this.handleKey.bind(this);
   }
 
   show(skillTree: SkillTree, levelSystem: LevelSystem, onClose: () => void): void {
@@ -122,13 +120,11 @@ export class SkillTreeUI {
     this.selectedNode = 0;
     this.container.style.display = 'block';
     this.refresh();
-    window.addEventListener('keydown', this._keyHandler);
   }
 
   hide(): void {
     this.visible = false;
     this.container.style.display = 'none';
-    window.removeEventListener('keydown', this._keyHandler);
     this.onClose?.();
   }
 
@@ -143,55 +139,46 @@ export class SkillTreeUI {
     this.updateSelectionHighlight();
   }
 
-  private handleKey(e: KeyboardEvent): void {
+  /** Called each frame by Game.ts while the skill tree is open. */
+  handleActions(actions: ActionManager): void {
     if (!this.skillTree) return;
 
-    switch (e.key) {
-      case 'ArrowLeft': {
-        e.preventDefault();
-        this.selectedBranch = (this.selectedBranch - 1 + BRANCHES.length) % BRANCHES.length;
-        const maxNode = this.getBranchNodeCount(BRANCHES[this.selectedBranch]);
-        if (this.selectedNode >= maxNode) this.selectedNode = maxNode - 1;
+    if (actions.wasActionPressed('uiLeft')) {
+      this.selectedBranch = (this.selectedBranch - 1 + BRANCHES.length) % BRANCHES.length;
+      const maxNode = this.getBranchNodeCount(BRANCHES[this.selectedBranch]);
+      if (this.selectedNode >= maxNode) this.selectedNode = maxNode - 1;
+      this.updateSelectionHighlight();
+    }
+
+    if (actions.wasActionPressed('uiRight')) {
+      this.selectedBranch = (this.selectedBranch + 1) % BRANCHES.length;
+      const maxNode = this.getBranchNodeCount(BRANCHES[this.selectedBranch]);
+      if (this.selectedNode >= maxNode) this.selectedNode = maxNode - 1;
+      this.updateSelectionHighlight();
+    }
+
+    if (actions.wasActionPressed('uiUp')) {
+      const max = this.getBranchNodeCount(BRANCHES[this.selectedBranch]);
+      if (max > 0) {
+        this.selectedNode = (this.selectedNode - 1 + max) % max;
         this.updateSelectionHighlight();
-        break;
       }
-      case 'ArrowRight': {
-        e.preventDefault();
-        this.selectedBranch = (this.selectedBranch + 1) % BRANCHES.length;
-        const maxNode = this.getBranchNodeCount(BRANCHES[this.selectedBranch]);
-        if (this.selectedNode >= maxNode) this.selectedNode = maxNode - 1;
+    }
+
+    if (actions.wasActionPressed('uiDown')) {
+      const max = this.getBranchNodeCount(BRANCHES[this.selectedBranch]);
+      if (max > 0) {
+        this.selectedNode = (this.selectedNode + 1) % max;
         this.updateSelectionHighlight();
-        break;
       }
-      case 'ArrowUp': {
-        e.preventDefault();
-        const max = this.getBranchNodeCount(BRANCHES[this.selectedBranch]);
-        if (max > 0) {
-          this.selectedNode = (this.selectedNode - 1 + max) % max;
-          this.updateSelectionHighlight();
-        }
-        break;
-      }
-      case 'ArrowDown': {
-        e.preventDefault();
-        const max = this.getBranchNodeCount(BRANCHES[this.selectedBranch]);
-        if (max > 0) {
-          this.selectedNode = (this.selectedNode + 1) % max;
-          this.updateSelectionHighlight();
-        }
-        break;
-      }
-      case ' ':
-      case 'Enter': {
-        e.preventDefault();
-        this.activateSelected();
-        break;
-      }
-      case 'e': {
-        // B button on gamepad dispatches 'e' — treat as close/back
-        this.hide();
-        break;
-      }
+    }
+
+    if (actions.wasActionPressed('uiConfirm')) {
+      this.activateSelected();
+    }
+
+    if (actions.wasActionPressed('uiCancel')) {
+      this.hide();
     }
   }
 

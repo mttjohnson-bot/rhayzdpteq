@@ -420,9 +420,11 @@ export class Game {
   private update(dt: number): void {
     switch (this.state) {
       case 'menu':
+        this.menuScreen.handleActions(this.actions);
         break;
 
       case 'hub':
+        this.routeUIActions();
         this.handleUIToggle();
         if (!this.floorSelectOpen && !this.inventoryOpen && !this.skillTreeOpen) {
           this.player.update(dt, this.actions);
@@ -438,6 +440,7 @@ export class Game {
         break;
 
       case 'dungeon':
+        this.routeUIActions();
         this.handleUIToggle();
         if (
           !this.deathScreenVisible &&
@@ -460,6 +463,7 @@ export class Game {
         break;
 
       case 'library':
+        this.routeUIActions();
         this.handleUIToggle();
         if (!this.libraryDialogOpen && !this.inventoryOpen && !this.skillTreeOpen) {
           this.player.update(dt, this.actions);
@@ -470,23 +474,29 @@ export class Game {
     }
   }
 
+  /** Route actions to the currently active UI overlay. */
+  private routeUIActions(): void {
+    if (this.inventoryOpen) {
+      this.inventoryUI.handleActions(this.actions);
+      return;
+    }
+    if (this.skillTreeOpen) {
+      this.skillTreeUI.handleActions(this.actions);
+      return;
+    }
+    if (this.floorSelectOpen) {
+      this.floorSelectUI.handleActions(this.actions);
+      return;
+    }
+    if (this.libraryDialogOpen) {
+      this.libraryDialog.handleActions(this.actions);
+      return;
+    }
+  }
+
   /** Handle I (inventory) and K (skill tree) toggles */
   private handleUIToggle(): void {
     if (this.deathScreenVisible || this.winScreenVisible) return;
-
-    // Escape/Cancel closes any open overlay
-    if (this.actions.wasActionPressed('uiCancel')) {
-      if (this.inventoryOpen) {
-        this.inventoryUI.hide();
-        this.inventoryOpen = false;
-        return;
-      }
-      if (this.skillTreeOpen) {
-        this.skillTreeUI.hide();
-        this.skillTreeOpen = false;
-        return;
-      }
-    }
 
     // Toggle inventory
     if (this.actions.wasActionPressed('toggleInventory')) {

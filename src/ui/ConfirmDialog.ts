@@ -1,9 +1,11 @@
 /**
  * In-game confirmation dialog that works with keyboard, mouse, and gamepad.
  *
- * Shows a message with Yes/No buttons. Keyboard Enter/Y confirms, Esc/N cancels.
- * Gamepad A confirms, B cancels (via synthetic key events from InputManager).
+ * Shows a message with Yes/No buttons. Uses the ActionManager for input:
+ * uiLeft/uiRight to toggle selection, uiConfirm to accept, uiCancel to cancel.
  */
+
+import type { ActionManager } from '../game/ActionManager';
 
 export class ConfirmDialog {
   private overlay: HTMLDivElement;
@@ -13,7 +15,6 @@ export class ConfirmDialog {
   private noBtn: HTMLButtonElement;
   private hintEl: HTMLDivElement;
   private resolve: ((confirmed: boolean) => void) | null = null;
-  private _keyHandler: (e: KeyboardEvent) => void;
 
   constructor() {
     this.overlay = document.createElement('div');
@@ -109,28 +110,6 @@ export class ConfirmDialog {
 
     const uiOverlay = document.getElementById('ui-overlay');
     uiOverlay?.appendChild(this.overlay);
-
-    this._keyHandler = (e: KeyboardEvent) => {
-      if (!this.resolve) return;
-      e.preventDefault();
-      e.stopPropagation();
-
-      switch (e.key) {
-        case 'ArrowLeft':
-        case 'ArrowRight':
-          this.selectedButton = this.selectedButton === 'yes' ? 'no' : 'yes';
-          this.updateButtonHighlight();
-          break;
-        case 'Enter':
-        case ' ':
-          this.confirm(this.selectedButton === 'yes');
-          break;
-        case 'Escape':
-        case 'e': // B button on gamepad dispatches 'e'
-          this.confirm(false);
-          break;
-      }
-    };
   }
 
   show(message: string): Promise<boolean> {
@@ -140,8 +119,25 @@ export class ConfirmDialog {
       this.selectedButton = 'no';
       this.overlay.style.display = 'flex';
       this.updateButtonHighlight();
-      window.addEventListener('keydown', this._keyHandler, true);
     });
+  }
+
+  /** Called each frame by the parent UI while the dialog is visible. */
+  handleActions(actions: ActionManager): void {
+    if (!this.resolve) return;
+
+    if (actions.wasActionPressed('uiLeft') || actions.wasActionPressed('uiRight')) {
+      this.selectedButton = this.selectedButton === 'yes' ? 'no' : 'yes';
+      this.updateButtonHighlight();
+    }
+
+    if (actions.wasActionPressed('uiConfirm')) {
+      this.confirm(this.selectedButton === 'yes');
+    }
+
+    if (actions.wasActionPressed('uiCancel')) {
+      this.confirm(false);
+    }
   }
 
   private confirm(result: boolean): void {
@@ -149,7 +145,6 @@ export class ConfirmDialog {
     const cb = this.resolve;
     this.resolve = null;
     this.overlay.style.display = 'none';
-    window.removeEventListener('keydown', this._keyHandler, true);
     cb(result);
   }
 

@@ -1,5 +1,6 @@
 import { SaveManager, MAX_SAVE_SLOTS } from '../game/SaveManager';
 import { TOTAL_FLOORS } from '../dungeon/FloorConfig';
+import type { ActionManager } from '../game/ActionManager';
 
 export class MenuScreen {
   private container: HTMLDivElement;
@@ -114,7 +115,6 @@ export class MenuScreen {
     });
     this.container.appendChild(versionInfo);
 
-    this._keyHandler = this._keyHandler.bind(this);
     this._onGamepadConnected = this._onGamepadConnected.bind(this);
     this._onGamepadDisconnected = this._onGamepadDisconnected.bind(this);
   }
@@ -129,7 +129,6 @@ export class MenuScreen {
     const overlay = document.getElementById('ui-overlay');
     overlay?.appendChild(this.container);
 
-    window.addEventListener('keydown', this._keyHandler);
     window.addEventListener('gamepadconnected', this._onGamepadConnected);
     window.addEventListener('gamepaddisconnected', this._onGamepadDisconnected);
   }
@@ -137,40 +136,42 @@ export class MenuScreen {
   hide(): void {
     this.container.remove();
     this.onStart = null;
-    window.removeEventListener('keydown', this._keyHandler);
     window.removeEventListener('gamepadconnected', this._onGamepadConnected);
     window.removeEventListener('gamepaddisconnected', this._onGamepadDisconnected);
   }
 
-  private _keyHandler(e: KeyboardEvent): void {
-    const num = parseInt(e.key, 10);
-    if (num >= 1 && num <= MAX_SAVE_SLOTS) {
-      SaveManager.activeSlot = num;
+  /** Called each frame by Game.ts while the menu is active. */
+  handleActions(actions: ActionManager): void {
+    // Direct slot selection via number keys
+    if (actions.wasActionPressed('selectSlot1')) {
+      SaveManager.activeSlot = 1;
       this.buildSlotList();
-      return;
+    } else if (actions.wasActionPressed('selectSlot2') && MAX_SAVE_SLOTS >= 2) {
+      SaveManager.activeSlot = 2;
+      this.buildSlotList();
+    } else if (actions.wasActionPressed('selectSlot3') && MAX_SAVE_SLOTS >= 3) {
+      SaveManager.activeSlot = 3;
+      this.buildSlotList();
+    } else if (actions.wasActionPressed('selectSlot4') && MAX_SAVE_SLOTS >= 4) {
+      SaveManager.activeSlot = 4;
+      this.buildSlotList();
     }
 
-    switch (e.key) {
-      case 'ArrowLeft':
-      case 'a':
-      case 'A': {
-        const prev = SaveManager.activeSlot - 1;
-        SaveManager.activeSlot = prev < 1 ? MAX_SAVE_SLOTS : prev;
-        this.buildSlotList();
-        break;
-      }
-      case 'ArrowRight':
-      case 'd':
-      case 'D': {
-        const next = SaveManager.activeSlot + 1;
-        SaveManager.activeSlot = next > MAX_SAVE_SLOTS ? 1 : next;
-        this.buildSlotList();
-        break;
-      }
-      case 'Enter':
-      case ' ':
-        this.onStart?.();
-        break;
+    // Navigate slots with left/right
+    if (actions.wasActionPressed('uiLeft')) {
+      const prev = SaveManager.activeSlot - 1;
+      SaveManager.activeSlot = prev < 1 ? MAX_SAVE_SLOTS : prev;
+      this.buildSlotList();
+    }
+    if (actions.wasActionPressed('uiRight')) {
+      const next = SaveManager.activeSlot + 1;
+      SaveManager.activeSlot = next > MAX_SAVE_SLOTS ? 1 : next;
+      this.buildSlotList();
+    }
+
+    // Confirm = start game
+    if (actions.wasActionPressed('uiConfirm')) {
+      this.onStart?.();
     }
   }
 
