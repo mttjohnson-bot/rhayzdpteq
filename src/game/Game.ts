@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { SceneManager } from '../rendering/SceneManager';
 import { GameCamera } from './Camera';
-import { InputManager } from './InputManager';
+import { ActionManager } from './ActionManager';
 import { Player } from './Player';
 import { createHubScene, PortalInfo, LibraryDoorInfo } from './Hub';
 import { AssetLibrary, buildWeaponDisplayMesh } from './AssetLibrary';
@@ -43,7 +43,7 @@ export type GameState = 'menu' | 'hub' | 'dungeon' | 'library';
 export class Game {
   private sceneManager: SceneManager;
   private camera: GameCamera;
-  private input: InputManager;
+  private actions: ActionManager;
   private player: Player;
   private menuScreen: MenuScreen;
   private hud: HUD;
@@ -120,7 +120,7 @@ export class Game {
   constructor() {
     this.sceneManager = new SceneManager();
     this.camera = new GameCamera(window.innerWidth / window.innerHeight);
-    this.input = new InputManager();
+    this.actions = ActionManager.createDefault();
     this.player = new Player();
     this.menuScreen = new MenuScreen();
     this.hud = new HUD();
@@ -320,7 +320,7 @@ export class Game {
     this.camera.snapTo(this.player.position);
     this.hud.show();
     this.hud.showLevelInfo(this.levelSystem.level, this.maxUnlockedFloor);
-    this.hud.setGamepadConnected(this.input.hasGamepad);
+    this.hud.setGamepadConnected(this.actions.hasGamepad);
     this.instructions.show();
 
     // Auto-save when returning to hub
@@ -402,7 +402,7 @@ export class Game {
 
     // Update HUD
     this.hud.showFloorIndicator(floor, floorConfig.theme.name);
-    this.hud.setGamepadConnected(this.input.hasGamepad);
+    this.hud.setGamepadConnected(this.actions.hasGamepad);
   }
 
   // --- Game loop ---
@@ -411,9 +411,10 @@ export class Game {
     requestAnimationFrame(this.loop);
     const dt = Math.min(this.clock.getDelta(), 0.05); // cap delta to avoid spiral
 
+    this.actions.update();
     this.update(dt);
     this.sceneManager.render(this.camera.camera);
-    this.input.endFrame();
+    this.actions.endFrame();
   };
 
   private update(dt: number): void {
@@ -424,7 +425,7 @@ export class Game {
       case 'hub':
         this.handleUIToggle();
         if (!this.floorSelectOpen && !this.inventoryOpen && !this.skillTreeOpen) {
-          this.player.update(dt, this.input);
+          this.player.update(dt, this.actions);
           this.camera.follow(this.player.position, dt);
         }
         this.updateHub(dt);
@@ -444,7 +445,7 @@ export class Game {
           !this.inventoryOpen &&
           !this.skillTreeOpen
         ) {
-          this.player.update(dt, this.input);
+          this.player.update(dt, this.actions);
           this.camera.follow(this.player.position, dt);
           this.combatSystem.update(dt);
           this.lootDrops.update(dt, this.player.position.x, this.player.position.z);
@@ -461,7 +462,7 @@ export class Game {
       case 'library':
         this.handleUIToggle();
         if (!this.libraryDialogOpen && !this.inventoryOpen && !this.skillTreeOpen) {
-          this.player.update(dt, this.input);
+          this.player.update(dt, this.actions);
           this.camera.follow(this.player.position, dt);
         }
         this.updateLibrary(dt);
@@ -473,8 +474,8 @@ export class Game {
   private handleUIToggle(): void {
     if (this.deathScreenVisible || this.winScreenVisible) return;
 
-    // Escape closes any open overlay
-    if (this.input.wasPressed('Escape')) {
+    // Escape/Cancel closes any open overlay
+    if (this.actions.wasActionPressed('uiCancel')) {
       if (this.inventoryOpen) {
         this.inventoryUI.hide();
         this.inventoryOpen = false;
@@ -487,8 +488,8 @@ export class Game {
       }
     }
 
-    // I toggles inventory
-    if (this.input.wasPressed('KeyI')) {
+    // Toggle inventory
+    if (this.actions.wasActionPressed('toggleInventory')) {
       if (this.skillTreeOpen) {
         this.skillTreeUI.hide();
         this.skillTreeOpen = false;
@@ -507,8 +508,8 @@ export class Game {
       return;
     }
 
-    // K toggles skill tree
-    if (this.input.wasPressed('KeyK')) {
+    // Toggle skill tree
+    if (this.actions.wasActionPressed('toggleSkillTree')) {
       if (this.inventoryOpen) {
         this.inventoryUI.hide();
         this.inventoryOpen = false;
@@ -537,7 +538,7 @@ export class Game {
     this.portal.mesh.scale.set(scale, 1, scale);
 
     // Update gamepad indicator
-    this.hud.setGamepadConnected(this.input.hasGamepad);
+    this.hud.setGamepadConnected(this.actions.hasGamepad);
 
     if (this.inventoryOpen || this.skillTreeOpen) return;
 
@@ -556,7 +557,7 @@ export class Game {
       if (!this.floorSelectOpen) {
         this.hud.showPrompt('Press E to select floor | I: Inventory | K: Skills');
       }
-      if (this.input.wasPressed('KeyE') && !this.floorSelectOpen) {
+      if (this.actions.wasActionPressed('interact') && !this.floorSelectOpen) {
         this.floorSelectOpen = true;
         this.hud.hidePrompt();
         this.floorSelectUI.show(
@@ -627,7 +628,7 @@ export class Game {
     this.camera.snapTo(this.player.position);
     this.hud.show();
     this.hud.showLevelInfo(this.levelSystem.level, this.maxUnlockedFloor);
-    this.hud.setGamepadConnected(this.input.hasGamepad);
+    this.hud.setGamepadConnected(this.actions.hasGamepad);
   }
 
   private exitLibrary(): void {
@@ -651,7 +652,7 @@ export class Game {
   private updateLibrary(dt: number): void {
     if (!this.assetLibrary) return;
 
-    this.hud.setGamepadConnected(this.input.hasGamepad);
+    this.hud.setGamepadConnected(this.actions.hasGamepad);
 
     // Always update floating damage numbers
     this.damageNumbers.update(dt);
@@ -677,7 +678,7 @@ export class Game {
     const highlighted = this.assetLibrary.getHighlightedAsset();
     if (highlighted) {
       this.hud.showPrompt(`Press E to inspect: ${highlighted.name}`);
-      if (this.input.wasPressed('KeyE')) {
+      if (this.actions.wasActionPressed('interact')) {
         this.libraryDialogOpen = true;
         this.libraryDialog.show(highlighted, () => {
           this.libraryDialogOpen = false;
@@ -700,15 +701,11 @@ export class Game {
     this.minimap.updatePlayerPosition(this.player.position.x, this.player.position.z);
 
     // Update gamepad indicator
-    this.hud.setGamepadConnected(this.input.hasGamepad);
+    this.hud.setGamepadConnected(this.actions.hasGamepad);
 
     if (this.deathScreenVisible) {
-      // Wait for respawn input — R key, Enter, or Space (gamepad A button)
-      if (
-        this.input.wasPressed('KeyR') ||
-        this.input.wasPressed('Enter') ||
-        this.input.wasPressed('Space')
-      ) {
+      // Wait for respawn input
+      if (this.actions.wasActionPressed('respawn')) {
         this.hideDeathScreen();
         this.enterHub();
       }
@@ -717,11 +714,7 @@ export class Game {
 
     if (this.winScreenVisible) {
       // Wait for continue input
-      if (
-        this.input.wasPressed('KeyR') ||
-        this.input.wasPressed('Enter') ||
-        this.input.wasPressed('Space')
-      ) {
+      if (this.actions.wasActionPressed('respawn')) {
         this.hideWinScreen();
         this.enterHub();
       }
@@ -736,13 +729,13 @@ export class Game {
         // Floor 10 boss defeated = game won!
         if (this.currentFloor === TOTAL_FLOORS) {
           this.hud.showPrompt('Press E to claim victory!');
-          if (this.input.wasPressed('KeyE')) {
+          if (this.actions.wasActionPressed('interact')) {
             this.showWinScreen();
             this.saveGame(true); // mark game as completed
           }
         } else {
           this.hud.showPrompt('Press E to ascend to hub');
-          if (this.input.wasPressed('KeyE')) {
+          if (this.actions.wasActionPressed('interact')) {
             // Unlock next floor
             if (this.currentFloor >= this.maxUnlockedFloor && this.currentFloor < TOTAL_FLOORS) {
               this.maxUnlockedFloor = this.currentFloor + 1;
