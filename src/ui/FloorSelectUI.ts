@@ -74,7 +74,6 @@ export class FloorSelectUI {
       marginTop: '0.5rem',
     });
     this.container.appendChild(hint);
-
   }
 
   show(maxUnlocked: number, onSelect: (floor: number) => void, onCancel?: () => void): void {
