@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Input abstraction layer — Phase 1: ActionManager shell and input providers.
+
+- **Action type system** — Defined `InputAction` union type covering all game actions (movement, combat, UI navigation, toggles, slot/floor selection) in `src/game/InputAction.ts`. Includes default mapping configurations for keyboard, mouse, and gamepad with full action catalog coverage.
+- **Input provider interface** — Created `InputProvider` interface and `InputProviderState` type in `src/game/providers/InputProvider.ts`, establishing the contract all input devices implement: poll for state, end-of-frame cleanup, and active device detection.
+- **Keyboard provider** — Splits keyboard handling out of InputManager into a standalone `KeyboardProvider` that maps key codes to named actions. Supports digital-to-axis conversion (WASD/arrows produce ±1 on moveX/moveZ) with proper cancellation when opposing keys are held simultaneously.
+- **Mouse provider** — Standalone `MouseProvider` maps button clicks to actions (left click = attack + uiConfirm) and tracks normalized mouse position. Mouse position is exposed separately since continuous cursor coordinates are not a game action.
+- **Gamepad provider** — Standalone `GamepadProvider` polls `navigator.getGamepads()` each frame, maps buttons to actions, and converts left stick input to moveX/moveZ axes with deadzone filtering. No synthetic keyboard events — a clean break from the old workaround.
+- **ActionManager** — Central `ActionManager` class merges state from all active providers into a unified action-based API. Exposes `wasActionPressed()`, `isActionHeld()`, `getAxis()`, `getMovement()`, `getMousePosition()`, and `getActiveDevices()`. Includes a `createDefault()` factory that wires up all three providers.
+
+---
+
 Unit & integration testing infrastructure — Phase 2 of the quality roadmap.
 
 - **Vitest test framework** — Installed Vitest, @vitest/coverage-v8, and jsdom. Created `vitest.config.ts` with v8 coverage provider targeting `src/utils/`, `src/rpg/`, `src/dungeon/`, and `src/game/SaveManager.ts`. Added `test`, `test:watch`, and `test:coverage` scripts to `package.json`.
