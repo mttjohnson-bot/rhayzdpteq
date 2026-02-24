@@ -11,6 +11,7 @@ import { Item, rarityColor, ItemSlot } from '../rpg/LootTable';
 import { ComputedStats } from '../rpg/Stats';
 import { events } from '../utils/EventBus';
 import { ConfirmDialog } from './ConfirmDialog';
+import type { ActionManager } from '../game/ActionManager';
 
 export class InventoryUI {
   private container: HTMLDivElement;
@@ -26,7 +27,6 @@ export class InventoryUI {
   // Gamepad / keyboard navigation state
   private selectedColumn: 'equipment' | 'bag' = 'bag';
   private selectedIndex = 0;
-  private _keyHandler: (e: KeyboardEvent) => void;
   private confirmDialog: ConfirmDialog;
 
   constructor() {
@@ -171,7 +171,6 @@ export class InventoryUI {
     const overlay = document.getElementById('ui-overlay');
     overlay?.appendChild(this.container);
 
-    this._keyHandler = this.handleKey.bind(this);
     this.confirmDialog = new ConfirmDialog();
   }
 
@@ -184,13 +183,11 @@ export class InventoryUI {
     this.selectedIndex = 0;
     this.container.style.display = 'block';
     this.refresh();
-    window.addEventListener('keydown', this._keyHandler);
   }
 
   hide(): void {
     this.visible = false;
     this.container.style.display = 'none';
-    window.removeEventListener('keydown', this._keyHandler);
     this.onClose?.();
   }
 
@@ -206,57 +203,52 @@ export class InventoryUI {
     this.updateSelectionHighlight();
   }
 
-  private handleKey(e: KeyboardEvent): void {
+  /** Called each frame by Game.ts while the inventory is open. */
+  handleActions(actions: ActionManager): void {
     if (!this.inventory) return;
+
+    // If confirm dialog is open, delegate to it
+    if (this.confirmDialog.isVisible()) {
+      this.confirmDialog.handleActions(actions);
+      return;
+    }
 
     const equipSlots: ItemSlot[] = ['weapon', 'armor', 'ring'];
     const bagLen = this.inventory.bag.length;
 
-    switch (e.key) {
-      case 'ArrowUp': {
-        e.preventDefault();
-        const max = this.selectedColumn === 'equipment' ? equipSlots.length : bagLen;
-        if (max > 0) {
-          this.selectedIndex = (this.selectedIndex - 1 + max) % max;
-          this.updateSelectionHighlight();
-        }
-        break;
-      }
-      case 'ArrowDown': {
-        e.preventDefault();
-        const max = this.selectedColumn === 'equipment' ? equipSlots.length : bagLen;
-        if (max > 0) {
-          this.selectedIndex = (this.selectedIndex + 1) % max;
-          this.updateSelectionHighlight();
-        }
-        break;
-      }
-      case 'ArrowLeft':
-      case 'ArrowRight': {
-        e.preventDefault();
-        this.selectedColumn = this.selectedColumn === 'equipment' ? 'bag' : 'equipment';
-        const max = this.selectedColumn === 'equipment' ? equipSlots.length : bagLen;
-        if (this.selectedIndex >= max) this.selectedIndex = Math.max(0, max - 1);
+    if (actions.wasActionPressed('uiUp')) {
+      const max = this.selectedColumn === 'equipment' ? equipSlots.length : bagLen;
+      if (max > 0) {
+        this.selectedIndex = (this.selectedIndex - 1 + max) % max;
         this.updateSelectionHighlight();
-        break;
       }
-      case ' ':
-      case 'Enter': {
-        e.preventDefault();
-        this.activateSelected();
-        break;
+    }
+
+    if (actions.wasActionPressed('uiDown')) {
+      const max = this.selectedColumn === 'equipment' ? equipSlots.length : bagLen;
+      if (max > 0) {
+        this.selectedIndex = (this.selectedIndex + 1) % max;
+        this.updateSelectionHighlight();
       }
-      case 'x': {
-        // X key or R1 gamepad button — drop selected item
-        e.preventDefault();
-        this.dropSelected();
-        break;
-      }
-      case 'e': {
-        // B button on gamepad dispatches 'e' — treat as close/back
-        this.hide();
-        break;
-      }
+    }
+
+    if (actions.wasActionPressed('uiLeft') || actions.wasActionPressed('uiRight')) {
+      this.selectedColumn = this.selectedColumn === 'equipment' ? 'bag' : 'equipment';
+      const max = this.selectedColumn === 'equipment' ? equipSlots.length : bagLen;
+      if (this.selectedIndex >= max) this.selectedIndex = Math.max(0, max - 1);
+      this.updateSelectionHighlight();
+    }
+
+    if (actions.wasActionPressed('uiConfirm')) {
+      this.activateSelected();
+    }
+
+    if (actions.wasActionPressed('dropItem')) {
+      this.dropSelected();
+    }
+
+    if (actions.wasActionPressed('uiCancel')) {
+      this.hide();
     }
   }
 
@@ -309,15 +301,7 @@ export class InventoryUI {
   private async promptDrop(item: Item): Promise<void> {
     if (!this.inventory) return;
 
-    // Remove keyboard handler while confirm dialog is active
-    window.removeEventListener('keydown', this._keyHandler);
-
     const confirmed = await this.confirmDialog.show(`Drop "${item.name}"? It will be destroyed.`);
-
-    // Re-attach keyboard handler
-    if (this.visible) {
-      window.addEventListener('keydown', this._keyHandler);
-    }
 
     if (confirmed) {
       this.inventory.dropItem(item.id);

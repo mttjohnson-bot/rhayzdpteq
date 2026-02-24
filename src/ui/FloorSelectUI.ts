@@ -1,4 +1,6 @@
 import { getFloorConfig, TOTAL_FLOORS } from '../dungeon/FloorConfig';
+import type { ActionManager } from '../game/ActionManager';
+import type { InputAction } from '../game/InputAction';
 
 export class FloorSelectUI {
   private container: HTMLDivElement;
@@ -8,7 +10,6 @@ export class FloorSelectUI {
   private onCancel: (() => void) | null = null;
   private selectedIndex = 0;
   private buttons: HTMLButtonElement[] = [];
-  private _keyHandler: (e: KeyboardEvent) => void;
 
   constructor() {
     this.container = document.createElement('div');
@@ -73,8 +74,6 @@ export class FloorSelectUI {
       marginTop: '0.5rem',
     });
     this.container.appendChild(hint);
-
-    this._keyHandler = this.handleKey.bind(this);
   }
 
   show(maxUnlocked: number, onSelect: (floor: number) => void, onCancel?: () => void): void {
@@ -86,13 +85,10 @@ export class FloorSelectUI {
 
     const overlay = document.getElementById('ui-overlay');
     overlay?.appendChild(this.container);
-
-    window.addEventListener('keydown', this._keyHandler);
   }
 
   hide(): void {
     this.container.remove();
-    window.removeEventListener('keydown', this._keyHandler);
     this.onSelect = null;
     this.onCancel = null;
   }
@@ -109,47 +105,47 @@ export class FloorSelectUI {
     cb?.(floor);
   }
 
-  private handleKey(e: KeyboardEvent): void {
+  /** Called each frame by Game.ts while the floor select is active. */
+  handleActions(actions: ActionManager): void {
     const totalFloors = TOTAL_FLOORS;
 
-    // Number keys: 1-9 for floors 1-9, 0 for floor 10
-    const num = parseInt(e.key, 10);
-    if (!isNaN(num)) {
-      const floor = num === 0 ? 10 : num;
-      if (floor >= 1 && floor <= totalFloors) {
-        this.selectedIndex = floor - 1;
-        this.updateHighlight();
-        if (floor <= this.maxUnlockedFloor) {
-          this.confirm(floor);
+    // Direct floor selection via number actions (selectFloor0–selectFloor9)
+    for (let n = 0; n <= 9; n++) {
+      const actionName = `selectFloor${n}` as InputAction;
+      if (actions.wasActionPressed(actionName)) {
+        const floor = n === 0 ? 10 : n;
+        if (floor >= 1 && floor <= totalFloors) {
+          this.selectedIndex = floor - 1;
+          this.updateHighlight();
+          if (floor <= this.maxUnlockedFloor) {
+            this.confirm(floor);
+          }
         }
+        return;
       }
-      return;
     }
 
-    switch (e.key) {
-      case 'ArrowUp':
-      case 'w':
-      case 'W':
-        this.selectedIndex = Math.max(0, this.selectedIndex - 1);
-        this.updateHighlight();
-        break;
-      case 'ArrowDown':
-      case 's':
-      case 'S':
-        this.selectedIndex = Math.min(totalFloors - 1, this.selectedIndex + 1);
-        this.updateHighlight();
-        break;
-      case 'Enter':
-      case ' ': {
-        const floor = this.selectedIndex + 1;
-        if (floor <= this.maxUnlockedFloor) {
-          this.confirm(floor);
-        }
-        break;
+    // Navigate up/down
+    if (actions.wasActionPressed('uiUp')) {
+      this.selectedIndex = Math.max(0, this.selectedIndex - 1);
+      this.updateHighlight();
+    }
+    if (actions.wasActionPressed('uiDown')) {
+      this.selectedIndex = Math.min(totalFloors - 1, this.selectedIndex + 1);
+      this.updateHighlight();
+    }
+
+    // Confirm selection
+    if (actions.wasActionPressed('uiConfirm')) {
+      const floor = this.selectedIndex + 1;
+      if (floor <= this.maxUnlockedFloor) {
+        this.confirm(floor);
       }
-      case 'Escape':
-        this.cancel();
-        break;
+    }
+
+    // Cancel
+    if (actions.wasActionPressed('uiCancel')) {
+      this.cancel();
     }
   }
 
