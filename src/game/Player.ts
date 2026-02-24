@@ -10,7 +10,7 @@ import {
   PLAYER_INVINCIBILITY_TIME,
 } from '../utils/constants';
 import { clamp } from '../utils/math';
-import { InputManager } from './InputManager';
+import { ActionManager } from './ActionManager';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { events } from '../utils/EventBus';
 import { ComputedStats } from '../rpg/Stats';
@@ -180,7 +180,7 @@ export class Player {
     this.knockbackTimer = this.knockbackDuration;
   }
 
-  update(dt: number, input: InputManager): void {
+  update(dt: number, actions: ActionManager): void {
     if (this.attackCooldown > 0) this.attackCooldown -= dt;
     if (this.invincibleTimer > 0) this.invincibleTimer -= dt;
 
@@ -239,7 +239,7 @@ export class Player {
     }
 
     // Movement
-    const move = input.getMovement();
+    const move = actions.getMovement();
     if (move.x !== 0 || move.z !== 0) {
       const angle = -Math.PI / 4;
       const cos = Math.cos(angle);
@@ -249,7 +249,7 @@ export class Player {
 
       this.facingAngle = Math.atan2(worldZ, worldX);
 
-      const attackHeld = input.isMouseDown() || input.isDown('Space');
+      const attackHeld = actions.isActionHeld('attack');
       const attackSpeedFactor = attackHeld ? 0.25 : 1;
       const speed =
         PLAYER_SPEED * this.moveSpeedMultiplier * this.obstacleSpeedMult * attackSpeedFactor;
@@ -259,10 +259,7 @@ export class Player {
     // Attack input
     const adjustedCooldown = PLAYER_ATTACK_COOLDOWN / this.attackSpeedMultiplier;
     if (
-      (input.wasMousePressed() ||
-        input.wasPressed('Space') ||
-        input.isMouseDown() ||
-        input.isDown('Space')) &&
+      (actions.wasActionPressed('attack') || actions.isActionHeld('attack')) &&
       this.attackCooldown <= 0
     ) {
       // Auto-face nearest enemy when attacking

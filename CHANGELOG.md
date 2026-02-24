@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Input abstraction layer — Phase 2: Migrate game code to actions.
+
+- **Game.ts migrated to ActionManager** — Replaced all `InputManager` usage in Game.ts with the new `ActionManager`. UI toggle checks (`Escape`, `KeyI`, `KeyK`) now use semantic actions (`uiCancel`, `toggleInventory`, `toggleSkillTree`). Interaction checks (`KeyE`) use `interact`. Death/win screen respawn checks (`KeyR`, `Enter`, `Space`) consolidated to the single `respawn` action. The game loop now calls `ActionManager.update()` at the start of each frame and `endFrame()` at the end.
+- **Player.ts migrated to ActionManager** — Player movement and combat input now use the action-based API. Attack detection (`wasMousePressed`, `isMouseDown`, `isDown('Space')`) replaced with `wasActionPressed('attack')` and `isActionHeld('attack')`. Movement-speed reduction while attacking uses `isActionHeld('attack')` instead of checking mouse and keyboard separately.
+- **InputManager deprecated** — With Game.ts and Player.ts fully migrated, InputManager is no longer used by core game logic. It remains temporarily for UI components that still use independent `keydown` listeners (to be migrated in Phase 3).
+
+---
+
 Input abstraction layer — Phase 1: ActionManager shell and input providers.
 
 - **Action type system** — Defined `InputAction` union type covering all game actions (movement, combat, UI navigation, toggles, slot/floor selection) in `src/game/InputAction.ts`. Includes default mapping configurations for keyboard, mouse, and gamepad with full action catalog coverage.
