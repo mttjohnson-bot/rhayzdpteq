@@ -1019,6 +1019,7 @@ export class Game {
       fontFamily: "'Segoe UI', system-ui, sans-serif",
       color: '#ff4444',
       zIndex: '100',
+      pointerEvents: 'none',
       animation: 'fadeIn 0.5s ease-out',
     });
 
@@ -1073,6 +1074,7 @@ export class Game {
       fontFamily: "'Segoe UI', system-ui, sans-serif",
       color: '#ffdd44',
       zIndex: '100',
+      pointerEvents: 'none',
     });
 
     const crown = document.createElement('div');

@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Input abstraction layer — Phase 4: Touch provider and virtual controls.
+
+- **Touch provider** — Added `TouchProvider` implementing the `InputProvider` interface, enabling full touch-screen gameplay. The provider feeds into ActionManager alongside keyboard, mouse, and gamepad with no changes needed in game logic or UI components.
+- **Virtual joystick** — A floating joystick appears where the user first touches the left half of the screen. Dragging produces analog moveX/moveZ axis values with deadzone filtering and diagonal normalization. The joystick base and knob follow the finger and disappear on release.
+- **On-screen action buttons** — Four semi-transparent circular buttons on the right side of the screen: ATK (attack, large), E (interact/confirm/respawn), I (toggle inventory), and K (toggle skill tree). Buttons provide both pressed (one-shot) and held (continuous) states for seamless combat.
+- **Auto-detection** — Touch controls automatically appear on the first touch event and hide when keyboard or mouse input is detected. Synthetic mouse events fired by the browser after touch are filtered with a 1-second grace period to prevent flicker.
+- **Touch-safe overlays** — Death and win screen overlays now use `pointer-events: none` so touch events pass through to the virtual buttons beneath, allowing touch users to respawn via the E button.
+- **Canvas touch-action** — Added `touch-action: none` to the canvas element to prevent browser default touch behaviors (double-tap zoom, scroll gestures) from interfering with gameplay.
+
+---
+
 Input abstraction layer — Phase 3: Migrate UI components to actions.
 
 - **All UI components migrated to ActionManager** — Six UI components (MenuScreen, FloorSelectUI, InventoryUI, SkillTreeUI, ConfirmDialog, LibraryAssetDialog) now use the action-based input system instead of independent `window.addEventListener('keydown', ...)` listeners. Each component exposes a `handleActions(actions)` method that queries semantic actions (`uiUp`, `uiDown`, `uiConfirm`, `uiCancel`, `dropItem`, etc.) instead of checking raw key codes.

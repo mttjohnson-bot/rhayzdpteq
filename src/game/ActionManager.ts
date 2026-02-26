@@ -3,12 +3,13 @@ import type { InputProvider } from './providers/InputProvider';
 import { KeyboardProvider } from './providers/KeyboardProvider';
 import { MouseProvider } from './providers/MouseProvider';
 import { GamepadProvider } from './providers/GamepadProvider';
+import { TouchProvider } from './providers/TouchProvider';
 
 /**
  * ActionManager is the single entry point for all game code to query input.
  *
  * It maintains a list of input providers (keyboard, mouse, gamepad, and
- * eventually touch), polls them each frame, and merges their state into a
+ * touch), polls them each frame, and merges their state into a
  * unified action-based API. Game code queries named actions ("attack",
  * "interact", "toggleInventory") rather than specific key codes or buttons.
  *
@@ -35,7 +36,7 @@ export class ActionManager {
 
   /**
    * Create an ActionManager with the default set of providers
-   * (keyboard, mouse, gamepad).
+   * (keyboard, mouse, gamepad, touch).
    */
   static createDefault(): ActionManager {
     const manager = new ActionManager();
@@ -48,6 +49,8 @@ export class ActionManager {
     const gamepad = new GamepadProvider();
     manager.addProvider(gamepad);
     manager.gamepadProvider = gamepad;
+
+    manager.addProvider(new TouchProvider());
 
     return manager;
   }
