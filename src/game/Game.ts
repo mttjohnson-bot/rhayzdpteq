@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { SceneManager } from '../rendering/SceneManager';
 import { GameCamera } from './Camera';
-import { ActionManager } from './ActionManager';
+import { ActionManager, InputDevice } from './ActionManager';
+import { getHint } from '../ui/InputHints';
 import { Player } from './Player';
 import { createHubScene, PortalInfo, LibraryDoorInfo } from './Hub';
 import { AssetLibrary, buildWeaponDisplayMesh } from './AssetLibrary';
@@ -116,6 +117,9 @@ export class Game {
   // Auto-save timer
   private autoSaveTimer = 0;
   private readonly AUTO_SAVE_INTERVAL = 30; // seconds
+
+  // Device detection for adaptive UI hints
+  private currentInputDevice: InputDevice = 'keyboard';
 
   constructor() {
     this.sceneManager = new SceneManager();
@@ -412,10 +416,21 @@ export class Game {
     const dt = Math.min(this.clock.getDelta(), 0.05); // cap delta to avoid spiral
 
     this.actions.update();
+    this.updateActiveDevice();
     this.update(dt);
     this.sceneManager.render(this.camera.camera);
     this.actions.endFrame();
   };
+
+  /** Sync primary device to HUD and InstructionsPanel when it changes */
+  private updateActiveDevice(): void {
+    const device = this.actions.primaryDevice;
+    if (device !== this.currentInputDevice) {
+      this.currentInputDevice = device;
+      this.hud.setActiveDevice(device);
+      this.instructions.setActiveDevice(device);
+    }
+  }
 
   private update(dt: number): void {
     switch (this.state) {
@@ -547,9 +562,6 @@ export class Game {
     const scale = 1 + Math.sin(this.portalAnimTime * 2) * 0.05;
     this.portal.mesh.scale.set(scale, 1, scale);
 
-    // Update gamepad indicator
-    this.hud.setGamepadConnected(this.actions.hasGamepad);
-
     if (this.inventoryOpen || this.skillTreeOpen) return;
 
     // Check proximity to library door (east wall) — auto-enter on approach
@@ -565,7 +577,10 @@ export class Game {
     // Check proximity to portal
     if (this.player.isNear(this.portal.x, this.portal.z)) {
       if (!this.floorSelectOpen) {
-        this.hud.showPrompt('Press E to select floor | I: Inventory | K: Skills');
+        const d = this.currentInputDevice;
+        this.hud.showPrompt(
+          `${getHint('interact', d)} to select floor | ${getHint('inventory', d)}: Inventory | ${getHint('skillTree', d)}: Skills`,
+        );
       }
       if (this.actions.wasActionPressed('interact') && !this.floorSelectOpen) {
         this.floorSelectOpen = true;
@@ -583,7 +598,10 @@ export class Game {
       }
     } else {
       if (!this.floorSelectOpen) {
-        this.hud.showPrompt('I: Inventory | K: Skills');
+        const d = this.currentInputDevice;
+        this.hud.showPrompt(
+          `${getHint('inventory', d)}: Inventory | ${getHint('skillTree', d)}: Skills`,
+        );
       }
     }
   }
@@ -662,8 +680,6 @@ export class Game {
   private updateLibrary(dt: number): void {
     if (!this.assetLibrary) return;
 
-    this.hud.setGamepadConnected(this.actions.hasGamepad);
-
     // Always update floating damage numbers
     this.damageNumbers.update(dt);
 
@@ -687,7 +703,9 @@ export class Game {
 
     const highlighted = this.assetLibrary.getHighlightedAsset();
     if (highlighted) {
-      this.hud.showPrompt(`Press E to inspect: ${highlighted.name}`);
+      this.hud.showPrompt(
+        `${getHint('interact', this.currentInputDevice)} to inspect: ${highlighted.name}`,
+      );
       if (this.actions.wasActionPressed('interact')) {
         this.libraryDialogOpen = true;
         this.libraryDialog.show(highlighted, () => {
@@ -697,7 +715,7 @@ export class Game {
       }
     } else if (nearTraining) {
       this.hud.showPrompt(
-        'Training Area — Attack the dummies to test your damage!  |  I: Inventory',
+        `Training Area — ${getHint('attack', this.currentInputDevice)} to test damage!  |  ${getHint('inventory', this.currentInputDevice)}: Inventory`,
       );
     } else {
       this.hud.showPrompt('Walk toward an asset to highlight it  |  Walk west to return to Hub');
@@ -709,9 +727,6 @@ export class Game {
 
     // Update minimap with player position
     this.minimap.updatePlayerPosition(this.player.position.x, this.player.position.z);
-
-    // Update gamepad indicator
-    this.hud.setGamepadConnected(this.actions.hasGamepad);
 
     if (this.deathScreenVisible) {
       // Wait for respawn input
@@ -738,13 +753,13 @@ export class Game {
       if (this.combatSystem.bossDefeated) {
         // Floor 10 boss defeated = game won!
         if (this.currentFloor === TOTAL_FLOORS) {
-          this.hud.showPrompt('Press E to claim victory!');
+          this.hud.showPrompt(`${getHint('interact', this.currentInputDevice)} to claim victory!`);
           if (this.actions.wasActionPressed('interact')) {
             this.showWinScreen();
             this.saveGame(true); // mark game as completed
           }
         } else {
-          this.hud.showPrompt('Press E to ascend to hub');
+          this.hud.showPrompt(`${getHint('interact', this.currentInputDevice)} to ascend to hub`);
           if (this.actions.wasActionPressed('interact')) {
             // Unlock next floor
             if (this.currentFloor >= this.maxUnlockedFloor && this.currentFloor < TOTAL_FLOORS) {
@@ -1039,7 +1054,7 @@ export class Game {
       color: '#ccc',
       textShadow: '1px 1px 4px #000',
     });
-    subtitle.textContent = 'Press R or A button to return to hub';
+    subtitle.textContent = `${getHint('respawn', this.currentInputDevice)} to return to hub`;
     this.deathOverlay.appendChild(subtitle);
 
     const overlay = document.getElementById('ui-overlay');
@@ -1124,7 +1139,7 @@ export class Game {
       color: '#88cc88',
       textShadow: '1px 1px 4px #000',
     });
-    continueText.textContent = 'Press R or Enter to return to hub';
+    continueText.textContent = `${getHint('respawn', this.currentInputDevice)} to return to hub`;
     this.winOverlay.appendChild(continueText);
 
     const overlay = document.getElementById('ui-overlay');

@@ -24,6 +24,9 @@ import { TouchProvider } from './providers/TouchProvider';
  *   // At the end of each frame:
  *   actionManager.endFrame();
  */
+/** Device categories for UI hint display */
+export type InputDevice = 'keyboard' | 'gamepad' | 'touch';
+
 export class ActionManager {
   private providers: InputProvider[] = [];
   private mouseProvider: MouseProvider | null = null;
@@ -33,6 +36,10 @@ export class ActionManager {
   private mergedPressed = new Set<InputAction>();
   private mergedHeld = new Set<InputAction>();
   private mergedAxes = new Map<InputAction, number>();
+
+  // Tracks the most recently used input device for UI hints.
+  // Mouse input counts as "keyboard" since the two are used together.
+  private _primaryDevice: InputDevice = 'keyboard';
 
   /**
    * Create an ActionManager with the default set of providers
@@ -87,6 +94,16 @@ export class ActionManager {
         }
       }
     }
+
+    // Update primary device — prioritize touch > gamepad > keyboard/mouse
+    const activeDevices = this.getActiveDevices();
+    if (activeDevices.has('touch')) {
+      this._primaryDevice = 'touch';
+    } else if (activeDevices.has('gamepad')) {
+      this._primaryDevice = 'gamepad';
+    } else if (activeDevices.has('keyboard') || activeDevices.has('mouse')) {
+      this._primaryDevice = 'keyboard';
+    }
   }
 
   /** True only on the first frame the action is triggered */
@@ -130,6 +147,15 @@ export class ActionManager {
   /** Whether a gamepad is currently connected */
   get hasGamepad(): boolean {
     return this.gamepadProvider?.connected ?? false;
+  }
+
+  /**
+   * The most recently used input device category.
+   * Mouse counts as "keyboard" since they're used together.
+   * Persists between frames — only changes when a different device is used.
+   */
+  get primaryDevice(): InputDevice {
+    return this._primaryDevice;
   }
 
   /** Get the set of provider names that detected input this frame */
