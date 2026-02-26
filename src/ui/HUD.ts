@@ -1,11 +1,14 @@
 import { TOTAL_FLOORS } from '../dungeon/FloorConfig';
+import type { InputDevice } from '../game/ActionManager';
+import { getDeviceLabel } from './InputHints';
 
 export class HUD {
   private container: HTMLDivElement;
   private promptEl: HTMLDivElement;
   private floorEl: HTMLDivElement;
   private levelInfoEl: HTMLDivElement;
-  private gamepadEl: HTMLDivElement;
+  private deviceEl: HTMLDivElement;
+  private currentDevice: InputDevice = 'keyboard';
 
   constructor() {
     this.container = document.createElement('div');
@@ -69,25 +72,26 @@ export class HUD {
       fontSize: '1rem',
       letterSpacing: '0.05em',
       display: 'none',
+      transition: 'opacity 0.2s ease',
     });
     this.container.appendChild(this.promptEl);
 
-    // Gamepad indicator (bottom-right)
-    this.gamepadEl = document.createElement('div');
-    Object.assign(this.gamepadEl.style, {
+    // Active device indicator (bottom-right)
+    this.deviceEl = document.createElement('div');
+    Object.assign(this.deviceEl.style, {
       position: 'absolute',
       bottom: '10px',
       right: '10px',
       padding: '0.2rem 0.6rem',
       background: 'rgba(0, 0, 0, 0.5)',
-      border: '1px solid rgba(100, 200, 100, 0.3)',
+      border: '1px solid rgba(170, 68, 255, 0.3)',
       borderRadius: '4px',
       fontSize: '0.7rem',
-      color: '#88cc88',
+      color: '#aa88ff',
       display: 'none',
+      transition: 'opacity 0.3s ease',
     });
-    this.gamepadEl.textContent = 'Gamepad Connected';
-    this.container.appendChild(this.gamepadEl);
+    this.container.appendChild(this.deviceEl);
   }
 
   show(): void {
@@ -128,7 +132,37 @@ export class HUD {
     this.levelInfoEl.style.display = 'none';
   }
 
+  /** Update the active device indicator. Only re-renders when the device actually changes. */
+  setActiveDevice(device: InputDevice): void {
+    if (device === this.currentDevice) return;
+    this.currentDevice = device;
+    this.deviceEl.textContent = getDeviceLabel(device);
+    this.deviceEl.style.display = 'block';
+
+    // Auto-hide after 3 seconds — the indicator is informational, not permanent
+    this.deviceEl.style.opacity = '1';
+    setTimeout(() => {
+      this.deviceEl.style.opacity = '0';
+    }, 3000);
+  }
+
+  /** Backward-compatible: show/hide gamepad indicator based on connection state */
   setGamepadConnected(connected: boolean): void {
-    this.gamepadEl.style.display = connected ? 'block' : 'none';
+    if (connected && this.currentDevice !== 'gamepad') {
+      // Show a brief "Gamepad Connected" notification
+      this.deviceEl.textContent = 'Gamepad Connected';
+      this.deviceEl.style.display = 'block';
+      this.deviceEl.style.opacity = '1';
+      this.deviceEl.style.color = '#88cc88';
+      this.deviceEl.style.borderColor = 'rgba(100, 200, 100, 0.3)';
+      setTimeout(() => {
+        this.deviceEl.style.opacity = '0';
+        // Restore default styling after fade
+        setTimeout(() => {
+          this.deviceEl.style.color = '#aa88ff';
+          this.deviceEl.style.borderColor = 'rgba(170, 68, 255, 0.3)';
+        }, 300);
+      }, 3000);
+    }
   }
 }

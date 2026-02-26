@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Input abstraction layer — Phase 5: Polish and device detection.
+
+- **Primary device tracking** — ActionManager now tracks a `primaryDevice` property that reflects the most recently used input device (keyboard, gamepad, or touch). Mouse input counts as keyboard since the two are used together. The property persists between frames and only changes when a different device is actually used, preventing UI flicker.
+- **Device-adaptive HUD prompts** — All interaction prompts throughout the game (portal, dungeon exit, library, death/win screens) now show device-appropriate hint text: "Press E" for keyboard, "Press A" for gamepad, "Tap E" for touch. A new `InputHints` utility provides centralized hint-text mappings for all action types across all device categories.
+- **Active device indicator** — The HUD bottom-right corner now shows a brief device indicator ("Keyboard & Mouse", "Gamepad", or "Touch") that fades after 3 seconds when the active input device changes. Gamepad connection still triggers a green "Gamepad Connected" notification on state transitions.
+- **Context-sensitive InstructionsPanel** — The controls cheat sheet in the top-right corner now dynamically updates its control bindings based on the active device, showing keyboard shortcuts, gamepad buttons, or touch button names as appropriate. The objective text also adapts (e.g., "press E" vs "tap E" to enter the dungeon).
+- **Touch controls polish** — Added CSS transitions for smooth button press/release animations with a subtle scale effect (0.92x on press). Added haptic feedback via `navigator.vibrate()` on button presses when the Vibration API is available. Added responsive scaling that adjusts button sizes based on viewport dimensions (0.8x–1.4x scale) for better usability across phones and tablets.
+- **Removed per-frame gamepad polling** — Eliminated redundant `setGamepadConnected()` calls from `updateHub()`, `updateDungeon()`, and `updateLibrary()` since the new `updateActiveDevice()` method handles device tracking centrally each frame.
+
+---
+
 Input abstraction layer — Phase 4: Touch provider and virtual controls.
 
 - **Touch provider** — Added `TouchProvider` implementing the `InputProvider` interface, enabling full touch-screen gameplay. The provider feeds into ActionManager alongside keyboard, mouse, and gamepad with no changes needed in game logic or UI components.

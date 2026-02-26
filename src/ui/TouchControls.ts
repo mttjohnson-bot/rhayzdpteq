@@ -5,6 +5,9 @@
  * gameplay: a floating virtual joystick on the left side and action
  * buttons on the right. All visual elements are managed here; input
  * event handling lives in TouchProvider.
+ *
+ * Responsive: button sizes and positions scale based on viewport size.
+ * Haptic: triggers vibration feedback on button press when available.
  */
 export class TouchControls {
   readonly container: HTMLDivElement;
@@ -23,6 +26,11 @@ export class TouchControls {
   static readonly JOYSTICK_RADIUS = 55;
   /** Radius of the joystick knob circle in pixels */
   static readonly KNOB_RADIUS = 22;
+
+  /** Current responsive scale factor (1.0 = baseline at 400px viewport width) */
+  private scaleFactor = 1;
+
+  private onResize: () => void;
 
   constructor() {
     // Main container — covers the full viewport but doesn't block events
@@ -52,6 +60,7 @@ export class TouchControls {
       border: '2px solid rgba(170, 68, 255, 0.4)',
       display: 'none',
       pointerEvents: 'none',
+      transition: 'opacity 0.15s ease',
     });
     this.container.appendChild(this.joystickBase);
 
@@ -105,6 +114,12 @@ export class TouchControls {
     this.container.appendChild(this.inventoryBtn);
     this.container.appendChild(this.skillTreeBtn);
 
+    // ── Responsive scaling ────────────────────────────────────────────────
+
+    this.onResize = () => this.updateScale();
+    window.addEventListener('resize', this.onResize);
+    this.updateScale();
+
     // Mount to the UI overlay
     const overlay = document.getElementById('ui-overlay');
     overlay?.appendChild(this.container);
@@ -132,6 +147,7 @@ export class TouchControls {
     this.joystickBase.style.left = `${x - r}px`;
     this.joystickBase.style.top = `${y - r}px`;
     this.joystickBase.style.display = 'block';
+    this.joystickBase.style.opacity = '1';
     // Reset knob to center
     this.joystickKnob.style.left = `${r - TouchControls.KNOB_RADIUS}px`;
     this.joystickKnob.style.top = `${r - TouchControls.KNOB_RADIUS}px`;
@@ -152,20 +168,49 @@ export class TouchControls {
     this.joystickKnob.style.top = `${py}px`;
   }
 
-  /** Set the active/pressed visual state on a button */
+  /** Set the active/pressed visual state on a button with haptic feedback */
   setButtonActive(btn: HTMLDivElement, active: boolean): void {
     if (active) {
       btn.style.background = 'rgba(170, 68, 255, 0.5)';
       btn.style.borderColor = 'rgba(200, 150, 255, 0.9)';
+      btn.style.transform = 'scale(0.92)';
+      // Haptic feedback on press
+      this.vibrate(15);
     } else {
       btn.style.background = 'rgba(0, 0, 0, 0.4)';
       btn.style.borderColor = 'rgba(170, 68, 255, 0.5)';
+      btn.style.transform = 'scale(1)';
     }
   }
 
   /** Remove the overlay from the DOM and clean up */
   destroy(): void {
+    window.removeEventListener('resize', this.onResize);
     this.container.remove();
+  }
+
+  /** Trigger haptic vibration if available (duration in ms) */
+  private vibrate(ms: number): void {
+    if (navigator.vibrate) {
+      navigator.vibrate(ms);
+    }
+  }
+
+  /** Recalculate scale factor based on viewport size */
+  private updateScale(): void {
+    // Scale buttons larger on wider screens (tablets) and smaller on phones.
+    // Baseline: 400px viewport width = scale 1.0
+    const vw = Math.min(window.innerWidth, window.innerHeight);
+    this.scaleFactor = Math.max(0.8, Math.min(1.4, vw / 400));
+
+    // Apply scale to button container via CSS transform
+    const buttons = [this.attackBtn, this.interactBtn, this.inventoryBtn, this.skillTreeBtn];
+    for (const btn of buttons) {
+      // Only set base scale if button is not currently pressed
+      if (btn.style.background !== 'rgba(170, 68, 255, 0.5)') {
+        btn.style.transform = `scale(${this.scaleFactor})`;
+      }
+    }
   }
 
   /** Create a circular action button with a text label */
@@ -188,6 +233,8 @@ export class TouchControls {
       pointerEvents: 'auto',
       touchAction: 'none',
       userSelect: 'none',
+      transition: 'transform 0.1s ease, background 0.1s ease, border-color 0.1s ease',
+      transformOrigin: 'center center',
     });
     btn.textContent = label;
     return btn;
