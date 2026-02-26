@@ -105,9 +105,7 @@ export class TouchProvider implements InputProvider {
         // Skip touches on interactive UI elements (menus, dialogs, etc.)
         const target = e.target as HTMLElement;
         const isGameArea =
-          target === document.body ||
-          target.tagName === 'CANVAS' ||
-          target.id === 'ui-overlay';
+          target === document.body || target.tagName === 'CANVAS' || target.id === 'ui-overlay';
         if (!isGameArea) continue;
 
         // Start joystick if on the left half and no joystick is active
