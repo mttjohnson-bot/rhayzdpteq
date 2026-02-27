@@ -33,6 +33,9 @@ export class LibraryAssetDialog {
       zIndex: '250',
     });
 
+    // Tap the backdrop (outside the box) to close
+    this.overlay.addEventListener('click', () => this.hide());
+
     this.box = document.createElement('div');
     Object.assign(this.box.style, {
       background: 'rgba(10, 8, 20, 0.97)',
@@ -44,6 +47,9 @@ export class LibraryAssetDialog {
       minWidth: '320px',
       maxWidth: '460px',
     });
+
+    // Prevent taps on the box content from bubbling to the overlay dismiss handler
+    this.box.addEventListener('click', (e) => e.stopPropagation());
 
     this.titleEl = document.createElement('div');
     Object.assign(this.titleEl.style, {
@@ -92,10 +98,27 @@ export class LibraryAssetDialog {
     });
     this.box.appendChild(this.flavorEl);
 
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Close';
+    Object.assign(closeBtn.style, {
+      marginTop: '1rem',
+      padding: '0.4rem 1.4rem',
+      fontSize: '0.85rem',
+      border: '1px solid rgba(100, 100, 130, 0.5)',
+      borderRadius: '4px',
+      background: 'rgba(50, 50, 70, 0.6)',
+      color: '#aaa',
+      cursor: 'pointer',
+      width: '100%',
+      fontFamily: "'Segoe UI', system-ui, sans-serif",
+    });
+    closeBtn.addEventListener('click', () => this.hide());
+    this.box.appendChild(closeBtn);
+
     const hintEl = document.createElement('div');
-    hintEl.textContent = 'E or Escape: close  |  Gamepad: B';
+    hintEl.textContent = 'Tap outside, Close, E, Esc, or Gamepad B';
     Object.assign(hintEl.style, {
-      marginTop: '0.9rem',
+      marginTop: '0.6rem',
       fontSize: '0.65rem',
       color: '#555',
       textAlign: 'center',

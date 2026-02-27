@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Touch input fixes — death screen, inventory, and inspect dialog.
+
+- **Death/win overlay now dismissible by tap** — Changed both overlays from `pointer-events: none` to `pointer-events: auto` and added a click handler so tapping anywhere on the screen (not just the hidden "E" button) exits the screen and returns to the hub. The cursor also shows a pointer so the intent is clear.
+- **Inventory touch action dialog** — Tapping a bag item on a touch device now opens a contextual action dialog (Equip/Use, Drop, Cancel) instead of immediately acting on the item. Tapping an equipped item shows an Unequip/Cancel dialog. This prevents mis-equips caused by imprecise taps and provides a consistent way to drop items without relying on invisible gestures (shift-click, right-click) that don't exist on touch screens. Mouse and gamepad behaviour is unchanged.
+- **Inventory hint text adapts to device** — The hint line at the bottom of the inventory panel now updates whenever the active device changes: touch devices see "Tap any item to equip, use, or drop it"; gamepad sees the D-pad hints; keyboard/mouse sees the full click/right-click/shift-click reference.
+- **Library inspect dialog dismissible by tap** — Added a tap-outside-to-close handler on the backdrop overlay and a dedicated "Close" button inside the dialog box. Previously touch users had no way to exit the dialog because the backdrop captured all touch events and the E virtual button was blocked behind the overlay.
+
+---
+
 Input abstraction layer — Phase 6: Cleanup and remove legacy code.
 
 - **Removed InputManager.ts** — Deleted the legacy `InputManager` class that was fully replaced by ActionManager and the provider-based input system in Phases 1–5. The file had no remaining imports anywhere in the codebase but still contained the old monolithic input handling with synthetic keyboard event dispatch for gamepad support.
