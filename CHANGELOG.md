@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Input abstraction layer — Phase 6: Cleanup and remove legacy code.
+
+- **Removed InputManager.ts** — Deleted the legacy `InputManager` class that was fully replaced by ActionManager and the provider-based input system in Phases 1–5. The file had no remaining imports anywhere in the codebase but still contained the old monolithic input handling with synthetic keyboard event dispatch for gamepad support.
+- **Updated documentation references** — Updated GAME_PLAN.md, QUALITY_PLAN.md, and PLAN.md to reference ActionManager and the provider architecture instead of the removed InputManager. The QUALITY_PLAN.md testability map and error handling audit now point to the correct files.
+- **Input system unit tests** — Added 116 unit tests across 6 test files covering the entire input abstraction layer: ActionManager (23 tests for merging, device detection, lifecycle), KeyboardProvider (31 tests for key mapping, axis cancellation, blur handling), MouseProvider (15 tests for click mapping, position tracking), GamepadProvider (22 tests for button mapping, stick axes, deadzone, no synthetic events), TouchProvider (7 tests for initialization and auto-hide), and InputAction mappings (18 tests validating all default configurations). Total test count increased from 335 to 451.
+- **Coverage config expanded** — Added `InputAction.ts`, `ActionManager.ts`, and `src/game/providers/**` to the vitest coverage include list so the input system is tracked alongside existing pure-logic modules.
+
+---
+
 Input abstraction layer — Phase 5: Polish and device detection.
 
 - **Primary device tracking** — ActionManager now tracks a `primaryDevice` property that reflects the most recently used input device (keyboard, gamepad, or touch). Mouse input counts as keyboard since the two are used together. The property persists between frames and only changes when a different device is actually used, preventing UI flicker.
