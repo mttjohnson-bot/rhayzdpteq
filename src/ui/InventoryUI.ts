@@ -11,7 +11,9 @@ import { Item, rarityColor, ItemSlot } from '../rpg/LootTable';
 import { ComputedStats } from '../rpg/Stats';
 import { events } from '../utils/EventBus';
 import { ConfirmDialog } from './ConfirmDialog';
+import { ItemActionDialog, ActionButtonConfig } from './ItemActionDialog';
 import type { ActionManager } from '../game/ActionManager';
+import type { InputDevice } from '../game/ActionManager';
 
 export class InventoryUI {
   private container: HTMLDivElement;
@@ -28,6 +30,11 @@ export class InventoryUI {
   private selectedColumn: 'equipment' | 'bag' = 'bag';
   private selectedIndex = 0;
   private confirmDialog: ConfirmDialog;
+  private itemActionDialog: ItemActionDialog;
+
+  // Active input device — determines whether tap shows action dialog
+  private inputDevice: InputDevice = 'keyboard';
+  private hintEl!: HTMLDivElement;
 
   constructor() {
     this.container = document.createElement('div');
@@ -154,24 +161,23 @@ export class InventoryUI {
     });
     this.container.appendChild(this.tooltipEl);
 
-    // Keyboard hint
-    const hint = document.createElement('div');
-    hint.innerHTML =
-      'I/Esc: close | Click: equip | Right-click: use | X: drop | Shift+click: drop' +
-      '<br>Gamepad: D-pad navigate | A: equip/use | R1: drop | B: close';
-    Object.assign(hint.style, {
+    // Input hint line — updated when the active device changes
+    this.hintEl = document.createElement('div');
+    Object.assign(this.hintEl.style, {
       marginTop: '0.8rem',
       fontSize: '0.7rem',
       color: '#777',
       textAlign: 'center',
       lineHeight: '1.4',
     });
-    this.container.appendChild(hint);
+    this.container.appendChild(this.hintEl);
+    this.updateHint();
 
     const overlay = document.getElementById('ui-overlay');
     overlay?.appendChild(this.container);
 
     this.confirmDialog = new ConfirmDialog();
+    this.itemActionDialog = new ItemActionDialog();
   }
 
   show(inventory: Inventory, stats: ComputedStats, onClose: () => void): void {
@@ -195,6 +201,26 @@ export class InventoryUI {
     return this.visible;
   }
 
+  setInputDevice(device: InputDevice): void {
+    this.inputDevice = device;
+    this.updateHint();
+  }
+
+  private updateHint(): void {
+    switch (this.inputDevice) {
+      case 'touch':
+        this.hintEl.innerHTML = 'Tap any item to equip, use, or drop it';
+        break;
+      case 'gamepad':
+        this.hintEl.innerHTML = 'D-pad: navigate | A: equip/use | R1: drop | B: close';
+        break;
+      default:
+        this.hintEl.innerHTML =
+          'I/Esc: close | Click: equip | Right-click: use | X: drop | Shift+click: drop' +
+          '<br>Gamepad: D-pad navigate | A: equip/use | R1: drop | B: close';
+    }
+  }
+
   refresh(): void {
     if (!this.inventory) return;
     this.renderEquipment();
@@ -206,6 +232,9 @@ export class InventoryUI {
   /** Called each frame by Game.ts while the inventory is open. */
   handleActions(actions: ActionManager): void {
     if (!this.inventory) return;
+
+    // Item action dialog takes precedence (touch) — it has its own buttons
+    if (this.itemActionDialog.isVisible()) return;
 
     // If confirm dialog is open, delegate to it
     if (this.confirmDialog.isVisible()) {
@@ -396,9 +425,20 @@ export class InventoryUI {
         row.appendChild(nameEl);
         row.title = this.itemTooltip(item);
 
-        row.addEventListener('click', () => {
-          this.inventory!.unequip(slot);
-          this.refresh();
+        row.addEventListener('click', async () => {
+          if (this.inputDevice === 'touch') {
+            const action = await this.itemActionDialog.show(item.name, [
+              { label: 'Unequip', action: 'unequip', variant: 'primary' },
+              { label: 'Cancel', action: 'cancel', variant: 'neutral' },
+            ]);
+            if (action === 'unequip') {
+              this.inventory!.unequip(slot);
+              this.refresh();
+            }
+          } else {
+            this.inventory!.unequip(slot);
+            this.refresh();
+          }
         });
         row.addEventListener('mouseenter', () => {
           row.style.background = 'rgba(80,50,100,0.5)';
@@ -484,18 +524,50 @@ export class InventoryUI {
       rightPart.appendChild(dropBtn);
       row.appendChild(rightPart);
 
-      // Left click to equip, shift+click to drop, right click to use consumable
-      row.addEventListener('click', (e) => {
-        if ((e as MouseEvent).shiftKey) {
-          this.promptDrop(item);
-        } else if (item.type === 'equipment') {
-          this.inventory!.equip(item.id);
-          this.refresh();
+      // Touch: show action dialog; mouse: click to equip, right-click to use, shift+click to drop
+      row.addEventListener('click', async (e) => {
+        if (this.inputDevice === 'touch') {
+          const buttons: ActionButtonConfig[] = [];
+          if (item.type === 'equipment') {
+            buttons.push({ label: 'Equip', action: 'equip', variant: 'primary' });
+          } else {
+            buttons.push({ label: 'Use', action: 'use', variant: 'primary' });
+          }
+          buttons.push({ label: 'Drop', action: 'drop', variant: 'danger' });
+          buttons.push({ label: 'Cancel', action: 'cancel', variant: 'neutral' });
+
+          const action = await this.itemActionDialog.show(item.name, buttons);
+
+          if (action === 'equip' && item.type === 'equipment') {
+            this.inventory!.equip(item.id);
+            if (this.selectedIndex >= this.inventory!.bag.length) {
+              this.selectedIndex = Math.max(0, this.inventory!.bag.length - 1);
+            }
+            this.refresh();
+          } else if (action === 'use' && item.type === 'consumable') {
+            const consumed = this.inventory!.useConsumable(item.id);
+            if (consumed) {
+              events.emit('useConsumable', consumed);
+              if (this.selectedIndex >= this.inventory!.bag.length) {
+                this.selectedIndex = Math.max(0, this.inventory!.bag.length - 1);
+              }
+              this.refresh();
+            }
+          } else if (action === 'drop') {
+            this.promptDrop(item);
+          }
+        } else {
+          if ((e as MouseEvent).shiftKey) {
+            this.promptDrop(item);
+          } else if (item.type === 'equipment') {
+            this.inventory!.equip(item.id);
+            this.refresh();
+          }
         }
       });
       row.addEventListener('contextmenu', (e) => {
         e.preventDefault();
-        if (item.type === 'consumable') {
+        if (this.inputDevice !== 'touch' && item.type === 'consumable') {
           const consumed = this.inventory!.useConsumable(item.id);
           if (consumed) {
             events.emit('useConsumable', consumed);

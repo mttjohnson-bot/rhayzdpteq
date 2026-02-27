@@ -429,6 +429,7 @@ export class Game {
       this.currentInputDevice = device;
       this.hud.setActiveDevice(device);
       this.instructions.setActiveDevice(device);
+      this.inventoryUI.setInputDevice(device);
     }
   }
 
@@ -1034,8 +1035,14 @@ export class Game {
       fontFamily: "'Segoe UI', system-ui, sans-serif",
       color: '#ff4444',
       zIndex: '100',
-      pointerEvents: 'none',
+      pointerEvents: 'auto',
+      cursor: 'pointer',
       animation: 'fadeIn 0.5s ease-out',
+    });
+
+    this.deathOverlay.addEventListener('click', () => {
+      this.hideDeathScreen();
+      this.enterHub();
     });
 
     const title = document.createElement('div');
@@ -1089,7 +1096,13 @@ export class Game {
       fontFamily: "'Segoe UI', system-ui, sans-serif",
       color: '#ffdd44',
       zIndex: '100',
-      pointerEvents: 'none',
+      pointerEvents: 'auto',
+      cursor: 'pointer',
+    });
+
+    this.winOverlay.addEventListener('click', () => {
+      this.hideWinScreen();
+      this.enterHub();
     });
 
     const crown = document.createElement('div');
