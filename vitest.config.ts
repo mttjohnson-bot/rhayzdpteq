@@ -12,7 +12,15 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     coverage: {
       provider: 'v8',
-      include: ['src/utils/**', 'src/rpg/**', 'src/dungeon/**', 'src/game/SaveManager.ts'],
+      include: [
+        'src/utils/**',
+        'src/rpg/**',
+        'src/dungeon/**',
+        'src/game/SaveManager.ts',
+        'src/game/InputAction.ts',
+        'src/game/ActionManager.ts',
+        'src/game/providers/**',
+      ],
       exclude: [
         'src/rpg/LootDrop.ts',
         'src/dungeon/FloorRenderer.ts',

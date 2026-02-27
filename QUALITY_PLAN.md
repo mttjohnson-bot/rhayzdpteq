@@ -33,7 +33,7 @@ that are immediately testable:
 | `src/utils/` | `math.ts`, `EventBus.ts`, `constants.ts` | — |
 | `src/rpg/` | `Stats.ts`, `Leveling.ts`, `LootTable.ts`, `SkillTree.ts`, `Inventory.ts` | `LootDrop.ts` |
 | `src/dungeon/` | `types.ts`, `FloorConfig.ts`, `DungeonGenerator.ts`, `ObstacleSystem.ts` | `FloorRenderer.ts` |
-| `src/game/` | `SaveManager.ts` | `Game.ts`, `Player.ts`, `Camera.ts`, `Hub.ts`, `AssetLibrary.ts`, `InputManager.ts` (DOM events) |
+| `src/game/` | `SaveManager.ts`, `InputAction.ts` | `Game.ts`, `Player.ts`, `Camera.ts`, `Hub.ts`, `AssetLibrary.ts`, `ActionManager.ts` (DOM events via providers) |
 | `src/combat/` | — | `CombatSystem.ts`, `Enemy.ts`, `Boss.ts`, `TestDummy.ts` |
 | `src/rendering/` | — | All files |
 | `src/ui/` | — | All files |
@@ -201,7 +201,7 @@ Do not attempt to unit test the following — they require a WebGL context or DO
 E2E tests (Phase 4):
 
 - `src/game/Game.ts`, `src/game/Player.ts`, `src/game/Camera.ts`, `src/game/Hub.ts`, `src/game/AssetLibrary.ts`
-- `src/game/InputManager.ts` (constructor binds to `window` events; test via E2E or jsdom integration tests)
+- `src/game/ActionManager.ts` and `src/game/providers/*.ts` (bind to `window` events; test via jsdom or E2E)
 - `src/rpg/LootDrop.ts` (creates Three.js meshes for world drops)
 - `src/dungeon/FloorRenderer.ts` (renders dungeon with InstancedMesh)
 - All files in `src/combat/` (enemies, bosses, and combat system depend on Three.js objects)
@@ -425,7 +425,7 @@ Review these files for missing error handling and add defensive code where neede
 | `src/main.ts` | Uncaught `Game.start()` error crashes with no UI feedback | Add top-level try/catch with a user-visible error overlay (e.g., a red `<div>` with the error message) |
 | `src/game/SaveManager.ts` | `localStorage` can throw in private browsing or when storage is full | Wrap all `localStorage.getItem`/`setItem`/`removeItem` calls in try/catch; return safe defaults on read failure |
 | `src/dungeon/DungeonGenerator.ts` | Room placement loop could theoretically run forever if rooms cannot be placed | Add iteration cap (already has `attempts` parameter — verify it is enforced); add fallback to a minimal valid floor layout on failure |
-| `src/game/InputManager.ts` | `navigator.getGamepads()` can throw in restrictive browser contexts | Wrap gamepad polling in try/catch; degrade gracefully to keyboard-only |
+| `src/game/providers/GamepadProvider.ts` | `navigator.getGamepads()` can throw in restrictive browser contexts | Wrap gamepad polling in try/catch; degrade gracefully to keyboard-only |
 | `src/rpg/Inventory.ts` | Old save format migration could fail on deeply corrupt data | Add validation before `migrateItem`; skip items that cannot be recovered |
 | **Global** | Unhandled promise rejections go silent in production | Add `window.addEventListener('unhandledrejection', ...)` in `main.ts` to log and surface errors |
 

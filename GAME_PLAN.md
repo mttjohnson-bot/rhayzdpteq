@@ -95,7 +95,9 @@ The game is built to run on modest hardware (Chromebooks) via modern browsers an
 │   │   ├── Game.ts         # Core game loop and state machine
 │   │   ├── Player.ts       # Player entity, stats, inventory
 │   │   ├── Camera.ts       # Isometric camera controller
-│   │   ├── InputManager.ts # Keyboard, mouse, and gamepad input
+│   │   ├── ActionManager.ts # Action-based input abstraction layer
+│   │   ├── InputAction.ts  # Input action types and default mappings
+│   │   ├── providers/      # Input device providers (Keyboard, Mouse, Gamepad, Touch)
 │   │   ├── SaveManager.ts  # Save/load to localStorage
 │   │   └── Hub.ts          # Hub scene setup, floor selection, NPC interactions
 │   ├── combat/
