@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Build & developer experience — Phase 3 of the quality roadmap.
+
+- **Pre-commit quality gates** — Installed Husky and lint-staged so every `git commit` automatically lints and formats staged TypeScript files under `src/`. Commits are blocked if ESLint errors remain after auto-fix, catching issues locally before they reach CI.
+- **Bundle analysis tooling** — Added `rollup-plugin-visualizer` to the Vite build, gated behind the `ANALYZE=true` environment variable. Running `npm run analyze` produces an interactive treemap at `dist/stats.html` showing gzipped module sizes. Current production bundle is 162 KB gzipped — well within the 5 MB budget.
+- **New npm scripts** — Added `analyze` script for on-demand bundle visualization. Husky's `prepare` script ensures hooks are installed automatically on `npm install`.
+- **CLAUDE.md quality guidance** — Added a "Quality Gates" section to CLAUDE.md documenting the pre-commit hook, the full pre-commit checklist (lint, format, type-check, build), and the bundle size budget. Ensures Claude Code proactively runs quality checks rather than relying solely on the git hook. Updated Common Commands table with `format` and `analyze` entries.
+
+---
+
 Touch input fixes — death screen, inventory, and inspect dialog.
 
 - **Death/win overlay now dismissible by tap** — Changed both overlays from `pointer-events: none` to `pointer-events: auto` and added a click handler so tapping anywhere on the screen (not just the hidden "E" button) exits the screen and returns to the hub. The cursor also shows a pointer so the intent is clear.

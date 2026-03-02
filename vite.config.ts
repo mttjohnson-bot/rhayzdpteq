@@ -1,9 +1,12 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import { execSync } from 'child_process';
+import { visualizer } from 'rollup-plugin-visualizer';
 
 const commitHash = execSync('git rev-parse --short HEAD').toString().trim();
 const commitDate = execSync('git log -1 --format=%cs').toString().trim();
+
+const analyze = process.env.ANALYZE === 'true';
 
 export default defineConfig({
   base: '/rhayzdpteq/',
@@ -19,5 +22,17 @@ export default defineConfig({
   build: {
     target: 'es2020',
     outDir: 'dist',
+    rollupOptions: {
+      plugins: analyze
+        ? [
+            visualizer({
+              filename: 'dist/stats.html',
+              open: true,
+              gzipSize: true,
+              template: 'treemap',
+            }),
+          ]
+        : [],
+    },
   },
 });
