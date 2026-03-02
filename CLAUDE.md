@@ -60,7 +60,9 @@ Once the project is scaffolded:
 | Preview build | `npm run preview` |
 | Run tests | `npm test` |
 | Lint | `npm run lint` |
+| Format | `npm run format` |
 | Type check | `npx tsc --noEmit` |
+| Bundle analysis | `npm run analyze` |
 
 ## Key Design Decisions
 
@@ -73,6 +75,27 @@ Once the project is scaffolded:
 - **Saves:** Persistent via localStorage
 - **Input:** Keyboard + mouse (primary), gamepad (secondary)
 - **MVP:** 5 floors + final boss
+
+## Quality Gates
+
+This project uses automated quality gates that run on every commit. **You must ensure your code passes all of these before committing.**
+
+### Pre-commit hook (Husky + lint-staged)
+
+A Husky pre-commit hook runs `npx lint-staged` on every `git commit`. It automatically applies ESLint auto-fixes and Prettier formatting to all staged `src/**/*.ts` files. **Commits are blocked if ESLint errors remain after auto-fix.**
+
+### Before committing, always run:
+
+1. `npm run lint` — check for lint errors across the entire project (not just staged files)
+2. `npm run format` — format all source files with Prettier
+3. `npx tsc --noEmit` — verify the project type-checks cleanly
+4. `npm run build` — confirm the production build succeeds
+
+Do not skip these steps or rely solely on the pre-commit hook. The hook only checks staged files — project-wide issues (broken imports, type errors in unstaged files, build failures) will not be caught by lint-staged alone. Running the full suite proactively avoids failed commits and wasted cycles.
+
+### Bundle size budget
+
+The production bundle must stay under **5 MB gzipped** (see Performance Guidelines). After adding new dependencies or large features, run `npm run analyze` to generate an interactive bundle treemap at `dist/stats.html` and verify the budget is not exceeded.
 
 ## Code Style and Conventions
 
