@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+E2E & visual testing — Phase 4 of the quality roadmap.
+
+- **Playwright E2E test framework** — Installed `@playwright/test` and created `playwright.config.ts` configured for headless Chromium against the production build (`npm run preview`). Tests run with screenshot-on-failure, trace-on-retry, and a 2% pixel-difference threshold for visual regression snapshots.
+- **23 E2E tests across 4 test files** — Comprehensive browser-based tests covering the full game startup flow: game loading (5 tests verifying canvas creation, no JS errors, load time under 5 seconds), menu screen (9 tests for title, save slots, buttons, keyboard slot selection, visual regression), new game flow (4 tests for click and keyboard game start, hub transition, HUD display), and hub navigation (6 tests for WASD movement, inventory/skill tree overlays, portal interaction, visual regression).
+- **Visual regression baselines** — Generated screenshot baselines for the title screen and hub HUD stored in `tests/e2e/__snapshots__/`. The version info is masked on the title screen to avoid false positives from build metadata changes. Use `npm run test:e2e:update-snapshots` to regenerate after intentional UI changes.
+- **New npm scripts** — Added `test:e2e` and `test:e2e:update-snapshots` scripts for running Playwright tests and updating visual regression baselines.
+- **CI E2E job** — Added an `e2e` job to `.github/workflows/quality.yml` that runs after unit tests, installs Chromium, builds the production bundle, and executes the E2E suite. Screenshots and snapshot diffs are uploaded as CI artifacts on failure for debugging.
+
+---
+
 Build & developer experience — Phase 3 of the quality roadmap.
 
 - **Pre-commit quality gates** — Installed Husky and lint-staged so every `git commit` automatically lints and formats staged TypeScript files under `src/`. Commits are blocked if ESLint errors remain after auto-fix, catching issues locally before they reach CI.
