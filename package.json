@@ -15,7 +15,9 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
-    "test:e2e:update-snapshots": "playwright test --update-snapshots",
+    "test:e2e:functional": "playwright test --grep-invert @visual",
+    "test:e2e:visual": "playwright test --grep @visual",
+    "test:e2e:update-snapshots": "playwright test --grep @visual --update-snapshots",
     "analyze": "ANALYZE=true vite build",
     "prepare": "husky"
   },

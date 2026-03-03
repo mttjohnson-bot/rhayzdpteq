@@ -92,7 +92,7 @@ test.describe('Hub Navigation', () => {
     expect(hudContent!.length).toBeGreaterThan(0);
   });
 
-  test('visual regression: hub HUD', async ({ page }) => {
+  test('visual regression: hub HUD', { tag: '@visual' }, async ({ page }) => {
     // Wait for the scene to render fully
     await page.waitForTimeout(1000);
 

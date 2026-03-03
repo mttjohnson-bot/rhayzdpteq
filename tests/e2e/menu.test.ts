@@ -60,7 +60,7 @@ test.describe('Menu Screen', () => {
     await expect(version).toBeVisible();
   });
 
-  test('visual regression: title screen', async ({ page }) => {
+  test('visual regression: title screen', { tag: '@visual' }, async ({ page }) => {
     // Mask the version info since it changes per build
     const versionInfo = page.locator('#menu-screen').getByText('last changed');
     await expect(page).toHaveScreenshot('title-screen.png', {

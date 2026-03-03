@@ -63,6 +63,57 @@ Once the project is scaffolded:
 | Format | `npm run format` |
 | Type check | `npx tsc --noEmit` |
 | Bundle analysis | `npm run analyze` |
+| E2E tests (all) | `npm run test:e2e` |
+| E2E tests (functional only) | `npm run test:e2e:functional` |
+| E2E tests (visual only) | `npm run test:e2e:visual` |
+| Update visual baselines | `npm run test:e2e:update-snapshots` |
+
+## E2E & Visual Regression Testing
+
+The project uses Playwright for end-to-end browser testing. Tests live in `tests/e2e/` and run against the production build (`npm run build` + `npm run preview`).
+
+### Test categories
+
+- **Functional E2E tests** — Verify the game loads, menus work, game starts, player can move, overlays open/close. These are the primary safety net and **block merges** if they fail in CI.
+- **Visual regression tests** — Screenshot comparisons tagged with `@visual`. These are **non-blocking** in CI. If they fail, a comment is posted on the PR with a link to the diff artifacts so a human can decide whether to accept or fix the change.
+
+### Running E2E tests locally
+
+E2E tests require a browser. In environments where Playwright's CDN is blocked (like Claude Code web sessions), set the `PLAYWRIGHT_CHROMIUM_PATH` environment variable to a local Chrome/Chromium executable path before running tests. In most development environments, run `npx playwright install chromium` first.
+
+**You do not need to run E2E tests every session.** They are primarily a CI concern. Run them locally only when your changes affect:
+- Game state transitions (menu → hub → dungeon)
+- UI overlay code (HUD, menus, inventory, skill tree)
+- Save/load logic
+- Input handling or the action system
+
+For routine code changes, the standard quality gates (lint, format, typecheck, build, unit tests) are sufficient.
+
+### Visual regression baselines
+
+Screenshot baselines are stored in `tests/e2e/__snapshots__/`. **Baselines must be generated in CI** to ensure consistency — the local rendering environment (fonts, GPU, Chrome version) differs from CI's Ubuntu runner.
+
+**When to update baselines:**
+- After intentional UI changes (new HUD elements, layout shifts, style changes)
+- After Playwright or Chrome version upgrades that change rendering
+- When the Visual Regression CI job fails on a PR and the diff shows an expected change
+
+**How to update baselines:**
+1. Go to the repository's Actions tab on GitHub
+2. Select the "Update Visual Snapshots" workflow
+3. Click "Run workflow" and enter the branch name
+4. The workflow regenerates baselines in CI and commits them to the branch
+
+Do **not** commit locally-generated baselines — they will mismatch CI's rendering environment and cause false failures.
+
+### CI behavior
+
+| CI Job | What it runs | Blocks merge? |
+|--------|-------------|---------------|
+| E2E Tests (Functional) | `npm run test:e2e:functional` | Yes |
+| Visual Regression | `npm run test:e2e:visual` | No |
+
+When visual regression fails on a PR, a bot comment explains the failure and links to downloadable diff artifacts. The reviewer can then either trigger the "Update Visual Snapshots" workflow to accept the change or ask for a fix.
 
 ## Key Design Decisions
 
