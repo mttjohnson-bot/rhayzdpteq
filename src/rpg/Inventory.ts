@@ -162,11 +162,26 @@ export class Inventory {
   }
 
   fromJSON(data: { equipped: Record<string, Item | null>; bag: Item[] }): void {
-    this.equipped = {
-      weapon: data.equipped.weapon ? migrateItem(data.equipped.weapon) : null,
-      armor: data.equipped.armor ? migrateItem(data.equipped.armor) : null,
-      ring: data.equipped.ring ? migrateItem(data.equipped.ring) : null,
+    const safeMigrate = (raw: unknown): Item | null => {
+      if (!raw || typeof raw !== 'object') return null;
+      const candidate = raw as Item;
+      if (typeof candidate.id !== 'string' || typeof candidate.name !== 'string') return null;
+      try {
+        return migrateItem(candidate);
+      } catch {
+        return null;
+      }
     };
-    this.bag = (data.bag ?? []).map(migrateItem);
+
+    this.equipped = {
+      weapon: safeMigrate(data.equipped.weapon),
+      armor: safeMigrate(data.equipped.armor),
+      ring: safeMigrate(data.equipped.ring),
+    };
+    this.bag = (data.bag ?? []).reduce<Item[]>((acc, item) => {
+      const migrated = safeMigrate(item);
+      if (migrated) acc.push(migrated);
+      return acc;
+    }, []);
   }
 }

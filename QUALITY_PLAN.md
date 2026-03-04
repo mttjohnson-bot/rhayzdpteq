@@ -48,7 +48,7 @@ that are immediately testable:
 | 2 | Unit & Integration Testing | Vitest, @vitest/coverage-v8 | [x] |
 | 3 | Build & Developer Experience | Husky, lint-staged, bundle analysis | [x] |
 | 4 | E2E & Visual Testing | Playwright | [x] |
-| 5 | Security Scanning | Dependabot, CodeQL, npm audit | [ ] |
+| 5 | Security Scanning | Dependabot, CodeQL, npm audit | [x] |
 | 6 | Continuous Quality Consolidation | Coverage thresholds, PR status checks | [ ] |
 
 Update the Status column as phases are completed.

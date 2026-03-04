@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Security scanning — Phase 5 of the quality roadmap.
+
+- **Dependabot configuration** — Added `.github/dependabot.yml` to automate weekly dependency update PRs for both npm packages and GitHub Actions workflows, keeping dependencies current with minimal manual effort.
+- **Security CI workflow** — Created `.github/workflows/security.yml` that runs on every push to main, every PR, and on a weekly schedule. Two jobs: `npm audit --audit-level=high` to catch known vulnerabilities in production dependencies, and a CodeQL static analysis scan for the JavaScript/TypeScript language pack.
+- **`npm run audit` script** — Added a convenience `audit` script to `package.json` so developers can run `npm run audit` locally to replicate the CI vulnerability check before pushing.
+- **Error overlay in main.ts** — Wrapped `Game.start()` in a top-level try/catch. On failure, a red overlay is rendered directly to the page body with the error message and a prompt to refresh. Added a `window.addEventListener('unhandledrejection', ...)` handler so silent promise rejections are also surfaced in the same overlay.
+- **SaveManager localStorage hardening** — The `activeSlot` getter and setter, `hasSave()`, and `deleteSave()` were missing try/catch around localStorage calls. All four are now wrapped so that private browsing mode or a full storage quota degrade gracefully: reads return safe defaults (slot 1 or `false`), writes fail silently with the in-memory state still updated.
+- **GamepadProvider graceful degradation** — Wrapped `navigator.getGamepads()` in a try/catch. Restrictive browser contexts (some security policies disallow gamepad API access) now fall back cleanly to keyboard-only input instead of throwing.
+- **Inventory.fromJSON validation** — Added a `safeMigrate` helper inside `fromJSON` that validates each raw item from save data (checks for `id` and `name` strings) before passing it to `migrateItem`. Corrupt or unrecognizable items are silently skipped rather than crashing the load. The same guard is applied to both equipped slots and bag items.
+
+---
+
 E2E & visual testing — Phase 4 of the quality roadmap.
 
 - **Playwright E2E test framework** — Installed `@playwright/test` and created `playwright.config.ts` configured for headless Chromium against the production build (`npm run preview`). Tests run with screenshot-on-failure, trace-on-retry, and a 2% pixel-difference threshold for visual regression snapshots.
