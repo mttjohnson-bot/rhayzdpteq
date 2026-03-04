@@ -58,3 +58,93 @@ jobs:
           name: coverage-report
           path: coverage/
           retention-days: 30
+
+  e2e:
+    name: E2E Tests (Functional)
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Run functional E2E tests
+        run: npm run test:e2e:functional
+
+      - name: Upload E2E test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: test-results/
+          retention-days: 30
+
+  e2e-visual:
+    name: Visual Regression
+    runs-on: ubuntu-latest
+    needs: [test]
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build production bundle
+        run: npm run build
+
+      - name: Run visual regression tests
+        id: visual
+        run: npm run test:e2e:visual
+        continue-on-error: true
+
+      - name: Upload visual diff artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-diffs
+          path: |
+            test-results/
+            tests/e2e/__snapshots__/
+          retention-days: 30
+
+      - name: Comment on PR with visual regression results
+        if: steps.visual.outcome == 'failure' && github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `## ⚠️ Visual Regression Detected
+
+            One or more screenshot baselines differ from the expected snapshots.
+
+            **[View diff artifacts](${runUrl})** — download the \`visual-regression-diffs\` artifact to inspect the actual vs. expected screenshots.
+
+            ### What to do
+            - **If the visual change is intentional:** run the "Update Visual Snapshots" workflow from the Actions tab targeting this branch, or ask Claude Code to trigger it.
+            - **If the visual change is unintentional:** investigate the code changes that affected rendering and fix the regression.
+
+            *This check is non-blocking — it will not prevent merging.*`
+            });
