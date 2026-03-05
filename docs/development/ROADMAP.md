@@ -56,17 +56,15 @@ Everything below has been implemented, tested, and is live on the deployed game.
 - **Settings menu** — Settings panel accessible via Start (gamepad) or Escape (keyboard) with camera mode toggle (third-person/first-person), controller detection toggle (auto/keyboard/gamepad), and diagnostics overlay toggle (FPS + draw calls).
 - **Menu button support** — Start button opens the pause/settings menu. LB/RB bumpers cycle between menu tabs (inventory, skill tree, settings) when any menu overlay is open. New `toggleMenu`, `tabLeft`, and `tabRight` input actions with keyboard and gamepad mappings.
 
+### Diagnostics Info Tab
+
+- **Diagnostics info tab** — Menu tab showing OS, browser, screen/viewport info, GPU name, live FPS/draw calls, active input device, and connected gamepad details. Accessible via LB/RB tab cycling (4th tab after Settings).
+
 ---
 
 ## Ready to Build
 
 These items are well-defined enough to be picked up in a development session. They have clear scope and can be implemented without significant design decisions.
-
-### Diagnostics Info Tab
-
-A tab in the menu showing:
-- OS and browser detection and display.
-- Controller type detection and status.
 
 ### Full Map Tab in Menu
 

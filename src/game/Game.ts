@@ -21,6 +21,7 @@ import { VaultUI } from '../ui/VaultUI';
 import { SkillTreeUI } from '../ui/SkillTreeUI';
 import { SettingsUI, GameSettings } from '../ui/SettingsUI';
 import { DiagnosticsOverlay } from '../ui/DiagnosticsOverlay';
+import { DiagnosticsInfoUI } from '../ui/DiagnosticsInfoUI';
 import { BossHealthBar } from '../ui/BossHealthBar';
 import { generateDungeon, DungeonData } from '../dungeon/DungeonGenerator';
 import { buildDungeonMesh, DungeonMeshData } from '../dungeon/FloorRenderer';
@@ -63,6 +64,7 @@ export class Game {
   private skillTreeUI: SkillTreeUI;
   private settingsUI: SettingsUI;
   private diagnosticsOverlay: DiagnosticsOverlay;
+  private diagnosticsInfoUI: DiagnosticsInfoUI;
   private bossHealthBar: BossHealthBar;
   private combatSystem: CombatSystem;
 
@@ -103,6 +105,7 @@ export class Game {
   private skillTreeOpen = false;
   private vaultOpen = false;
   private settingsOpen = false;
+  private diagnosticsInfoOpen = false;
 
   // Persisted settings
   private gameSettings: GameSettings = {
@@ -111,8 +114,8 @@ export class Game {
     diagnosticsEnabled: false,
   };
 
-  // Menu tab cycling (inventory, skills, settings)
-  private readonly menuTabs = ['inventory', 'skills', 'settings'] as const;
+  // Menu tab cycling (inventory, skills, settings, diagnostics)
+  private readonly menuTabs = ['inventory', 'skills', 'settings', 'diagnostics'] as const;
   private activeMenuTab: (typeof this.menuTabs)[number] | null = null;
 
   // Death/respawn state
@@ -161,6 +164,7 @@ export class Game {
     this.skillTreeUI = new SkillTreeUI();
     this.settingsUI = new SettingsUI();
     this.diagnosticsOverlay = new DiagnosticsOverlay();
+    this.diagnosticsInfoUI = new DiagnosticsInfoUI();
     this.bossHealthBar = new BossHealthBar();
     this.libraryDialog = new LibraryAssetDialog();
     this.combatSystem = new CombatSystem(this.sceneManager.scene, this.player);
@@ -292,6 +296,7 @@ export class Game {
     this.skillTreeOpen = false;
     this.vaultOpen = false;
     this.settingsOpen = false;
+    this.diagnosticsInfoOpen = false;
     this.activeMenuTab = null;
     this.hideDeathScreen();
     this.hideWinScreen();
@@ -452,6 +457,11 @@ export class Game {
     this.update(dt);
     this.sceneManager.render(this.camera.camera);
     this.diagnosticsOverlay.update(dt, this.sceneManager.renderer);
+    this.diagnosticsInfoUI.updateSnapshot({
+      fps: this.diagnosticsOverlay.fps,
+      drawCalls: this.diagnosticsOverlay.drawCalls,
+      renderer: this.sceneManager.renderer,
+    });
     this.actions.endFrame();
   };
 
@@ -468,6 +478,7 @@ export class Game {
       this.inventoryUI.setInputDevice(device);
       this.vaultUI.setInputDevice(device);
       this.settingsUI.setInputDevice(device);
+      this.diagnosticsInfoUI.setInputDevice(device);
     }
   }
 
@@ -485,7 +496,8 @@ export class Game {
           !this.inventoryOpen &&
           !this.skillTreeOpen &&
           !this.vaultOpen &&
-          !this.settingsOpen
+          !this.settingsOpen &&
+          !this.diagnosticsInfoOpen
         ) {
           this.player.update(dt, this.actions);
           this.camera.follow(this.player.position, dt, this.player.facingAngle);
@@ -507,7 +519,8 @@ export class Game {
           !this.winScreenVisible &&
           !this.inventoryOpen &&
           !this.skillTreeOpen &&
-          !this.settingsOpen
+          !this.settingsOpen &&
+          !this.diagnosticsInfoOpen
         ) {
           this.player.update(dt, this.actions);
           this.camera.follow(this.player.position, dt, this.player.facingAngle);
@@ -530,7 +543,8 @@ export class Game {
           !this.libraryDialogOpen &&
           !this.inventoryOpen &&
           !this.skillTreeOpen &&
-          !this.settingsOpen
+          !this.settingsOpen &&
+          !this.diagnosticsInfoOpen
         ) {
           this.player.update(dt, this.actions);
           this.camera.follow(this.player.position, dt, this.player.facingAngle);
@@ -547,6 +561,10 @@ export class Game {
       this.handleTabCycling();
     }
 
+    if (this.diagnosticsInfoOpen) {
+      this.diagnosticsInfoUI.handleActions(this.actions);
+      return;
+    }
     if (this.settingsOpen) {
       this.settingsUI.handleActions(this.actions);
       return;
@@ -580,7 +598,12 @@ export class Game {
     // Start / Escape toggles menu — opens settings if nothing is open,
     // or closes the current overlay if one is active
     if (this.actions.wasActionPressed('toggleMenu')) {
-      if (this.settingsOpen || this.inventoryOpen || this.skillTreeOpen) {
+      if (
+        this.settingsOpen ||
+        this.inventoryOpen ||
+        this.skillTreeOpen ||
+        this.diagnosticsInfoOpen
+      ) {
         this.closeAllMenuTabs();
         return;
       }
@@ -612,6 +635,10 @@ export class Game {
         this.skillTreeUI.hide();
         this.skillTreeOpen = false;
       }
+      if (this.diagnosticsInfoOpen) {
+        this.diagnosticsInfoUI.hide();
+        this.diagnosticsInfoOpen = false;
+      }
       if (this.inventoryOpen) {
         this.inventoryUI.hide();
         this.inventoryOpen = false;
@@ -635,6 +662,10 @@ export class Game {
       if (this.inventoryOpen) {
         this.inventoryUI.hide();
         this.inventoryOpen = false;
+      }
+      if (this.diagnosticsInfoOpen) {
+        this.diagnosticsInfoUI.hide();
+        this.diagnosticsInfoOpen = false;
       }
       if (this.skillTreeOpen) {
         this.skillTreeUI.hide();
@@ -661,6 +692,10 @@ export class Game {
     if (this.settingsOpen) {
       this.settingsUI.hide();
       this.settingsOpen = false;
+    }
+    if (this.diagnosticsInfoOpen) {
+      this.diagnosticsInfoUI.hide();
+      this.diagnosticsInfoOpen = false;
     }
 
     this.activeMenuTab = tab;
@@ -694,6 +729,20 @@ export class Game {
           },
         );
         break;
+      case 'diagnostics':
+        this.diagnosticsInfoOpen = true;
+        this.diagnosticsInfoUI.show(
+          {
+            fps: this.diagnosticsOverlay.fps,
+            drawCalls: this.diagnosticsOverlay.drawCalls,
+            renderer: this.sceneManager.renderer,
+          },
+          () => {
+            this.diagnosticsInfoOpen = false;
+            this.activeMenuTab = null;
+          },
+        );
+        break;
     }
   }
 
@@ -711,11 +760,15 @@ export class Game {
       this.settingsUI.hide();
       this.settingsOpen = false;
     }
+    if (this.diagnosticsInfoOpen) {
+      this.diagnosticsInfoUI.hide();
+      this.diagnosticsInfoOpen = false;
+    }
     this.activeMenuTab = null;
     this.recomputeStats();
   }
 
-  /** Handle LB/RB tab cycling between inventory, skills, and settings */
+  /** Handle LB/RB tab cycling between inventory, skills, settings, and diagnostics */
   private handleTabCycling(): void {
     if (!this.activeMenuTab) return;
 
@@ -748,6 +801,7 @@ export class Game {
       this.inventoryUI.setInputDevice(settings.controllerMode);
       this.vaultUI.setInputDevice(settings.controllerMode);
       this.settingsUI.setInputDevice(settings.controllerMode);
+      this.diagnosticsInfoUI.setInputDevice(settings.controllerMode);
     }
 
     // Diagnostics overlay
@@ -767,7 +821,14 @@ export class Game {
     const scale = 1 + Math.sin(this.portalAnimTime * 2) * 0.05;
     this.portal.mesh.scale.set(scale, 1, scale);
 
-    if (this.inventoryOpen || this.skillTreeOpen || this.vaultOpen || this.settingsOpen) return;
+    if (
+      this.inventoryOpen ||
+      this.skillTreeOpen ||
+      this.vaultOpen ||
+      this.settingsOpen ||
+      this.diagnosticsInfoOpen
+    )
+      return;
 
     // Check proximity to library door (east wall) — auto-enter on approach
     if (
@@ -1004,7 +1065,12 @@ export class Game {
         this.hud.showPrompt('Defeat the boss to unlock the exit');
       }
     } else {
-      if (!this.inventoryOpen && !this.skillTreeOpen && !this.settingsOpen) {
+      if (
+        !this.inventoryOpen &&
+        !this.skillTreeOpen &&
+        !this.settingsOpen &&
+        !this.diagnosticsInfoOpen
+      ) {
         this.hud.hidePrompt();
       }
     }

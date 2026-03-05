@@ -264,7 +264,17 @@ Open the Settings menu by pressing **Escape** (keyboard) or **Start** (gamepad) 
 
 Use **Up/Down** (or D-pad) to navigate between options, **Left/Right** to change values, and **Escape / B** to close.
 
-When any menu overlay is open (Inventory, Skill Tree, or Settings), press **LB / RB** on a gamepad to cycle between them without closing and reopening.
+When any menu overlay is open (Inventory, Skill Tree, Settings, or Diagnostics), press **LB / RB** on a gamepad to cycle between them without closing and reopening.
+
+### Diagnostics Tab
+
+The Diagnostics tab provides system and performance information. Access it by cycling to the 4th tab with **LB / RB** from any open menu overlay. It shows:
+
+- **System** — Operating system, browser (with version), screen resolution, device pixel ratio, viewport size.
+- **Renderer** — GPU name, live FPS counter, draw call count.
+- **Controller** — Active input device (keyboard/mouse, gamepad, or touch) and connected gamepad name/ID.
+
+Use **Up/Down** to scroll (or D-pad on gamepad), and **Escape / B** to close.
 
 ---
 

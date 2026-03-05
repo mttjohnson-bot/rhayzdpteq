@@ -147,3 +147,23 @@ Both roadmap items implemented. Settings accessible via Start button or Escape k
 ### Notes
 - Combined Settings Menu and Menu Button Support into a single session since the Start button behavior is the entry point for the settings menu.
 - The tab cycling works when any of the three overlays (inventory, skills, settings) is open, not just from a dedicated pause screen. This keeps the existing standalone overlay UIs intact while adding gamepad-friendly navigation between them.
+
+## 2026-03-05 — Diagnostics Info Tab
+
+### Prompt
+> Work on the "Diagnostics Info Tab" part of the ROADMAP.md
+
+### Plan
+1. Create `DiagnosticsInfoUI` component following the same patterns as `SettingsUI` — modal overlay, show/hide/handleActions, input device awareness.
+2. Display three sections: System (OS, browser, screen, viewport), Renderer (GPU, FPS, draw calls), Controller (active device, gamepad status).
+3. Add `fps` and `drawCalls` getters to `DiagnosticsOverlay` so the info tab can read live performance data.
+4. Integrate into `Game.ts`: add 'diagnostics' as 4th menu tab, wire up tab cycling, route actions, pause movement when open.
+5. Export `detectOS()` and `detectBrowser()` as pure functions for unit testing.
+6. Write unit tests for OS/browser detection and basic UI lifecycle.
+
+### Outcome
+Diagnostics Info Tab fully implemented. Menu system expanded from 3 to 4 tabs. 17 new unit tests added (468 total, all passing). Lint, format, typecheck, and build all clean.
+
+### Notes
+- iOS detection needed to be ordered before macOS in the user agent check since iOS UA strings contain "Mac OS X".
+- `navigator.getGamepads()` doesn't exist in jsdom, so added a guard for the gamepad API availability.
