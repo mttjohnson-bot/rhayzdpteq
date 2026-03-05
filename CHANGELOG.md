@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Documentation reorganization — organized planning docs by audience with AI session prompt capture.
+
+- **Documentation structure** — Created a `docs/` directory with separate sections for player-facing and developer-facing documentation. Player docs live in `docs/player/`, developer docs in `docs/development/`, and detailed feature plans in `docs/development/plans/`.
+- **Player guide** — Created `docs/player/PLAYER_GUIDE.md` covering game startup, controls (keyboard/gamepad/touch), dungeon floors, combat mechanics, enemy types, RPG systems (leveling, skill tree, inventory, loot), saving, HUD elements, and troubleshooting. Written for both human players and AI agents performing automated testing or troubleshooting.
+- **Development roadmap** — Created `docs/development/ROADMAP.md` organizing all project work into three categories: Completed (all milestones, issues, input system, quality infrastructure), Ready to Build (item vault, settings menu, diagnostics, full map, menu button support), and Needs Planning (narrative, quests, advanced loot, hub expansion, VR, audio, multiplayer).
+- **Architecture overview** — Created `docs/development/ARCHITECTURE.md` documenting the tech stack, project structure, architectural patterns (state machine, scene management, entity-component, game loop, event system, input architecture, save system), testing architecture, performance design, CI/CD pipeline, and a quick-reference table for common development tasks.
+- **AI session log** — Created `docs/development/SESSION_LOG.md` with a template and guidance for capturing AI session prompts, plans, and outcomes. Documents the prompt-to-plan-to-build pipeline and explains how reviewing past sessions helps improve future prompts and recover missed requirements.
+- **Planning docs reorganized** — Moved `PLAN.md` to `docs/development/plans/input-abstraction.md` and `QUALITY_PLAN.md` to `docs/development/plans/quality-roadmap.md`, giving each plan a descriptive filename under the organized directory structure.
+- **CLAUDE.md documentation rules** — Added a "Documentation Maintenance" section to CLAUDE.md with standing requirements for keeping all docs current during sessions: when to update each document, session log entry requirements, player guide update triggers, and guidance for creating new plan documents. Updated the repository structure diagram and project overview to reference the new `docs/` directory.
+- **GAME_PLAN.md cross-references** — Added links to the new documentation structure at the top of GAME_PLAN.md so developers can find the organized docs from the original design document.
+
+---
+
 Continuous quality consolidation — Phase 6 of the quality roadmap.
 
 - **Coverage thresholds enforced** — Added `thresholds` configuration to `vitest.config.ts` requiring 80% line, 80% function, and 70% branch coverage. `npm run test:coverage` now fails if coverage drops below these minimums, preventing regressions from being merged.

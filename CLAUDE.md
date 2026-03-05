@@ -6,7 +6,7 @@ This file provides guidance for AI assistants working with this repository.
 
 A browser-based 3D dungeon crawler RPG with voxel art style, built with Three.js and TypeScript. The player ascends through procedurally generated dungeon floors using real-time action combat, with RPG progression via a skill tree and loot system. Designed to run on Chromebooks and hosted on GitHub Pages.
 
-See `GAME_PLAN.md` for the full game design document including milestones, architecture, and open questions.
+See `GAME_PLAN.md` for the full game design document including milestones, architecture, and open questions. See `docs/` for organized documentation split by audience (player guide, development architecture, roadmap, and session log).
 
 ## Tech Stack
 
@@ -23,6 +23,9 @@ See `GAME_PLAN.md` for the full game design document including milestones, archi
 ├── LICENSE          # MIT License (2026)
 ├── CLAUDE.md        # AI assistant guidance (this file)
 ├── GAME_PLAN.md     # Game design document and project plan
+├── docs/            # Organized documentation
+│   ├── player/      # Player-facing guides (also useful for test agents)
+│   └── development/ # Developer-facing architecture, roadmap, plans, session log
 ├── package.json     # Dependencies and scripts (once scaffolded)
 ├── vite.config.ts   # Vite configuration (once scaffolded)
 ├── tsconfig.json    # TypeScript configuration (once scaffolded)
@@ -197,6 +200,60 @@ Target: Chromebook-playable (60 FPS mid-range, 30 FPS minimum low-end)
 
 - Trivial whitespace or formatting-only changes
 - Changes that are immediately reverted in the same session
+
+## Documentation Maintenance
+
+**IMPORTANT: Documentation beyond the changelog should also be kept current during development sessions.** The project has documentation organized by audience in the `docs/` directory.
+
+### Documentation Structure
+
+```
+docs/
+├── player/
+│   └── PLAYER_GUIDE.md           # How to play, controls, mechanics, tips
+└── development/
+    ├── ARCHITECTURE.md           # Technical architecture for developers
+    ├── ROADMAP.md                # What's built, what's next, what needs planning
+    ├── SESSION_LOG.md            # AI session prompts and outcomes
+    └── plans/                    # Detailed feature/project plans
+        ├── input-abstraction.md  # Input system design (completed)
+        └── quality-roadmap.md    # Quality infrastructure plan (completed)
+```
+
+### When to Update Each Document
+
+| Document | Update when... |
+|----------|----------------|
+| `CHANGELOG.md` | Every session that modifies code (existing rule) |
+| `docs/player/PLAYER_GUIDE.md` | Adding/changing gameplay mechanics, controls, UI, items, enemies, or any player-visible behavior |
+| `docs/development/ROADMAP.md` | Completing a roadmap item, adding new planned features, or when a "Needs Planning" item is fleshed out |
+| `docs/development/ARCHITECTURE.md` | Changing architectural patterns, adding new systems, modifying the project structure, or adjusting key technical decisions |
+| `docs/development/SESSION_LOG.md` | Every session — capture the key prompt(s), plan, outcome, and any notes on gaps or rework |
+| `docs/development/plans/*.md` | When creating a new feature plan, or when an existing plan's status changes |
+
+### Session Log
+
+The session log (`docs/development/SESSION_LOG.md`) captures the prompts and context that drive development. This is a standing requirement like the changelog:
+
+1. **Add an entry at the end of each session** with the date, key prompt(s), plan produced, outcome, and any notes.
+2. **Quote or paraphrase the significant prompts** — the ones that drove design decisions, not every minor follow-up.
+3. **Note gaps and rework** — if a prompt was unclear and needed restating, or if something was asked for but missed, document it. This helps improve future prompts.
+4. **Link to plan documents** when a session produces or references a plan in `docs/development/plans/`.
+
+### Player Guide
+
+The player guide (`docs/player/PLAYER_GUIDE.md`) serves two audiences:
+- **Human players** looking for how to play the game.
+- **AI agents** performing automated testing or troubleshooting reported issues — the guide describes expected behavior from a player perspective.
+
+Update the player guide when your changes affect what a player would see, do, or expect. Keep it accurate to the current state of the game.
+
+### Creating New Plan Documents
+
+When designing a new feature that needs significant upfront planning:
+1. Create a new markdown file in `docs/development/plans/` (e.g., `quest-system.md`).
+2. Add a row to the plan documents table in `docs/development/ROADMAP.md`.
+3. Move the corresponding item from "Needs Planning" to "Ready to Build" in the roadmap once the plan is complete.
 
 ## Git Workflow
 
