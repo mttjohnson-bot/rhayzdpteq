@@ -16,10 +16,16 @@ export interface LibraryDoorInfo {
   z: number;
 }
 
+export interface VaultInfo {
+  x: number;
+  z: number;
+}
+
 export function createHubScene(): {
   group: THREE.Group;
   portal: PortalInfo;
   libraryDoor: LibraryDoorInfo;
+  vault: VaultInfo;
 } {
   const group = new THREE.Group();
 
@@ -133,9 +139,37 @@ export function createHubScene(): {
   ring.rotation.x = Math.PI / 2;
   group.add(ring);
 
+  // --- Vault chest (west wall center) ---
+  const vaultX = -halfW + TILE_SIZE * 1.5;
+  const vaultZ = 0;
+
+  // Chest body
+  const chestGeo = new THREE.BoxGeometry(TILE_SIZE * 0.9, TILE_SIZE * 0.6, TILE_SIZE * 0.7);
+  const chestMat = new THREE.MeshLambertMaterial({ color: 0x6b5b3a });
+  const chest = new THREE.Mesh(chestGeo, chestMat);
+  chest.position.set(vaultX, TILE_SIZE * 0.3, vaultZ);
+  chest.castShadow = true;
+  group.add(chest);
+
+  // Chest lid (slightly offset upward)
+  const lidGeo = new THREE.BoxGeometry(TILE_SIZE * 0.95, TILE_SIZE * 0.15, TILE_SIZE * 0.75);
+  const lidMat = new THREE.MeshLambertMaterial({ color: 0x8b7355 });
+  const lid = new THREE.Mesh(lidGeo, lidMat);
+  lid.position.set(vaultX, TILE_SIZE * 0.68, vaultZ);
+  lid.castShadow = true;
+  group.add(lid);
+
+  // Metal band on chest
+  const bandGeo = new THREE.BoxGeometry(TILE_SIZE * 0.95, TILE_SIZE * 0.08, TILE_SIZE * 0.72);
+  const bandMat = new THREE.MeshLambertMaterial({ color: 0x888899 });
+  const band = new THREE.Mesh(bandGeo, bandMat);
+  band.position.set(vaultX, TILE_SIZE * 0.45, vaultZ);
+  group.add(band);
+
   return {
     group,
     portal: { x: portalX, z: portalZ, mesh: portalMesh },
     libraryDoor: { x: halfW + TILE_SIZE / 2, z: 0 },
+    vault: { x: vaultX, z: vaultZ },
   };
 }

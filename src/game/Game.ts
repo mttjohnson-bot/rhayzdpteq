@@ -4,7 +4,7 @@ import { GameCamera } from './Camera';
 import { ActionManager, InputDevice } from './ActionManager';
 import { getHint } from '../ui/InputHints';
 import { Player } from './Player';
-import { createHubScene, PortalInfo, LibraryDoorInfo } from './Hub';
+import { createHubScene, PortalInfo, LibraryDoorInfo, VaultInfo } from './Hub';
 import { AssetLibrary, buildWeaponDisplayMesh } from './AssetLibrary';
 import { LibraryAssetDialog } from '../ui/LibraryAssetDialog';
 import { SaveManager } from './SaveManager';
@@ -17,6 +17,7 @@ import { HealthBar } from '../ui/HealthBar';
 import { DamageNumbers } from '../ui/DamageNumbers';
 import { XPBar } from '../ui/XPBar';
 import { InventoryUI } from '../ui/InventoryUI';
+import { VaultUI } from '../ui/VaultUI';
 import { SkillTreeUI } from '../ui/SkillTreeUI';
 import { BossHealthBar } from '../ui/BossHealthBar';
 import { generateDungeon, DungeonData } from '../dungeon/DungeonGenerator';
@@ -28,6 +29,7 @@ import { PlayerStats, ComputedStats } from '../rpg/Stats';
 import { LevelSystem, enemyXP } from '../rpg/Leveling';
 import { SkillTree } from '../rpg/SkillTree';
 import { Inventory } from '../rpg/Inventory';
+import { VaultStorage } from '../rpg/VaultStorage';
 import { LootDropManager } from '../rpg/LootDrop';
 import { rollEnemyLoot, rollBossLoot, Item } from '../rpg/LootTable';
 import { events } from '../utils/EventBus';
@@ -55,6 +57,7 @@ export class Game {
   private damageNumbers: DamageNumbers;
   private xpBar: XPBar;
   private inventoryUI: InventoryUI;
+  private vaultUI: VaultUI;
   private skillTreeUI: SkillTreeUI;
   private bossHealthBar: BossHealthBar;
   private combatSystem: CombatSystem;
@@ -64,6 +67,7 @@ export class Game {
   private levelSystem: LevelSystem;
   private skillTree: SkillTree;
   private inventory: Inventory;
+  private vault: VaultStorage;
   private lootDrops: LootDropManager;
   private computedStats: ComputedStats;
 
@@ -75,6 +79,7 @@ export class Game {
   private portal: PortalInfo | null = null;
   private portalAnimTime = 0;
   private libraryDoor: LibraryDoorInfo | null = null;
+  private vaultPoint: VaultInfo | null = null;
 
   // Library state
   private assetLibrary: AssetLibrary | null = null;
@@ -92,6 +97,7 @@ export class Game {
   // UI overlay state
   private inventoryOpen = false;
   private skillTreeOpen = false;
+  private vaultOpen = false;
 
   // Death/respawn state
   private deathScreenVisible = false;
@@ -135,6 +141,7 @@ export class Game {
     this.damageNumbers = new DamageNumbers();
     this.xpBar = new XPBar();
     this.inventoryUI = new InventoryUI();
+    this.vaultUI = new VaultUI();
     this.skillTreeUI = new SkillTreeUI();
     this.bossHealthBar = new BossHealthBar();
     this.libraryDialog = new LibraryAssetDialog();
@@ -145,6 +152,7 @@ export class Game {
     this.levelSystem = new LevelSystem();
     this.skillTree = new SkillTree();
     this.inventory = new Inventory();
+    this.vault = new VaultStorage();
     this.lootDrops = new LootDropManager();
     this.obstacleSystem = new ObstacleSystem();
 
@@ -190,6 +198,7 @@ export class Game {
       this.skillTree,
       this.inventory,
       gameCompleted,
+      this.vault,
     );
   }
 
@@ -201,6 +210,7 @@ export class Game {
         this.levelSystem,
         this.skillTree,
         this.inventory,
+        this.vault,
       );
       this.recomputeStats();
     }
@@ -262,6 +272,7 @@ export class Game {
     this.floorSelectOpen = false;
     this.inventoryOpen = false;
     this.skillTreeOpen = false;
+    this.vaultOpen = false;
     this.hideDeathScreen();
     this.hideWinScreen();
 
@@ -304,6 +315,7 @@ export class Game {
       this.hubGroup = hub.group;
       this.portal = hub.portal;
       this.libraryDoor = hub.libraryDoor;
+      this.vaultPoint = hub.vault;
       this.sceneManager.addGroup(this.hubGroup);
     } else {
       // Re-add existing hub
@@ -430,6 +442,7 @@ export class Game {
       this.hud.setActiveDevice(device);
       this.instructions.setActiveDevice(device);
       this.inventoryUI.setInputDevice(device);
+      this.vaultUI.setInputDevice(device);
     }
   }
 
@@ -442,7 +455,12 @@ export class Game {
       case 'hub':
         this.routeUIActions();
         this.handleUIToggle();
-        if (!this.floorSelectOpen && !this.inventoryOpen && !this.skillTreeOpen) {
+        if (
+          !this.floorSelectOpen &&
+          !this.inventoryOpen &&
+          !this.skillTreeOpen &&
+          !this.vaultOpen
+        ) {
           this.player.update(dt, this.actions);
           this.camera.follow(this.player.position, dt);
         }
@@ -496,6 +514,10 @@ export class Game {
       this.inventoryUI.handleActions(this.actions);
       return;
     }
+    if (this.vaultOpen) {
+      this.vaultUI.handleActions(this.actions);
+      return;
+    }
     if (this.skillTreeOpen) {
       this.skillTreeUI.handleActions(this.actions);
       return;
@@ -516,6 +538,10 @@ export class Game {
 
     // Toggle inventory
     if (this.actions.wasActionPressed('toggleInventory')) {
+      if (this.vaultOpen) {
+        this.vaultUI.hide();
+        this.vaultOpen = false;
+      }
       if (this.skillTreeOpen) {
         this.skillTreeUI.hide();
         this.skillTreeOpen = false;
@@ -536,6 +562,10 @@ export class Game {
 
     // Toggle skill tree
     if (this.actions.wasActionPressed('toggleSkillTree')) {
+      if (this.vaultOpen) {
+        this.vaultUI.hide();
+        this.vaultOpen = false;
+      }
       if (this.inventoryOpen) {
         this.inventoryUI.hide();
         this.inventoryOpen = false;
@@ -563,7 +593,7 @@ export class Game {
     const scale = 1 + Math.sin(this.portalAnimTime * 2) * 0.05;
     this.portal.mesh.scale.set(scale, 1, scale);
 
-    if (this.inventoryOpen || this.skillTreeOpen) return;
+    if (this.inventoryOpen || this.skillTreeOpen || this.vaultOpen) return;
 
     // Check proximity to library door (east wall) — auto-enter on approach
     if (
@@ -572,6 +602,27 @@ export class Game {
       !this.floorSelectOpen
     ) {
       this.enterLibrary();
+      return;
+    }
+
+    // Check proximity to vault chest
+    if (
+      this.vaultPoint &&
+      this.player.isNear(this.vaultPoint.x, this.vaultPoint.z, 2.5) &&
+      !this.floorSelectOpen
+    ) {
+      const d = this.currentInputDevice;
+      this.hud.showPrompt(
+        `${getHint('interact', d)} to open vault | ${getHint('inventory', d)}: Inventory | ${getHint('skillTree', d)}: Skills`,
+      );
+      if (this.actions.wasActionPressed('interact')) {
+        this.vaultOpen = true;
+        this.hud.hidePrompt();
+        this.vaultUI.show(this.inventory, this.vault, () => {
+          this.vaultOpen = false;
+          this.saveGame();
+        });
+      }
       return;
     }
 

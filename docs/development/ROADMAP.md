@@ -49,16 +49,13 @@ Everything below has been implemented, tested, and is live on the deployed game.
 - **Asset Library** — Hub room for inspecting all game assets on display pedestals with collision, item selection, and inspect dialogs.
 - **Occlusion outlines** — Silhouettes for player/enemies behind walls using GreaterDepth rendering pass.
 - **Build version display** — Version indicator on title screen.
+- **Item Storage Vault** — 48-slot vault chest in the Hub for long-term item storage. Two-column UI for transferring items between bag and vault with full keyboard, gamepad, and touch support. Vault contents persist across saves.
 
 ---
 
 ## Ready to Build
 
 These items are well-defined enough to be picked up in a development session. They have clear scope and can be implemented without significant design decisions.
-
-### Item Storage Vault
-
-A storage container in the Hub where the player can transfer items between their bag and long-term storage. Requires a vault UI dialog with keyboard and gamepad support, similar to the existing inventory overlay.
 
 ### Settings Menu
 

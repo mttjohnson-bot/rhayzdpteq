@@ -82,6 +82,28 @@ Entries are listed in reverse chronological order (newest first).
 
 ---
 
+## 2026-03-05 — Item Storage Vault
+
+### Prompt
+> Work on Item Storage Vault which is mentioned in the ROADMAP.md. A storage container in the Hub where the player can transfer items between their bag and long-term storage. Requires a vault UI dialog with keyboard and gamepad support, similar to the existing inventory overlay.
+
+### Plan
+Implement the vault as three new components:
+1. `VaultStorage` data model — a standalone class with 48-slot item array, add/remove/serialize methods, and event emission.
+2. `VaultUI` overlay — two-column dialog (bag left, vault right) following the same overlay pattern as InventoryUI. Full keyboard, gamepad, and touch support with item tooltips and device-adaptive hints.
+3. Hub integration — a decorative chest object on the west wall of the hub, proximity detection in Game.ts, and vault open/close lifecycle with auto-save on close.
+4. Save/load support — extend SaveManager to persist vault items alongside inventory.
+
+### Outcome
+All four components implemented. VaultStorage class, VaultUI overlay, chest mesh in Hub, Game.ts integration with proximity detection, UI routing, overlay management, and save/load support. All quality gates pass (lint, format, typecheck, build, 451 unit tests).
+
+### Notes
+- The vault follows the same architectural patterns as the existing inventory system (event-driven, overlay-based UI, action-based input routing).
+- Vault is only accessible in the Hub, not during dungeon runs, matching the design intent of a safe storage location.
+- Save format remains backward-compatible — the vault field is optional in SaveData, so old saves load without issues.
+
+---
+
 ## 2026-03-05 — Organize Planning Documentation
 
 ### Prompt

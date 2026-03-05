@@ -5,6 +5,7 @@
 import { LevelSystem } from '../rpg/Leveling';
 import { SkillTree } from '../rpg/SkillTree';
 import { Inventory } from '../rpg/Inventory';
+import { VaultStorage } from '../rpg/VaultStorage';
 import { Item } from '../rpg/LootTable';
 
 const SAVE_KEY_PREFIX = 'dungeon_ascent_save_';
@@ -19,6 +20,7 @@ export interface SaveData {
   level: { level: number; xp: number; skillPoints: number };
   skillTree: Record<string, number>;
   inventory: { equipped: Record<string, Item | null>; bag: Item[] };
+  vault?: Item[];
   gameCompleted?: boolean;
 }
 
@@ -65,6 +67,7 @@ export class SaveManager {
     skillTree: SkillTree,
     inventory: Inventory,
     gameCompleted?: boolean,
+    vault?: VaultStorage,
   ): boolean {
     try {
       const data: SaveData = {
@@ -74,6 +77,7 @@ export class SaveManager {
         level: levelSystem.toJSON(),
         skillTree: skillTree.toJSON(),
         inventory: inventory.toJSON(),
+        vault: vault?.toJSON(),
         gameCompleted,
       };
       localStorage.setItem(slotKey(this.activeSlot), JSON.stringify(data));
@@ -101,10 +105,14 @@ export class SaveManager {
     levelSystem: LevelSystem,
     skillTree: SkillTree,
     inventory: Inventory,
+    vault?: VaultStorage,
   ): number {
     levelSystem.fromJSON(data.level);
     skillTree.fromJSON(data.skillTree);
     inventory.fromJSON(data.inventory);
+    if (vault && data.vault) {
+      vault.fromJSON(data.vault);
+    }
     return data.maxUnlockedFloor;
   }
 
