@@ -76,7 +76,17 @@ export class GamepadProvider implements InputProvider {
       };
     }
 
-    const gamepads = navigator.getGamepads();
+    let gamepads: readonly (Gamepad | null)[];
+    try {
+      gamepads = navigator.getGamepads();
+    } catch {
+      // navigator.getGamepads() can throw in restrictive browser contexts; degrade to keyboard-only
+      return {
+        pressed: new Set(this.pressedActions),
+        held: this.heldActions,
+        axes: this.axisValues,
+      };
+    }
     const gp = gamepads[this.gamepadIndex];
     if (!gp) {
       return {

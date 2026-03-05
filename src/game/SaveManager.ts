@@ -40,15 +40,23 @@ export class SaveManager {
 
   static get activeSlot(): number {
     if (this._activeSlot === 0) {
-      const stored = localStorage.getItem(ACTIVE_SLOT_KEY);
-      this._activeSlot = stored ? parseInt(stored, 10) : 1;
+      try {
+        const stored = localStorage.getItem(ACTIVE_SLOT_KEY);
+        this._activeSlot = stored ? parseInt(stored, 10) : 1;
+      } catch {
+        this._activeSlot = 1;
+      }
     }
     return this._activeSlot;
   }
 
   static set activeSlot(slot: number) {
     this._activeSlot = slot;
-    localStorage.setItem(ACTIVE_SLOT_KEY, String(slot));
+    try {
+      localStorage.setItem(ACTIVE_SLOT_KEY, String(slot));
+    } catch {
+      // Ignore storage errors (private browsing, storage full); in-memory value still updated
+    }
   }
 
   static save(
@@ -101,11 +109,19 @@ export class SaveManager {
   }
 
   static hasSave(slot?: number): boolean {
-    return localStorage.getItem(slotKey(slot ?? this.activeSlot)) !== null;
+    try {
+      return localStorage.getItem(slotKey(slot ?? this.activeSlot)) !== null;
+    } catch {
+      return false;
+    }
   }
 
   static deleteSave(slot?: number): void {
-    localStorage.removeItem(slotKey(slot ?? this.activeSlot));
+    try {
+      localStorage.removeItem(slotKey(slot ?? this.activeSlot));
+    } catch {
+      // Ignore storage errors; save data may still exist but cannot be removed
+    }
   }
 
   static getSaveInfo(
