@@ -1,5 +1,9 @@
 # Rhayzd Pteq
 
+[![Quality](https://github.com/mttjohnson-bot/rhayzdpteq/actions/workflows/quality.yml/badge.svg)](https://github.com/mttjohnson-bot/rhayzdpteq/actions/workflows/quality.yml)
+[![Deploy](https://github.com/mttjohnson-bot/rhayzdpteq/actions/workflows/deploy.yml/badge.svg)](https://github.com/mttjohnson-bot/rhayzdpteq/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Rhayzd Pteq exists at the intersection of family lore and systems engineering as a phonetic cipher for "Raised Tech" that embodies the act of willing a digital foundation into existence. While presented as a playable experience, this project functions with the intent of one day being a foundational framework to decouple core mechanics from creative narrative. It is an iterative experiment in translating abstract imagination into tangible reality, establishing a workshop that will serve as the invisible backbone for building future worlds, stories, and puzzles yet to be imagined.
 
 ## About the Game

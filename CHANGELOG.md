@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Continuous quality consolidation — Phase 6 of the quality roadmap.
+
+- **Coverage thresholds enforced** — Added `thresholds` configuration to `vitest.config.ts` requiring 80% line, 80% function, and 70% branch coverage. `npm run test:coverage` now fails if coverage drops below these minimums, preventing regressions from being merged.
+- **Bundle size CI gate** — Added a `bundle-size` job to the quality workflow that builds the production bundle, calculates total gzipped size of all assets, and fails if it exceeds the 5 MB budget defined in CLAUDE.md. Current bundle is ~162 KB gzipped.
+- **Consolidated CI workflow** — Restructured `.github/workflows/quality.yml` with a clear job dependency graph: `lint` and `typecheck` run in parallel, then `unit-test` and `bundle-size` run after both pass, and finally `e2e` and `e2e-visual` run last. All required jobs must pass before a PR can merge into `main`.
+- **README quality badges** — Added live status badges to the top of `README.md` for the Quality workflow, Deploy workflow, and MIT license, giving contributors immediate visibility into project health.
+- **Quality roadmap completed** — Updated `QUALITY_PLAN.md` to mark Phase 6 as complete and refreshed the Current State Baseline section to reflect the final state of all six phases.
+
+---
+
 Security scanning — Phase 5 of the quality roadmap.
 
 - **Dependabot configuration** — Added `.github/dependabot.yml` to automate weekly dependency update PRs for both npm packages and GitHub Actions workflows, keeping dependencies current with minimal manual effort.
