@@ -53,6 +53,21 @@ const HINTS: Record<string, Record<InputDevice, string>> = {
     gamepad: 'R1',
     touch: 'Hold item',
   },
+  toggleMenu: {
+    keyboard: 'Escape',
+    gamepad: 'Start',
+    touch: 'Menu',
+  },
+  tabLeft: {
+    keyboard: '',
+    gamepad: 'LB',
+    touch: '',
+  },
+  tabRight: {
+    keyboard: '',
+    gamepad: 'RB',
+    touch: '',
+  },
 };
 
 /** Get the hint text for a named action on the given device */
@@ -88,6 +103,8 @@ export function getControlsList(device: InputDevice): string {
         <div><span style="color:#eee">A</span> — Interact / Attack</div>
         <div><span style="color:#eee">X</span> — Inventory</div>
         <div><span style="color:#eee">Y</span> — Skill Tree</div>
+        <div><span style="color:#eee">Start</span> — Menu / Settings</div>
+        <div><span style="color:#eee">LB / RB</span> — Cycle menu tabs</div>
         <div><span style="color:#eee">D-Pad</span> — Navigate menus</div>`;
     case 'touch':
       return `

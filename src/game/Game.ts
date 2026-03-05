@@ -19,6 +19,8 @@ import { XPBar } from '../ui/XPBar';
 import { InventoryUI } from '../ui/InventoryUI';
 import { VaultUI } from '../ui/VaultUI';
 import { SkillTreeUI } from '../ui/SkillTreeUI';
+import { SettingsUI, GameSettings } from '../ui/SettingsUI';
+import { DiagnosticsOverlay } from '../ui/DiagnosticsOverlay';
 import { BossHealthBar } from '../ui/BossHealthBar';
 import { generateDungeon, DungeonData } from '../dungeon/DungeonGenerator';
 import { buildDungeonMesh, DungeonMeshData } from '../dungeon/FloorRenderer';
@@ -59,6 +61,8 @@ export class Game {
   private inventoryUI: InventoryUI;
   private vaultUI: VaultUI;
   private skillTreeUI: SkillTreeUI;
+  private settingsUI: SettingsUI;
+  private diagnosticsOverlay: DiagnosticsOverlay;
   private bossHealthBar: BossHealthBar;
   private combatSystem: CombatSystem;
 
@@ -98,6 +102,18 @@ export class Game {
   private inventoryOpen = false;
   private skillTreeOpen = false;
   private vaultOpen = false;
+  private settingsOpen = false;
+
+  // Persisted settings
+  private gameSettings: GameSettings = {
+    cameraMode: 'third-person',
+    controllerMode: 'auto',
+    diagnosticsEnabled: false,
+  };
+
+  // Menu tab cycling (inventory, skills, settings)
+  private readonly menuTabs = ['inventory', 'skills', 'settings'] as const;
+  private activeMenuTab: (typeof this.menuTabs)[number] | null = null;
 
   // Death/respawn state
   private deathScreenVisible = false;
@@ -143,6 +159,8 @@ export class Game {
     this.inventoryUI = new InventoryUI();
     this.vaultUI = new VaultUI();
     this.skillTreeUI = new SkillTreeUI();
+    this.settingsUI = new SettingsUI();
+    this.diagnosticsOverlay = new DiagnosticsOverlay();
     this.bossHealthBar = new BossHealthBar();
     this.libraryDialog = new LibraryAssetDialog();
     this.combatSystem = new CombatSystem(this.sceneManager.scene, this.player);
@@ -273,6 +291,8 @@ export class Game {
     this.inventoryOpen = false;
     this.skillTreeOpen = false;
     this.vaultOpen = false;
+    this.settingsOpen = false;
+    this.activeMenuTab = null;
     this.hideDeathScreen();
     this.hideWinScreen();
 
@@ -333,7 +353,7 @@ export class Game {
     const halfD = (HUB_DEPTH * TILE_SIZE) / 2;
     this.player.setBounds(-halfW, halfW, -halfD, halfD);
 
-    this.camera.snapTo(this.player.position);
+    this.camera.snapTo(this.player.position, this.player.facingAngle);
     this.hud.show();
     this.hud.showLevelInfo(this.levelSystem.level, this.maxUnlockedFloor);
     this.hud.setGamepadConnected(this.actions.hasGamepad);
@@ -394,7 +414,7 @@ export class Game {
     // Recompute stats and reset health
     this.recomputeStats();
     this.player.resetHealth();
-    this.camera.snapTo(this.player.position);
+    this.camera.snapTo(this.player.position, this.player.facingAngle);
 
     // Add attack indicator to scene
     this.sceneManager.scene.add(this.player.attackIndicator);
@@ -431,11 +451,15 @@ export class Game {
     this.updateActiveDevice();
     this.update(dt);
     this.sceneManager.render(this.camera.camera);
+    this.diagnosticsOverlay.update(dt, this.sceneManager.renderer);
     this.actions.endFrame();
   };
 
   /** Sync primary device to HUD and InstructionsPanel when it changes */
   private updateActiveDevice(): void {
+    // In manual controller mode, skip auto-detection
+    if (this.gameSettings.controllerMode !== 'auto') return;
+
     const device = this.actions.primaryDevice;
     if (device !== this.currentInputDevice) {
       this.currentInputDevice = device;
@@ -443,6 +467,7 @@ export class Game {
       this.instructions.setActiveDevice(device);
       this.inventoryUI.setInputDevice(device);
       this.vaultUI.setInputDevice(device);
+      this.settingsUI.setInputDevice(device);
     }
   }
 
@@ -459,10 +484,11 @@ export class Game {
           !this.floorSelectOpen &&
           !this.inventoryOpen &&
           !this.skillTreeOpen &&
-          !this.vaultOpen
+          !this.vaultOpen &&
+          !this.settingsOpen
         ) {
           this.player.update(dt, this.actions);
-          this.camera.follow(this.player.position, dt);
+          this.camera.follow(this.player.position, dt, this.player.facingAngle);
         }
         this.updateHub(dt);
         // Auto-save periodically in hub
@@ -480,10 +506,11 @@ export class Game {
           !this.deathScreenVisible &&
           !this.winScreenVisible &&
           !this.inventoryOpen &&
-          !this.skillTreeOpen
+          !this.skillTreeOpen &&
+          !this.settingsOpen
         ) {
           this.player.update(dt, this.actions);
-          this.camera.follow(this.player.position, dt);
+          this.camera.follow(this.player.position, dt, this.player.facingAngle);
           this.combatSystem.update(dt);
           this.lootDrops.update(dt, this.player.position.x, this.player.position.z);
           this.sceneManager.updateLightPosition(this.player.position.x, this.player.position.z);
@@ -499,9 +526,14 @@ export class Game {
       case 'library':
         this.routeUIActions();
         this.handleUIToggle();
-        if (!this.libraryDialogOpen && !this.inventoryOpen && !this.skillTreeOpen) {
+        if (
+          !this.libraryDialogOpen &&
+          !this.inventoryOpen &&
+          !this.skillTreeOpen &&
+          !this.settingsOpen
+        ) {
           this.player.update(dt, this.actions);
-          this.camera.follow(this.player.position, dt);
+          this.camera.follow(this.player.position, dt, this.player.facingAngle);
         }
         this.updateLibrary(dt);
         break;
@@ -510,6 +542,15 @@ export class Game {
 
   /** Route actions to the currently active UI overlay. */
   private routeUIActions(): void {
+    // Tab cycling with LB/RB when a menu tab is active
+    if (this.activeMenuTab && !this.floorSelectOpen && !this.vaultOpen && !this.libraryDialogOpen) {
+      this.handleTabCycling();
+    }
+
+    if (this.settingsOpen) {
+      this.settingsUI.handleActions(this.actions);
+      return;
+    }
     if (this.inventoryOpen) {
       this.inventoryUI.handleActions(this.actions);
       return;
@@ -532,15 +573,40 @@ export class Game {
     }
   }
 
-  /** Handle I (inventory) and K (skill tree) toggles */
+  /** Handle I (inventory), K (skill tree), and Start/Esc (menu) toggles */
   private handleUIToggle(): void {
     if (this.deathScreenVisible || this.winScreenVisible) return;
+
+    // Start / Escape toggles menu — opens settings if nothing is open,
+    // or closes the current overlay if one is active
+    if (this.actions.wasActionPressed('toggleMenu')) {
+      if (this.settingsOpen || this.inventoryOpen || this.skillTreeOpen) {
+        this.closeAllMenuTabs();
+        return;
+      }
+      if (this.vaultOpen) {
+        this.vaultUI.hide();
+        this.vaultOpen = false;
+        return;
+      }
+      if (this.floorSelectOpen) {
+        // Let the floor select handle its own cancel
+        return;
+      }
+      // Nothing open — open settings as the default pause menu
+      this.openMenuTab('settings');
+      return;
+    }
 
     // Toggle inventory
     if (this.actions.wasActionPressed('toggleInventory')) {
       if (this.vaultOpen) {
         this.vaultUI.hide();
         this.vaultOpen = false;
+      }
+      if (this.settingsOpen) {
+        this.settingsUI.hide();
+        this.settingsOpen = false;
       }
       if (this.skillTreeOpen) {
         this.skillTreeUI.hide();
@@ -549,13 +615,9 @@ export class Game {
       if (this.inventoryOpen) {
         this.inventoryUI.hide();
         this.inventoryOpen = false;
+        this.activeMenuTab = null;
       } else {
-        this.recomputeStats();
-        this.inventoryOpen = true;
-        this.inventoryUI.show(this.inventory, this.computedStats, () => {
-          this.inventoryOpen = false;
-          this.recomputeStats();
-        });
+        this.openMenuTab('inventory');
       }
       return;
     }
@@ -566,6 +628,10 @@ export class Game {
         this.vaultUI.hide();
         this.vaultOpen = false;
       }
+      if (this.settingsOpen) {
+        this.settingsUI.hide();
+        this.settingsOpen = false;
+      }
       if (this.inventoryOpen) {
         this.inventoryUI.hide();
         this.inventoryOpen = false;
@@ -573,14 +639,122 @@ export class Game {
       if (this.skillTreeOpen) {
         this.skillTreeUI.hide();
         this.skillTreeOpen = false;
+        this.activeMenuTab = null;
       } else {
+        this.openMenuTab('skills');
+      }
+      return;
+    }
+  }
+
+  /** Open a specific menu tab, closing any others */
+  private openMenuTab(tab: (typeof this.menuTabs)[number]): void {
+    // Close all first
+    if (this.inventoryOpen) {
+      this.inventoryUI.hide();
+      this.inventoryOpen = false;
+    }
+    if (this.skillTreeOpen) {
+      this.skillTreeUI.hide();
+      this.skillTreeOpen = false;
+    }
+    if (this.settingsOpen) {
+      this.settingsUI.hide();
+      this.settingsOpen = false;
+    }
+
+    this.activeMenuTab = tab;
+
+    switch (tab) {
+      case 'inventory':
+        this.recomputeStats();
+        this.inventoryOpen = true;
+        this.inventoryUI.show(this.inventory, this.computedStats, () => {
+          this.inventoryOpen = false;
+          this.activeMenuTab = null;
+          this.recomputeStats();
+        });
+        break;
+      case 'skills':
         this.skillTreeOpen = true;
         this.skillTreeUI.show(this.skillTree, this.levelSystem, () => {
           this.skillTreeOpen = false;
+          this.activeMenuTab = null;
           this.recomputeStats();
         });
-      }
-      return;
+        break;
+      case 'settings':
+        this.settingsOpen = true;
+        this.settingsUI.show(
+          this.gameSettings,
+          (settings) => this.applySettings(settings),
+          () => {
+            this.settingsOpen = false;
+            this.activeMenuTab = null;
+          },
+        );
+        break;
+    }
+  }
+
+  /** Close all menu tabs */
+  private closeAllMenuTabs(): void {
+    if (this.inventoryOpen) {
+      this.inventoryUI.hide();
+      this.inventoryOpen = false;
+    }
+    if (this.skillTreeOpen) {
+      this.skillTreeUI.hide();
+      this.skillTreeOpen = false;
+    }
+    if (this.settingsOpen) {
+      this.settingsUI.hide();
+      this.settingsOpen = false;
+    }
+    this.activeMenuTab = null;
+    this.recomputeStats();
+  }
+
+  /** Handle LB/RB tab cycling between inventory, skills, and settings */
+  private handleTabCycling(): void {
+    if (!this.activeMenuTab) return;
+
+    let direction = 0;
+    if (this.actions.wasActionPressed('tabLeft')) direction = -1;
+    if (this.actions.wasActionPressed('tabRight')) direction = 1;
+    if (direction === 0) return;
+
+    const currentIndex = this.menuTabs.indexOf(this.activeMenuTab);
+    const nextIndex = (currentIndex + direction + this.menuTabs.length) % this.menuTabs.length;
+    const nextTab = this.menuTabs[nextIndex];
+
+    if (nextTab !== this.activeMenuTab) {
+      this.openMenuTab(nextTab);
+    }
+  }
+
+  /** Apply changed settings from the settings UI */
+  private applySettings(settings: GameSettings): void {
+    this.gameSettings = { ...settings };
+
+    // Camera mode
+    this.camera.setMode(settings.cameraMode);
+
+    // Controller detection mode
+    if (settings.controllerMode !== 'auto') {
+      this.currentInputDevice = settings.controllerMode;
+      this.hud.setActiveDevice(settings.controllerMode);
+      this.instructions.setActiveDevice(settings.controllerMode);
+      this.inventoryUI.setInputDevice(settings.controllerMode);
+      this.vaultUI.setInputDevice(settings.controllerMode);
+      this.settingsUI.setInputDevice(settings.controllerMode);
+    }
+
+    // Diagnostics overlay
+    if (settings.diagnosticsEnabled) {
+      this.diagnosticsOverlay.show();
+    } else {
+      this.diagnosticsOverlay.hide();
     }
   }
 
@@ -593,7 +767,7 @@ export class Game {
     const scale = 1 + Math.sin(this.portalAnimTime * 2) * 0.05;
     this.portal.mesh.scale.set(scale, 1, scale);
 
-    if (this.inventoryOpen || this.skillTreeOpen || this.vaultOpen) return;
+    if (this.inventoryOpen || this.skillTreeOpen || this.vaultOpen || this.settingsOpen) return;
 
     // Check proximity to library door (east wall) — auto-enter on approach
     if (
@@ -705,7 +879,7 @@ export class Game {
     this.player.setWallSegments(this.assetLibrary.getWallSegments());
 
     this.sceneManager.resetLighting();
-    this.camera.snapTo(this.player.position);
+    this.camera.snapTo(this.player.position, this.player.facingAngle);
     this.hud.show();
     this.hud.showLevelInfo(this.levelSystem.level, this.maxUnlockedFloor);
     this.hud.setGamepadConnected(this.actions.hasGamepad);
@@ -830,7 +1004,7 @@ export class Game {
         this.hud.showPrompt('Defeat the boss to unlock the exit');
       }
     } else {
-      if (!this.inventoryOpen && !this.skillTreeOpen) {
+      if (!this.inventoryOpen && !this.skillTreeOpen && !this.settingsOpen) {
         this.hud.hidePrompt();
       }
     }

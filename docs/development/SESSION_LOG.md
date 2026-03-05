@@ -124,3 +124,26 @@ Created the full documentation structure. See CHANGELOG.md for details.
 ### Notes
 - The prompt covered a lot of ground in a single description — documentation organization, prompt capture philosophy, and workflow improvements. Breaking it into the audience-separation piece and the prompt-capture piece helped structure the work.
 - The concept of prompts as a primary input to the software development lifecycle is captured in the session log template guidance, not just as a procedural step.
+
+---
+
+## 2026-03-05 — Settings Menu & Menu Button Support
+
+### Prompt
+> Work on the "Settings Menu" and "Menu Button Support" parts of the ROADMAP.md
+
+### Plan
+Implement both roadmap items together since they are closely related:
+1. Add new input actions (`toggleMenu`, `tabLeft`, `tabRight`) to the action system with gamepad (Start, LB, RB) and keyboard (Escape) mappings.
+2. Create `SettingsUI` with three options: camera mode (third-person/first-person), controller detection (auto/keyboard/gamepad), diagnostics overlay toggle.
+3. Create `DiagnosticsOverlay` for real-time FPS and draw call display.
+4. Extend `GameCamera` with a first-person mode.
+5. Wire everything into `Game.ts`: Start/Escape opens settings as a pause menu, LB/RB cycles between inventory/skills/settings tabs, settings changes apply to camera and input systems.
+6. Update `InputHints` with the new actions and gamepad control descriptions.
+
+### Outcome
+Both roadmap items implemented. Settings accessible via Start button or Escape key. First-person camera mode works. Diagnostics overlay toggles on/off. LB/RB cycles between menu tabs. All 451 unit tests pass. Lint, format, typecheck, and build all clean.
+
+### Notes
+- Combined Settings Menu and Menu Button Support into a single session since the Start button behavior is the entry point for the settings menu.
+- The tab cycling works when any of the three overlays (inventory, skills, settings) is open, not just from a dedicated pause screen. This keeps the existing standalone overlay UIs intact while adding gamepad-friendly navigation between them.

@@ -72,7 +72,10 @@ src/
 │   ├── ItemActionDialog.ts      # Touch-friendly item action menu
 │   ├── TouchControls.ts         # Virtual joystick & action buttons
 │   ├── InstructionsPanel.ts     # Control hints overlay (device-adaptive)
-│   └── InputHints.ts            # Centralized device-specific hint text
+│   ├── InputHints.ts            # Centralized device-specific hint text
+│   ├── SettingsUI.ts            # Settings panel (camera, controller, diagnostics)
+│   ├── DiagnosticsOverlay.ts    # Real-time FPS & draw call counter
+│   └── VaultUI.ts               # Vault storage transfer interface
 ├── rendering/                   # Voxel renderer, scene management, lighting
 │   ├── SceneManager.ts          # Three.js scene setup & management
 │   └── OcclusionOutline.ts      # Character silhouettes behind walls

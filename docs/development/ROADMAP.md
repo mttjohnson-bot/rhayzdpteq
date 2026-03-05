@@ -51,18 +51,16 @@ Everything below has been implemented, tested, and is live on the deployed game.
 - **Build version display** — Version indicator on title screen.
 - **Item Storage Vault** — 48-slot vault chest in the Hub for long-term item storage. Two-column UI for transferring items between bag and vault with full keyboard, gamepad, and touch support. Vault contents persist across saves.
 
+### Settings Menu & Menu Button Support
+
+- **Settings menu** — Settings panel accessible via Start (gamepad) or Escape (keyboard) with camera mode toggle (third-person/first-person), controller detection toggle (auto/keyboard/gamepad), and diagnostics overlay toggle (FPS + draw calls).
+- **Menu button support** — Start button opens the pause/settings menu. LB/RB bumpers cycle between menu tabs (inventory, skill tree, settings) when any menu overlay is open. New `toggleMenu`, `tabLeft`, and `tabRight` input actions with keyboard and gamepad mappings.
+
 ---
 
 ## Ready to Build
 
 These items are well-defined enough to be picked up in a development session. They have clear scope and can be implemented without significant design decisions.
-
-### Settings Menu
-
-A settings section accessible from the pause menu:
-- Toggle between first-person and third-person camera view.
-- Toggle between automatic controller detection or manual selection (keyboard, gamepad).
-- Diagnostics overlay showing frame rate and active draw call count.
 
 ### Diagnostics Info Tab
 
@@ -76,10 +74,6 @@ An expanded map view accessible from the pause menu:
 - Zoom in/out support.
 - Percentage of map discovered.
 - Key indicators: start position, exit, boss room, discovered collectables.
-
-### Menu Button Support
-
-Use the menu/start button on gamepads to open the pause menu dialog. Tab between menu sections (inventory, skill tree, settings) with bumpers (LB/RB).
 
 ---
 

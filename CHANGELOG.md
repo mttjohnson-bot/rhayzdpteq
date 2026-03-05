@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Settings Menu & Menu Button Support — settings panel, diagnostics overlay, and gamepad menu navigation.
+
+- **Settings menu** — Added a Settings panel (`src/ui/SettingsUI.ts`) accessible via Start button on gamepad or Escape on keyboard. Includes three configurable options: camera mode (third-person / first-person), controller detection (auto / keyboard / gamepad), and a diagnostics overlay toggle.
+- **First-person camera mode** — Extended `GameCamera` to support a first-person view at player eye level, looking in the player's facing direction. Toggle between third-person isometric and first-person via the Settings menu.
+- **Diagnostics overlay** — Added a real-time FPS counter and draw call display (`src/ui/DiagnosticsOverlay.ts`) in the top-right corner. Color-coded FPS indicator (green/yellow/red). Toggled via Settings menu.
+- **Gamepad Start button opens menu** — The Start button (button 9) now opens the Settings panel as a pause menu instead of acting as a cancel button. Escape key also opens the menu when no overlay is active.
+- **LB/RB tab cycling** — When a menu overlay (inventory, skill tree, or settings) is open, pressing LB or RB on a gamepad cycles between the three tabs. This provides quick navigation between menu sections without closing and reopening.
+- **New input actions** — Added `toggleMenu`, `tabLeft`, and `tabRight` actions to the input system with appropriate keyboard and gamepad mappings.
+
+---
+
 Item Storage Vault — long-term item storage accessible from the Hub.
 
 - **Vault storage system** — Added a VaultStorage class (`src/rpg/VaultStorage.ts`) with a 48-slot capacity for long-term item storage. Items transfer between the player's bag and the vault.
