@@ -2,6 +2,13 @@
 
 This document captures all design decisions and serves as the reference for building the game.
 
+For organized documentation by audience, see the `docs/` directory:
+- **Player guide:** `docs/player/PLAYER_GUIDE.md`
+- **Architecture overview:** `docs/development/ARCHITECTURE.md`
+- **Development roadmap:** `docs/development/ROADMAP.md`
+- **AI session log:** `docs/development/SESSION_LOG.md`
+- **Detailed plans:** `docs/development/plans/`
+
 ## Concept Summary
 
 A browser-based 3D dungeon crawler RPG with a voxel art style. The player begins in a fixed **hub area** (a small camp, base, or temple) that serves as a safe starting point between runs. From the hub, the player selects a dungeon floor to enter. Dungeon floors are procedurally generated and played from a top-down isometric perspective with real-time action combat. Instead of descending into a dungeon, the player **ascends** — climbing upward floor by floor, defeating a boss on each level to unlock the next.
