@@ -10,18 +10,18 @@ like: *"Please implement Phase N from QUALITY_PLAN.md."*
 
 ## Current State Baseline
 
-Captured 2026-02-20. Update this section as phases are completed.
+Captured 2026-02-20. Updated 2026-03-05 after Phase 6 completion.
 
 | Area | Status |
 |------|--------|
-| **Build** | `tsc && vite build` succeeds; 122 KB gzipped production bundle |
-| **TypeScript** | Strict mode enabled; `npx tsc --noEmit` passes |
-| **Linting** | ESLint v9 + Prettier installed; `npm run lint` and `npm run format:check` both pass |
-| **Testing** | Vitest with 335 tests across 13 files; 98% statement, 94% branch, 100% function coverage on pure-logic modules |
-| **Pre-commit hooks** | None |
-| **CI** | `.github/workflows/deploy.yml` deploys to GitHub Pages on push to main; `.github/workflows/quality.yml` runs lint, format check, and typecheck on PRs and pushes to main |
-| **Security** | No Dependabot, no CodeQL, no npm audit integration |
-| **Dependencies** | `three` (runtime); `typescript`, `vite`, `@types/three`, `eslint`, `@eslint/js`, `typescript-eslint`, `prettier`, `eslint-config-prettier` (dev) |
+| **Build** | `tsc && vite build` succeeds; ~162 KB gzipped production bundle; bundle size budget enforced in CI (5 MB limit) |
+| **TypeScript** | Strict mode enabled; `npx tsc --noEmit` passes; separate CI job |
+| **Linting** | ESLint v9 + Prettier installed; `npm run lint` and `npm run format:check` both pass; pre-commit hooks via Husky + lint-staged |
+| **Testing** | Vitest with 451 tests across 19 files; coverage thresholds enforced (80% lines, 80% functions, 70% branches); Playwright E2E + visual regression |
+| **Pre-commit hooks** | Husky + lint-staged: auto-lint and format staged `.ts` files on every commit |
+| **CI** | Consolidated `quality.yml` with dependency graph: lint + typecheck → unit-test + bundle-size → e2e + visual regression. All required jobs must pass before merge. |
+| **Security** | Dependabot (weekly npm + GitHub Actions updates), CodeQL static analysis, `npm audit` in CI and locally |
+| **Dependencies** | `three` (runtime); `typescript`, `vite`, `@types/three`, `eslint`, `@eslint/js`, `typescript-eslint`, `prettier`, `eslint-config-prettier`, `vitest`, `@vitest/coverage-v8`, `jsdom`, `@playwright/test`, `husky`, `lint-staged`, `rollup-plugin-visualizer` (dev) |
 
 ### Testability Map
 
@@ -49,7 +49,7 @@ that are immediately testable:
 | 3 | Build & Developer Experience | Husky, lint-staged, bundle analysis | [x] |
 | 4 | E2E & Visual Testing | Playwright | [x] |
 | 5 | Security Scanning | Dependabot, CodeQL, npm audit | [x] |
-| 6 | Continuous Quality Consolidation | Coverage thresholds, PR status checks | [ ] |
+| 6 | Continuous Quality Consolidation | Coverage thresholds, PR status checks | [x] |
 
 Update the Status column as phases are completed.
 

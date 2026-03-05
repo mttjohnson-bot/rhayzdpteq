@@ -59,10 +59,54 @@ jobs:
           path: coverage/
           retention-days: 30
 
+  bundle-size:
+    name: Bundle Size Check
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - name: Check bundle size budget (5 MB gzipped)
+        run: |
+          # Calculate total gzipped size of all assets
+          TOTAL_BYTES=0
+          for file in dist/assets/*; do
+            if [ -f "$file" ]; then
+              GZIP_SIZE=$(gzip -c "$file" | wc -c)
+              FILE_NAME=$(basename "$file")
+              HUMAN_SIZE=$(echo "scale=2; $GZIP_SIZE / 1024" | bc)
+              echo "  $FILE_NAME: ${HUMAN_SIZE} KB gzipped"
+              TOTAL_BYTES=$((TOTAL_BYTES + GZIP_SIZE))
+            fi
+          done
+
+          TOTAL_KB=$(echo "scale=2; $TOTAL_BYTES / 1024" | bc)
+          TOTAL_MB=$(echo "scale=2; $TOTAL_BYTES / 1048576" | bc)
+          BUDGET_BYTES=5242880  # 5 MB
+
+          echo ""
+          echo "Total gzipped bundle size: ${TOTAL_KB} KB (${TOTAL_MB} MB)"
+          echo "Budget: 5.00 MB"
+
+          if [ "$TOTAL_BYTES" -gt "$BUDGET_BYTES" ]; then
+            echo "::error::Bundle size ${TOTAL_MB} MB exceeds 5 MB budget!"
+            exit 1
+          else
+            echo "✓ Bundle size is within budget."
+          fi
+
   e2e:
     name: E2E Tests (Functional)
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, bundle-size]
     steps:
       - uses: actions/checkout@v6
 
@@ -93,7 +137,7 @@ jobs:
   e2e-visual:
     name: Visual Regression
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, bundle-size]
     continue-on-error: true
     steps:
       - uses: actions/checkout@v6
