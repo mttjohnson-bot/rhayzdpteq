@@ -11,6 +11,8 @@ export class Minimap {
   private dungeon: DungeonData | null = null;
   private revealed: boolean[][] = [];
   private scale = MINIMAP_TILE;
+  private lastTileX = 0;
+  private lastTileZ = 0;
 
   constructor() {
     this.container = document.createElement('div');
@@ -52,6 +54,8 @@ export class Minimap {
     const offsetZ = -this.dungeon.height / 2;
     const tileX = Math.floor(worldX - offsetX);
     const tileZ = Math.floor(worldZ - offsetZ);
+    this.lastTileX = tileX;
+    this.lastTileZ = tileZ;
 
     // Reveal tiles around player
     for (let dz = -FOG_REVEAL_RADIUS; dz <= FOG_REVEAL_RADIUS; dz++) {
@@ -126,6 +130,18 @@ export class Minimap {
       const pz = (playerTileZ - startZ) * scale + scale / 2 - dotSize / 2;
       ctx.fillRect(px, pz, dotSize, dotSize);
     }
+  }
+
+  getRevealed(): boolean[][] {
+    return this.revealed;
+  }
+
+  getDungeon(): DungeonData | null {
+    return this.dungeon;
+  }
+
+  getPlayerTile(): { x: number; z: number } {
+    return { x: this.lastTileX, z: this.lastTileZ };
   }
 
   show(): void {

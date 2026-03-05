@@ -60,18 +60,17 @@ Everything below has been implemented, tested, and is live on the deployed game.
 
 - **Diagnostics info tab** — Menu tab showing OS, browser, screen/viewport info, GPU name, live FPS/draw calls, active input device, and connected gamepad details. Accessible via LB/RB tab cycling (4th tab after Settings).
 
+### Full Map Tab in Menu
+
+- **Full map tab** — Expanded dungeon map accessible from the menu tab system (5th tab via LB/RB cycling). Shows the entire revealed dungeon layout with zoom in/out, arrow key/D-pad panning, discovery percentage, and key indicators (entrance, exit, boss room, player position). Only available during dungeon exploration.
+
 ---
 
 ## Ready to Build
 
 These items are well-defined enough to be picked up in a development session. They have clear scope and can be implemented without significant design decisions.
 
-### Full Map Tab in Menu
-
-An expanded map view accessible from the pause menu:
-- Zoom in/out support.
-- Percentage of map discovered.
-- Key indicators: start position, exit, boss room, discovered collectables.
+*(No items currently — see Needs Planning below for upcoming work.)*
 
 ---
 

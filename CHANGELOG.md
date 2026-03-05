@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Full Map Tab — an expanded dungeon map accessible from the menu tab system.
+
+- **Full map tab** — Added a Map tab (`src/ui/MapUI.ts`) accessible via the menu tab cycling system (LB/RB on gamepad, 5th tab). Shows the entire revealed dungeon layout with zoom and pan controls.
+- **Map discovery percentage** — The map tab displays the percentage of non-empty tiles that have been revealed by the player.
+- **Key indicators** — Entrance (blue), exit (green), boss room outline (red), and player position (blue dot) are highlighted on the map with a color legend.
+- **Zoom and pan** — Zoom in with Enter/A button, zoom out with X/R1, pan with arrow keys/D-pad. Map auto-centers on the player when opened.
+- **Five-tab menu system** — Extended the menu tab cycling from 4 tabs (Inventory, Skills, Settings, Diagnostics) to 5 tabs. Map tab is only available while in a dungeon.
+- **Minimap data sharing** — Added getters to the Minimap class (`getRevealed()`, `getDungeon()`, `getPlayerTile()`) so the full map can reuse the fog-of-war state.
+
+---
+
 Diagnostics Info Tab — a new menu tab showing system, renderer, and controller information.
 
 - **Diagnostics info tab** — Added a Diagnostics tab (`src/ui/DiagnosticsInfoUI.ts`) accessible via the menu tab cycling system (LB/RB on gamepad). Displays OS, browser, screen resolution, viewport size, GPU name, live FPS/draw calls, active input device, and connected gamepad name.

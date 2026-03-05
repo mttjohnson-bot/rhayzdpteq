@@ -264,7 +264,17 @@ Open the Settings menu by pressing **Escape** (keyboard) or **Start** (gamepad) 
 
 Use **Up/Down** (or D-pad) to navigate between options, **Left/Right** to change values, and **Escape / B** to close.
 
-When any menu overlay is open (Inventory, Skill Tree, Settings, or Diagnostics), press **LB / RB** on a gamepad to cycle between them without closing and reopening.
+When any menu overlay is open (Inventory, Skill Tree, Settings, Diagnostics, or Map), press **LB / RB** on a gamepad to cycle between them without closing and reopening.
+
+### Map Tab
+
+The Map tab shows an expanded view of the dungeon you're currently exploring. It is only available while inside a dungeon (not in the Hub). Access it by cycling to the 5th tab with **LB / RB** from any open menu overlay.
+
+- **Discovery percentage** — Shows how much of the floor you've explored.
+- **Key indicators** — Entrance (blue), exit (green), boss room outline (red), and your position (blue dot).
+- **Zoom** — Press **Enter / A** to zoom in, **X / R1** to zoom out.
+- **Pan** — Use **arrow keys / D-pad** to scroll around the map.
+- The map auto-centers on your position when opened.
 
 ### Diagnostics Tab
 
