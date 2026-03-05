@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Diagnostics Info Tab — a new menu tab showing system, renderer, and controller information.
+
+- **Diagnostics info tab** — Added a Diagnostics tab (`src/ui/DiagnosticsInfoUI.ts`) accessible via the menu tab cycling system (LB/RB on gamepad). Displays OS, browser, screen resolution, viewport size, GPU name, live FPS/draw calls, active input device, and connected gamepad name.
+- **OS and browser detection** — Detects operating system (Windows, macOS, Chrome OS, Linux, Android, iOS) and browser (Chrome, Firefox, Safari, Edge, Opera) from the user agent string with version numbers.
+- **Controller status** — Shows the active input device (keyboard/mouse, gamepad, or touch) and the connected gamepad's name and ID in real-time.
+- **Four-tab menu system** — Extended the menu tab cycling from 3 tabs (Inventory, Skills, Settings) to 4 tabs (Inventory, Skills, Settings, Diagnostics).
+- **DiagnosticsOverlay getters** — Added `fps` and `drawCalls` public getters to the existing DiagnosticsOverlay for data sharing with the new info tab.
+
+---
+
 Settings Menu & Menu Button Support — settings panel, diagnostics overlay, and gamepad menu navigation.
 
 - **Settings menu** — Added a Settings panel (`src/ui/SettingsUI.ts`) accessible via Start button on gamepad or Escape on keyboard. Includes three configurable options: camera mode (third-person / first-person), controller detection (auto / keyboard / gamepad), and a diagnostics overlay toggle.

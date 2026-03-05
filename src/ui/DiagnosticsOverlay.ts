@@ -17,6 +17,7 @@ export class DiagnosticsOverlay {
   private frameCount = 0;
   private elapsed = 0;
   private currentFps = 0;
+  private lastDrawCalls = 0;
 
   constructor() {
     this.container = document.createElement('div');
@@ -68,6 +69,16 @@ export class DiagnosticsOverlay {
     return this.visible;
   }
 
+  /** Current FPS value (updated once per second) */
+  get fps(): number {
+    return this.currentFps;
+  }
+
+  /** Latest draw call count from the renderer */
+  get drawCalls(): number {
+    return this.lastDrawCalls;
+  }
+
   /** Call once per frame with delta time and the renderer */
   update(dt: number, renderer: THREE.WebGLRenderer): void {
     if (!this.visible) return;
@@ -79,6 +90,7 @@ export class DiagnosticsOverlay {
     if (this.elapsed >= 1) {
       this.currentFps = Math.round(this.frameCount / this.elapsed);
       const drawCalls = renderer.info.render.calls;
+      this.lastDrawCalls = drawCalls;
 
       // Color-code FPS: green >= 50, yellow >= 30, red < 30
       let fpsColor = '#88cc88';
