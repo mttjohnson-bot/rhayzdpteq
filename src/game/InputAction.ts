@@ -20,6 +20,9 @@ export type InputAction =
   // Game UI toggles
   | 'toggleInventory'
   | 'toggleSkillTree'
+  | 'toggleMenu' // Start button / Escape — opens pause menu
+  | 'tabLeft' // LB — cycle menu tab left
+  | 'tabRight' // RB — cycle menu tab right
   | 'dropItem'
   | 'respawn'
   // Menu-specific
@@ -73,7 +76,7 @@ export const DEFAULT_KEYBOARD_MAPPING: KeyboardMappingConfig = {
   KeyR: [{ action: 'respawn' }],
   Enter: [{ action: 'respawn' }, { action: 'uiConfirm' }],
   // Cancel
-  Escape: [{ action: 'uiCancel' }],
+  Escape: [{ action: 'uiCancel' }, { action: 'toggleMenu' }],
   // Slot selection (1-4 map to both slots and floors)
   Digit1: [{ action: 'selectSlot1' }, { action: 'selectFloor1' }],
   Digit2: [{ action: 'selectSlot2' }, { action: 'selectFloor2' }],
@@ -109,11 +112,11 @@ export const DEFAULT_GAMEPAD_BUTTON_MAPPING: GamepadButtonMappingConfig = {
   1: [{ action: 'interact' }, { action: 'uiCancel' }], // B
   2: [{ action: 'toggleInventory' }], // X
   3: [{ action: 'toggleSkillTree' }], // Y
-  4: [{ action: 'respawn' }], // L1
-  5: [{ action: 'dropItem' }], // R1
+  4: [{ action: 'respawn' }, { action: 'tabLeft' }], // L1 / LB
+  5: [{ action: 'dropItem' }, { action: 'tabRight' }], // R1 / RB
   7: [{ action: 'attack' }], // RT
   8: [{ action: 'uiCancel' }], // Select
-  9: [{ action: 'uiCancel' }], // Start
+  9: [{ action: 'toggleMenu' }], // Start — open pause menu
   12: [{ action: 'uiUp' }], // D-pad up
   13: [{ action: 'uiDown' }], // D-pad down
   14: [{ action: 'uiLeft' }], // D-pad left

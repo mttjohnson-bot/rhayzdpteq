@@ -55,6 +55,7 @@ The Hub persists — your position resets to the spawn point each time you retur
 | Drop Item | X (with item selected) |
 | Respawn (on death) | R, Enter, or Space |
 | Close Overlay / Cancel | Escape |
+| Settings / Pause Menu | Escape (when no overlay is open) |
 
 ### Gamepad
 
@@ -68,7 +69,9 @@ The Hub persists — your position resets to the spawn point each time you retur
 | Drop Item | R1 |
 | UI Navigate | D-pad |
 | Confirm | A |
-| Cancel / Back | B, Start, or Select |
+| Cancel / Back | B or Select |
+| Settings / Pause Menu | Start |
+| Cycle Menu Tabs | LB / RB (when a menu is open) |
 
 ### Touch Screen
 
@@ -246,6 +249,22 @@ Enemies and chests drop randomized loot. Drop quality scales with floor difficul
 - **Upgrade your gear** — equipping even common items is better than fighting bare-handed.
 - **Invest skill points early** — even small stat boosts compound over multiple floors.
 - **Check the minimap** — it reveals room layouts as you explore, helping you navigate back to unexplored areas.
+
+---
+
+## Settings Menu
+
+Open the Settings menu by pressing **Escape** (keyboard) or **Start** (gamepad) when no other overlay is active. The settings panel includes:
+
+| Setting | Options | Description |
+|---------|---------|-------------|
+| Camera | Third-Person / First-Person | Switch between the default isometric view and a first-person perspective at eye level |
+| Controller | Auto-Detect / Keyboard / Gamepad | Choose automatic input detection or lock to a specific device |
+| Diagnostics | OFF / ON | Show a real-time FPS counter and draw call count in the top-right corner |
+
+Use **Up/Down** (or D-pad) to navigate between options, **Left/Right** to change values, and **Escape / B** to close.
+
+When any menu overlay is open (Inventory, Skill Tree, or Settings), press **LB / RB** on a gamepad to cycle between them without closing and reopening.
 
 ---
 
