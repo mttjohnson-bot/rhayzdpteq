@@ -210,6 +210,19 @@ Items have **rarity tiers**: Common, Uncommon, Rare, Epic. Higher rarity means b
 - **Touch:** Tap an item to open an action menu (Equip/Use, Drop, Cancel).
 - Dropping items requires a **confirmation prompt** to prevent accidents.
 
+### Storage Vault
+
+The Hub contains a **storage vault** (the chest on the west wall). Walk near it and press **E** (keyboard) or **A** (gamepad) to open it.
+
+- **48 storage slots** for long-term item storage.
+- **Two-column layout** — your bag is on the left, the vault on the right.
+- **Click or press confirm** to transfer an item to the other side.
+- **Keyboard/Gamepad:** Arrow keys or D-pad to navigate, Left/Right to switch columns, Space/A to transfer, Esc/B to close.
+- **Touch:** Tap an item to transfer it.
+- Vault contents **save automatically** when the vault is closed and persist across sessions.
+
+Use the vault to store equipment and consumables you want to keep but don't need in the dungeon.
+
 ### Loot
 
 Enemies and chests drop randomized loot. Drop quality scales with floor difficulty. Each floor has a chance for rare hidden items.
@@ -276,7 +289,6 @@ Enemies and chests drop randomized loot. Drop quality scales with floor difficul
 ## What's Coming Next
 
 See the [Development Roadmap](../development/ROADMAP.md) for planned features including:
-- Item storage vault in the Hub
 - Quest/objective board with rewards
 - Additional enemy types and floor themes
 - Settings menu with view toggle and diagnostics

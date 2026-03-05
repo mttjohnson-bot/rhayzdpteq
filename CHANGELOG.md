@@ -4,6 +4,15 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Item Storage Vault — long-term item storage accessible from the Hub.
+
+- **Vault storage system** — Added a VaultStorage class (`src/rpg/VaultStorage.ts`) with a 48-slot capacity for long-term item storage. Items transfer between the player's bag and the vault.
+- **Vault UI overlay** — Added a two-column vault dialog (`src/ui/VaultUI.ts`) showing the bag on the left and vault on the right. Click or press confirm to transfer items between columns. Full keyboard, gamepad, and touch support with item tooltips and device-adaptive hints.
+- **Vault chest in Hub** — Added a decorative chest object on the west wall of the Hub. Walk near it and press E (or A on gamepad) to open the vault.
+- **Save/load integration** — Vault contents persist across saves via the existing localStorage save system. Vault auto-saves when the overlay is closed.
+
+---
+
 Documentation reorganization — organized planning docs by audience with AI session prompt capture.
 
 - **Documentation structure** — Created a `docs/` directory with separate sections for player-facing and developer-facing documentation. Player docs live in `docs/player/`, developer docs in `docs/development/`, and detailed feature plans in `docs/development/plans/`.
