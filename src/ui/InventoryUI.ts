@@ -158,8 +158,8 @@ export class InventoryUI {
       color: '#ccc',
       display: 'none',
       whiteSpace: 'pre-line',
-      height: '6rem',
-      overflowY: 'auto',
+      minHeight: '3rem',
+      overflowY: 'hidden',
     });
     this.container.appendChild(this.tooltipEl);
 

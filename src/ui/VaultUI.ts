@@ -140,8 +140,8 @@ export class VaultUI {
       color: '#ccc',
       display: 'none',
       whiteSpace: 'pre-line',
-      height: '6rem',
-      overflowY: 'auto',
+      minHeight: '3rem',
+      overflowY: 'hidden',
     });
     this.container.appendChild(this.tooltipEl);
 
@@ -321,8 +321,8 @@ export class VaultUI {
       return;
     }
 
-    for (const item of this.inventory.bag) {
-      this.bagEl.appendChild(this.createItemRow(item, 'bag'));
+    for (let i = 0; i < this.inventory.bag.length; i++) {
+      this.bagEl.appendChild(this.createItemRow(this.inventory.bag[i], 'bag', i));
     }
 
     // Bag count
@@ -349,8 +349,8 @@ export class VaultUI {
       return;
     }
 
-    for (const item of this.vault.items) {
-      this.vaultEl.appendChild(this.createItemRow(item, 'vault'));
+    for (let i = 0; i < this.vault.items.length; i++) {
+      this.vaultEl.appendChild(this.createItemRow(this.vault.items[i], 'vault', i));
     }
 
     // Vault count
@@ -365,7 +365,7 @@ export class VaultUI {
     this.vaultEl.appendChild(countEl);
   }
 
-  private createItemRow(item: Item, source: 'bag' | 'vault'): HTMLDivElement {
+  private createItemRow(item: Item, source: 'bag' | 'vault', index: number): HTMLDivElement {
     const row = document.createElement('div');
     Object.assign(row.style, {
       display: 'flex',
@@ -411,6 +411,9 @@ export class VaultUI {
     });
 
     row.addEventListener('mouseenter', () => {
+      this.selectedColumn = source;
+      this.selectedIndex = index;
+      this.updateSelectionHighlight();
       row.style.background = 'rgba(60,50,80,0.5)';
     });
     row.addEventListener('mouseleave', () => {
