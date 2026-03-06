@@ -265,3 +265,20 @@ Fixed hint text in `MenuTabBar.ts` and removed the `TAB_KEYS` constant and per-t
 
 ### Notes
 - The actual `[` and `]` tab cycling worked correctly all along — the issue was purely a UX/hint text problem that made users think `/` was the key.
+
+---
+
+## 2026-03-06 — Fix Description Overflow & Vault Hover Tooltips
+
+### Prompt
+> "Some items have a longer description that doesn't fit in the box. It would be fine if it auto-sized as long as the dialog only expanded downward. Also vault item hover doesn't display descriptions."
+
+### Plan
+1. Change the tooltip panel from fixed `height: 6rem` to `minHeight: 3rem` with no max height, allowing it to grow downward to fit content.
+2. Add selection tracking to the vault's `mouseenter` handler so hovering updates `selectedColumn`/`selectedIndex` and triggers `updateSelectionHighlight()` which updates the tooltip.
+
+### Outcome
+Fixed tooltip sizing in both InventoryUI and VaultUI to auto-expand downward. Added mouse hover selection tracking to VaultUI's `createItemRow` method, matching the pattern already used in InventoryUI.
+
+### Notes
+- The previous fix (fixed-height tooltip to prevent jitter) was correct for the upper portion of the UI where hovering items are located. The tooltip sits below all hoverable items, so expanding it downward doesn't cause the jitter loop.

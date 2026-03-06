@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Fix item description overflow and vault hover tooltips.
+
+- **Fixed description overflow in tooltips** — Item descriptions that exceeded the fixed-height tooltip panel were cut off. The tooltip now auto-sizes downward to fit all content, since the description area is below hoverable items and won't cause jitter.
+- **Fixed vault item hover descriptions** — Hovering over items in the Vault storage screen didn't display the item description tooltip. Mouse hover now updates the selected item and shows its stats in the tooltip panel, matching Inventory behavior.
+
+---
+
 Fix menu tab bar keyboard hints — clarify bracket key shortcuts and remove inconsistent per-tab labels.
 
 - **Fixed confusing tab-switch hint** — The keyboard hint below the tab bar displayed `[ / ]: switch tab`, which looked like the `/` key was the shortcut. Changed to `[ and ]: switch tab` to clearly indicate the bracket keys.
