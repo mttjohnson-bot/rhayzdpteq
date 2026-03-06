@@ -188,3 +188,22 @@ Full Map Tab fully implemented. Menu system expanded from 4 to 5 tabs. 8 new uni
 ### Notes
 - The map tab is only available when the player is in a dungeon. When tab-cycling reaches the map tab outside of dungeon state, it gracefully skips by setting `activeMenuTab = null`.
 - Canvas `getContext('2d')` returns null in jsdom, so the `ctx` field was made nullable with early returns in drawing methods to handle test environments gracefully.
+
+## 2026-03-06 — Inventory & Settings Mouse Interaction Fixes
+
+### Prompt
+> "There are some issues with the mouse and inventory where it doesn't seem to highlight or select the correct item."
+> "Also it looks like in the settings menu if I pull that up I can't close it by clicking on the X with the mouse."
+
+### Plan
+1. Investigate inventory mouse handling — found that click/hover handlers in `InventoryUI` don't update `selectedColumn` or `selectedIndex`, so the highlight stays on the wrong item.
+2. Investigate settings X button — found that `MouseProvider` maps left-click to `uiConfirm`, which triggers `cycleOption()` → `render()` in `SettingsUI.handleActions()`, destroying the X button DOM element before its `click` event fires.
+3. Fix inventory: add `selectedColumn`/`selectedIndex` updates to mouseenter and click handlers for both equipment and bag items. Convert `for...of` to indexed loops to track positions.
+4. Fix settings/all UIs: skip game action mapping in `MouseProvider` when the click target is inside `#ui-overlay`, since UI elements have their own DOM click handlers.
+
+### Outcome
+Both bugs fixed. Inventory highlight now follows the mouse correctly. Settings X button (and all UI close buttons) now respond to mouse clicks. All 476 unit tests pass, lint/typecheck/build clean.
+
+### Notes
+- The root cause of the settings bug affects all menu UIs, not just settings — any UI that re-renders its DOM in response to `uiConfirm` would have the same broken close button. The fix in MouseProvider addresses this class of bugs globally.
+- The inventory fix required changing `for (const item of bag)` to `for (let bagIdx = 0; ...)` to have index access in closure-captured event handlers.

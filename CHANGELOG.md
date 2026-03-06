@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Inventory & Settings Mouse Interaction Fixes — correct highlight tracking and click handling for mouse users.
+
+- **Inventory selection tracking** — Mouse hover and click now update the selection highlight to match the hovered/clicked item. Previously the highlight stayed on the first item regardless of mouse position, causing a disconnect between visual feedback and the actual selection.
+- **Settings close button fix** — The X button in the Settings menu now responds to mouse clicks. The MouseProvider was mapping left-click to a `uiConfirm` action that triggered a DOM re-render before the button's click event could fire, effectively destroying the button mid-click.
+- **UI click isolation** — Mouse clicks on UI overlay elements no longer emit game actions (attack, uiConfirm) through the input action system, preventing interference between DOM event handlers and the game's action-based input processing.
+
+---
+
 Full Map Tab — an expanded dungeon map accessible from the menu tab system.
 
 - **Full map tab** — Added a Map tab (`src/ui/MapUI.ts`) accessible via the menu tab cycling system (LB/RB on gamepad, 5th tab). Shows the entire revealed dungeon layout with zoom and pan controls.
