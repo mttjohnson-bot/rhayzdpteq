@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Fix menu tab bar keyboard hints — clarify bracket key shortcuts and remove inconsistent per-tab labels.
+
+- **Fixed confusing tab-switch hint** — The keyboard hint below the tab bar displayed `[ / ]: switch tab`, which looked like the `/` key was the shortcut. Changed to `[ and ]: switch tab` to clearly indicate the bracket keys.
+- **Removed per-tab shortcut labels** — Tab buttons previously showed shortcut keys for some tabs (e.g. `Inventory [I]`, `Skills [K]`) but not others (Settings, Diagnostics), creating an inconsistent appearance. All tabs now display only their name; the `[` and `]` keys handle tab switching uniformly.
+
+---
+
 Fix Inventory Tooltip Hover Jitter — prevent item list from shifting when hovering different items.
 
 - **Fixed tooltip hover jitter** — Hovering over inventory items caused the tooltip panel to resize (different items have different description lengths), which shifted item positions and caused the cursor to land on a different item, creating a rapid jitter loop. The tooltip panel now has a fixed height so its content never causes layout reflows.
