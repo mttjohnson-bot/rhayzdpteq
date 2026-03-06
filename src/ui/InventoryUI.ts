@@ -399,7 +399,8 @@ export class InventoryUI {
     this.equipmentEl.innerHTML = '';
 
     const slots: ItemSlot[] = ['weapon', 'armor', 'ring'];
-    for (const slot of slots) {
+    for (let slotIdx = 0; slotIdx < slots.length; slotIdx++) {
+      const slot = slots[slotIdx];
       const item = this.inventory.equipped[slot];
       const row = document.createElement('div');
       Object.assign(row.style, {
@@ -426,6 +427,9 @@ export class InventoryUI {
         row.title = this.itemTooltip(item);
 
         row.addEventListener('click', async () => {
+          this.selectedColumn = 'equipment';
+          this.selectedIndex = slotIdx;
+          this.updateSelectionHighlight();
           if (this.inputDevice === 'touch') {
             const action = await this.itemActionDialog.show(item.name, [
               { label: 'Unequip', action: 'unequip', variant: 'primary' },
@@ -441,6 +445,9 @@ export class InventoryUI {
           }
         });
         row.addEventListener('mouseenter', () => {
+          this.selectedColumn = 'equipment';
+          this.selectedIndex = slotIdx;
+          this.updateSelectionHighlight();
           row.style.background = 'rgba(80,50,100,0.5)';
         });
         row.addEventListener('mouseleave', () => {
@@ -469,7 +476,8 @@ export class InventoryUI {
       return;
     }
 
-    for (const item of this.inventory.bag) {
+    for (let bagIdx = 0; bagIdx < this.inventory.bag.length; bagIdx++) {
+      const item = this.inventory.bag[bagIdx];
       const row = document.createElement('div');
       Object.assign(row.style, {
         display: 'flex',
@@ -526,6 +534,9 @@ export class InventoryUI {
 
       // Touch: show action dialog; mouse: click to equip, right-click to use, shift+click to drop
       row.addEventListener('click', async (e) => {
+        this.selectedColumn = 'bag';
+        this.selectedIndex = bagIdx;
+        this.updateSelectionHighlight();
         if (this.inputDevice === 'touch') {
           const buttons: ActionButtonConfig[] = [];
           if (item.type === 'equipment') {
@@ -577,6 +588,9 @@ export class InventoryUI {
       });
 
       row.addEventListener('mouseenter', () => {
+        this.selectedColumn = 'bag';
+        this.selectedIndex = bagIdx;
+        this.updateSelectionHighlight();
         row.style.background = 'rgba(60,50,80,0.5)';
       });
       row.addEventListener('mouseleave', () => {

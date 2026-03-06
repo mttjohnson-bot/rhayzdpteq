@@ -34,6 +34,12 @@ export class MouseProvider implements InputProvider {
       this.buttonsDown.add(e.button);
       this._active = true;
 
+      // Don't map mouse buttons to game actions when clicking on UI elements —
+      // those have their own DOM event handlers and the action system would
+      // interfere (e.g. uiConfirm re-rendering the DOM before click fires).
+      const target = e.target as HTMLElement;
+      if (target.closest?.('#ui-overlay')) return;
+
       if (isNewPress) {
         for (const entry of this.mapping) {
           if (entry.button === e.button) {
@@ -48,6 +54,8 @@ export class MouseProvider implements InputProvider {
 
     this.handleMouseUp = (e: MouseEvent) => {
       this.buttonsDown.delete(e.button);
+      // Always rebuild held state on mouseup, even for UI clicks, so
+      // actions added before the guard in mousedown are properly released.
       this.rebuildHeld();
     };
 
