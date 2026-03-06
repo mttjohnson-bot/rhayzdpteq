@@ -167,3 +167,24 @@ Diagnostics Info Tab fully implemented. Menu system expanded from 3 to 4 tabs. 1
 ### Notes
 - iOS detection needed to be ordered before macOS in the user agent check since iOS UA strings contain "Mac OS X".
 - `navigator.getGamepads()` doesn't exist in jsdom, so added a guard for the gamepad API availability.
+
+## 2026-03-05 — Full Map Tab in Menu
+
+### Prompt
+> Work on the "Full Map Tab in Menu" part of the ROADMAP.md
+
+### Plan
+1. Create `MapUI` component (`src/ui/MapUI.ts`) following the same overlay pattern as `DiagnosticsInfoUI` — modal overlay, show/hide/handleActions, input device awareness.
+2. Render the full revealed dungeon map on a canvas with zoom (1-8x tile size) and pan (arrow keys/D-pad) support.
+3. Show discovery percentage (revealed non-empty tiles / total non-empty tiles).
+4. Highlight key indicators: entrance (blue), exit (green), boss room outline (red), player position (blue dot) with a color legend.
+5. Add getters to `Minimap` (`getRevealed()`, `getDungeon()`, `getPlayerTile()`) to share fog-of-war state with the map tab.
+6. Integrate into `Game.ts`: add 'map' as 5th menu tab, wire up tab cycling, route actions, pause movement when open. Map tab only available in dungeon state.
+7. Write unit tests for MapUI lifecycle and discovery percentage computation.
+
+### Outcome
+Full Map Tab fully implemented. Menu system expanded from 4 to 5 tabs. 8 new unit tests added (476 total, all passing). Lint, format, typecheck, and build all clean.
+
+### Notes
+- The map tab is only available when the player is in a dungeon. When tab-cycling reaches the map tab outside of dungeon state, it gracefully skips by setting `activeMenuTab = null`.
+- Canvas `getContext('2d')` returns null in jsdom, so the `ctx` field was made nullable with early returns in drawing methods to handle test environments gracefully.
