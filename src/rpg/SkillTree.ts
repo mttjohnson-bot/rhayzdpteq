@@ -56,7 +56,7 @@ function createDefaultTree(): SkillNode[] {
     // --- Guardian branch (vitality / defense) ---
     node('g1', 'Tough Skin', '+3 defense per rank', 'guardian', 1, 3, null, { flatDefense: 3 }),
     node('g2', 'Vitality Boost', '+2 vitality per rank', 'guardian', 2, 3, 'g1', { vitality: 2 }),
-    node('g3', 'Regeneration', '+0.5 HP/sec per rank', 'guardian', 3, 2, 'g2', { hpRegen: 0.5 }),
+    node('g3', 'Regeneration', '+1 HP/sec per rank', 'guardian', 3, 3, 'g2', { hpRegen: 1.0 }),
     node('g4', 'Fortress', '+30 max HP, +5 defense', 'guardian', 4, 1, 'g3', {
       flatMaxHp: 30,
       flatDefense: 5,

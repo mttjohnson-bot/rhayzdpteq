@@ -268,6 +268,25 @@ Fixed hint text in `MenuTabBar.ts` and removed the `TAB_KEYS` constant and per-t
 
 ---
 
+## 2026-03-06 — Balance Enemy Stats & Buff Regeneration
+
+### Prompt
+> "We need to make the bosses cause about half the damage as they currently do, but increase their health to about 150% of what it currently is. Also make the regular enemies have about twice as much health. Also double the regeneration rate skill and add a 3rd tier to regeneration."
+
+### Plan
+1. Double `ENEMY_HP` constant (40→80) for regular enemies.
+2. Halve all boss `dmgMultiplier` values across 10 floors.
+3. Multiply boss `hpMultiplier` values by 0.75 to compensate for the doubled base HP (net effect: 1.5x boss HP).
+4. Double Regeneration's `hpRegen` per rank (0.5→1.0) and increase max rank from 2 to 3.
+
+### Outcome
+All changes applied to `constants.ts`, `FloorConfig.ts`, and `SkillTree.ts`. All 476 unit tests pass. Build and lint clean.
+
+### Notes
+- Since both enemies and bosses derive HP from the shared `ENEMY_HP` constant, boss `hpMultiplier` values were adjusted by ×0.75 so the net effect (2 × 0.75 = 1.5) yields 150% boss HP as requested.
+
+---
+
 ## 2026-03-06 — Fix Description Overflow & Vault Hover Tooltips
 
 ### Prompt
