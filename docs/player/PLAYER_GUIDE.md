@@ -267,7 +267,6 @@ Switch tabs by:
 - **Clicking** a tab in the tab bar
 - Pressing **\[** or **\]** on keyboard
 - Pressing **LB / RB** on gamepad
-- Pressing a tab's shortcut key (**I** for Inventory, **K** for Skills, **M** for Map)
 
 The Map tab is only available while inside a dungeon and appears grayed out in the Hub.
 

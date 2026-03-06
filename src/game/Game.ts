@@ -811,7 +811,7 @@ export class Game {
     this.recomputeStats();
   }
 
-  /** Handle [/] or LB/RB tab cycling between menu tabs */
+  /** Handle [ ] or LB/RB tab cycling between menu tabs */
   private handleTabCycling(): void {
     if (!this.activeMenuTab) return;
 

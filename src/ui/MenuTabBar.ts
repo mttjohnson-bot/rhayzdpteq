@@ -17,14 +17,6 @@ const TAB_LABELS: Record<MenuTab, string> = {
   diagnostics: 'Diagnostics',
 };
 
-const TAB_KEYS: Record<MenuTab, string> = {
-  inventory: 'I',
-  skills: 'K',
-  map: 'M',
-  settings: '',
-  diagnostics: '',
-};
-
 export class MenuTabBar {
   private container: HTMLDivElement;
   private visible = false;
@@ -166,9 +158,7 @@ export class MenuTabBar {
         this.applyInactiveStyle(btn, isDisabled);
       }
 
-      // Show shortcut key label
-      const key = TAB_KEYS[tab];
-      btn.textContent = key ? `${TAB_LABELS[tab]} [${key}]` : TAB_LABELS[tab];
+      btn.textContent = TAB_LABELS[tab];
     }
   }
 
@@ -199,7 +189,7 @@ export class MenuTabBar {
         this.hintEl.textContent = 'Tap a tab to switch';
         break;
       default:
-        this.hintEl.textContent = '[ / ]: switch tab | Esc: close menu';
+        this.hintEl.textContent = '[ and ]: switch tab | Esc: close menu';
     }
   }
 }

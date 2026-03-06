@@ -247,3 +247,21 @@ Fixed in both InventoryUI and VaultUI. The tooltip panel now has a fixed height 
 
 ### Notes
 - Simple CSS-only fix — no logic changes needed. The root cause was purely a layout reflow issue.
+
+---
+
+## 2026-03-06 — Fix Tab Switching Keyboard Hints
+
+### Prompt
+> "In the main menu it seems to indicate the `/` key could switch tabs but the `/` key doesn't do anything. I also noticed that while inventory and skills list some kind of letter to open them the settings and diagnostics tab doesn't... I don't think the individual dialogs need a special key to open them if the main menu can switch to any of the menu tabs (but we need tab switching to work properly with the keyboard)."
+
+### Plan
+1. Fix the ambiguous hint text `[ / ]: switch tab` which looks like `/` is the shortcut — change to `[ and ]: switch tab` to clearly indicate the bracket keys.
+2. Remove per-tab shortcut key labels (e.g. `Inventory [I]`) from the tab bar buttons since they were inconsistent (only some tabs had them) and redundant with bracket-key tab cycling.
+3. Keep the underlying I/K/M quick-open keyboard shortcuts functional — they're still useful for opening a specific tab directly from gameplay.
+
+### Outcome
+Fixed hint text in `MenuTabBar.ts` and removed the `TAB_KEYS` constant and per-tab label rendering. Updated player guide to remove the per-tab shortcut line from the tab switching instructions.
+
+### Notes
+- The actual `[` and `]` tab cycling worked correctly all along — the issue was purely a UX/hint text problem that made users think `/` was the key.
