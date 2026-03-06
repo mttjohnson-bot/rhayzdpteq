@@ -142,10 +142,10 @@ describe('KeyboardProvider', () => {
       expect(state.pressed.has('toggleSkillTree')).toBe(true);
     });
 
-    it('maps Escape to uiCancel', () => {
+    it('maps Escape to toggleMenu', () => {
       keyDown('Escape');
       const state = provider.poll();
-      expect(state.pressed.has('uiCancel')).toBe(true);
+      expect(state.pressed.has('toggleMenu')).toBe(true);
     });
 
     it('maps Enter to uiConfirm and respawn', () => {

@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Unified Menu Tab Bar & ESC Key Fix — visual tab bar for menu navigation, keyboard tab cycling, and ESC conflict resolution.
+
+- **Visual tab bar** — Added a `MenuTabBar` component that appears at the top of the screen whenever any menu panel is open. Displays clickable tabs for Inventory, Skills, Map, Settings, and Diagnostics with the active tab highlighted.
+- **ESC key conflict fix** — Fixed a bug where pressing Escape while any menu was open would close it then immediately reopen Settings. The root cause was ESC mapping to both `uiCancel` and `toggleMenu` actions simultaneously, causing a close-then-reopen race condition. ESC now only maps to `toggleMenu`.
+- **Keyboard tab cycling** — Added `[` and `]` key bindings for switching between menu tabs, making tab navigation accessible to keyboard users (previously only available via gamepad LB/RB).
+- **Map shortcut key** — Added `M` key to directly open/close the Map tab from gameplay (dungeon only).
+- **Unified ESC handling** — ESC now closes any open overlay (including Floor Select and Library Dialog), not just tab-system menus. Previously ESC didn't close Floor Select and would open Settings over other dialogs.
+- **Default menu tab** — ESC now opens the Inventory tab (instead of Settings) as the default menu when nothing else is open, providing immediate access to the most-used panel.
+- **Tab cycling skips disabled tabs** — When cycling tabs with `[`/`]` or LB/RB, the Map tab is automatically skipped when not in a dungeon.
+
+---
+
 Inventory & Settings Mouse Interaction Fixes — correct highlight tracking and click handling for mouse users.
 
 - **Inventory selection tracking** — Mouse hover and click now update the selection highlight to match the hovered/clicked item. Previously the highlight stayed on the first item regardless of mouse position, causing a disconnect between visual feedback and the actual selection.

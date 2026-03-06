@@ -93,7 +93,7 @@ export class FloorSelectUI {
     this.onCancel = null;
   }
 
-  private cancel(): void {
+  cancel(): void {
     const cb = this.onCancel;
     this.hide();
     cb?.();

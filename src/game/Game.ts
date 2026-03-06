@@ -23,6 +23,8 @@ import { SettingsUI, GameSettings } from '../ui/SettingsUI';
 import { DiagnosticsOverlay } from '../ui/DiagnosticsOverlay';
 import { DiagnosticsInfoUI } from '../ui/DiagnosticsInfoUI';
 import { MapUI } from '../ui/MapUI';
+import { MenuTabBar } from '../ui/MenuTabBar';
+import type { MenuTab } from '../ui/MenuTabBar';
 import { BossHealthBar } from '../ui/BossHealthBar';
 import { generateDungeon, DungeonData } from '../dungeon/DungeonGenerator';
 import { buildDungeonMesh, DungeonMeshData } from '../dungeon/FloorRenderer';
@@ -67,6 +69,7 @@ export class Game {
   private diagnosticsOverlay: DiagnosticsOverlay;
   private diagnosticsInfoUI: DiagnosticsInfoUI;
   private mapUI: MapUI;
+  private menuTabBar: MenuTabBar;
   private bossHealthBar: BossHealthBar;
   private combatSystem: CombatSystem;
 
@@ -117,9 +120,9 @@ export class Game {
     diagnosticsEnabled: false,
   };
 
-  // Menu tab cycling (inventory, skills, settings, diagnostics)
-  private readonly menuTabs = ['inventory', 'skills', 'settings', 'diagnostics', 'map'] as const;
-  private activeMenuTab: (typeof this.menuTabs)[number] | null = null;
+  // Menu tab cycling
+  private readonly menuTabs: MenuTab[] = ['inventory', 'skills', 'map', 'settings', 'diagnostics'];
+  private activeMenuTab: MenuTab | null = null;
 
   // Death/respawn state
   private deathScreenVisible = false;
@@ -169,6 +172,7 @@ export class Game {
     this.diagnosticsOverlay = new DiagnosticsOverlay();
     this.diagnosticsInfoUI = new DiagnosticsInfoUI();
     this.mapUI = new MapUI();
+    this.menuTabBar = new MenuTabBar();
     this.bossHealthBar = new BossHealthBar();
     this.libraryDialog = new LibraryAssetDialog();
     this.combatSystem = new CombatSystem(this.sceneManager.scene, this.player);
@@ -602,13 +606,14 @@ export class Game {
     }
   }
 
-  /** Handle I (inventory), K (skill tree), and Start/Esc (menu) toggles */
+  /** Handle menu toggles: ESC (menu), I (inventory), K (skills), M (map) */
   private handleUIToggle(): void {
     if (this.deathScreenVisible || this.winScreenVisible) return;
 
-    // Start / Escape toggles menu — opens settings if nothing is open,
-    // or closes the current overlay if one is active
+    // Start / Escape toggles menu — closes any open overlay, or opens
+    // the inventory tab as the default menu if nothing is open
     if (this.actions.wasActionPressed('toggleMenu')) {
+      // Close any tab-system menu
       if (
         this.settingsOpen ||
         this.inventoryOpen ||
@@ -619,87 +624,62 @@ export class Game {
         this.closeAllMenuTabs();
         return;
       }
+      // Close non-tab overlays
       if (this.vaultOpen) {
         this.vaultUI.hide();
         this.vaultOpen = false;
         return;
       }
       if (this.floorSelectOpen) {
-        // Let the floor select handle its own cancel
+        this.floorSelectUI.cancel();
         return;
       }
-      // Nothing open — open settings as the default pause menu
-      this.openMenuTab('settings');
+      if (this.libraryDialogOpen) {
+        this.libraryDialog.hide();
+        this.libraryDialogOpen = false;
+        return;
+      }
+      // Nothing open — open inventory as the default menu tab
+      this.openMenuTab('inventory');
       return;
     }
 
-    // Toggle inventory
+    // Toggle inventory (I key)
     if (this.actions.wasActionPressed('toggleInventory')) {
-      if (this.vaultOpen) {
-        this.vaultUI.hide();
-        this.vaultOpen = false;
-      }
-      if (this.settingsOpen) {
-        this.settingsUI.hide();
-        this.settingsOpen = false;
-      }
-      if (this.skillTreeOpen) {
-        this.skillTreeUI.hide();
-        this.skillTreeOpen = false;
-      }
-      if (this.diagnosticsInfoOpen) {
-        this.diagnosticsInfoUI.hide();
-        this.diagnosticsInfoOpen = false;
-      }
-      if (this.mapOpen) {
-        this.mapUI.hide();
-        this.mapOpen = false;
-      }
+      if (this.vaultOpen || this.floorSelectOpen || this.libraryDialogOpen) return;
       if (this.inventoryOpen) {
-        this.inventoryUI.hide();
-        this.inventoryOpen = false;
-        this.activeMenuTab = null;
+        this.closeAllMenuTabs();
       } else {
         this.openMenuTab('inventory');
       }
       return;
     }
 
-    // Toggle skill tree
+    // Toggle skill tree (K key)
     if (this.actions.wasActionPressed('toggleSkillTree')) {
-      if (this.vaultOpen) {
-        this.vaultUI.hide();
-        this.vaultOpen = false;
-      }
-      if (this.settingsOpen) {
-        this.settingsUI.hide();
-        this.settingsOpen = false;
-      }
-      if (this.inventoryOpen) {
-        this.inventoryUI.hide();
-        this.inventoryOpen = false;
-      }
-      if (this.diagnosticsInfoOpen) {
-        this.diagnosticsInfoUI.hide();
-        this.diagnosticsInfoOpen = false;
-      }
-      if (this.mapOpen) {
-        this.mapUI.hide();
-        this.mapOpen = false;
-      }
+      if (this.vaultOpen || this.floorSelectOpen || this.libraryDialogOpen) return;
       if (this.skillTreeOpen) {
-        this.skillTreeUI.hide();
-        this.skillTreeOpen = false;
-        this.activeMenuTab = null;
+        this.closeAllMenuTabs();
       } else {
         this.openMenuTab('skills');
+      }
+      return;
+    }
+
+    // Toggle map (M key)
+    if (this.actions.wasActionPressed('toggleMap')) {
+      if (this.vaultOpen || this.floorSelectOpen || this.libraryDialogOpen) return;
+      if (this.mapOpen) {
+        this.closeAllMenuTabs();
+      } else if (this.state === 'dungeon' && this.dungeonData) {
+        this.openMenuTab('map');
       }
       return;
     }
   }
 
   /** Open a specific menu tab, closing any others */
-  private openMenuTab(tab: (typeof this.menuTabs)[number]): void {
+  private openMenuTab(tab: MenuTab): void {
     // Close all first
     if (this.inventoryOpen) {
       this.inventoryUI.hide();
@@ -724,6 +704,12 @@ export class Game {
 
     this.activeMenuTab = tab;
 
+    // Determine which tabs are disabled (map only available in dungeon)
+    const disabledTabs: MenuTab[] = [];
+    if (this.state !== 'dungeon' || !this.dungeonData) {
+      disabledTabs.push('map');
+    }
+
     switch (tab) {
       case 'inventory':
         this.recomputeStats();
@@ -731,6 +717,7 @@ export class Game {
         this.inventoryUI.show(this.inventory, this.computedStats, () => {
           this.inventoryOpen = false;
           this.activeMenuTab = null;
+          this.menuTabBar.hide();
           this.recomputeStats();
         });
         break;
@@ -739,6 +726,7 @@ export class Game {
         this.skillTreeUI.show(this.skillTree, this.levelSystem, () => {
           this.skillTreeOpen = false;
           this.activeMenuTab = null;
+          this.menuTabBar.hide();
           this.recomputeStats();
         });
         break;
@@ -750,6 +738,7 @@ export class Game {
           () => {
             this.settingsOpen = false;
             this.activeMenuTab = null;
+            this.menuTabBar.hide();
           },
         );
         break;
@@ -764,6 +753,7 @@ export class Game {
           () => {
             this.diagnosticsInfoOpen = false;
             this.activeMenuTab = null;
+            this.menuTabBar.hide();
           },
         );
         break;
@@ -777,16 +767,24 @@ export class Game {
           this.mapUI.show(() => {
             this.mapOpen = false;
             this.activeMenuTab = null;
+            this.menuTabBar.hide();
           });
         } else {
           // Map tab not available outside dungeon — skip to next tab
           this.activeMenuTab = null;
+          return;
         }
         break;
     }
+
+    // Show/update the tab bar
+    this.menuTabBar.setInputDevice(this.currentInputDevice);
+    this.menuTabBar.show(tab, disabledTabs, (selectedTab) => {
+      this.openMenuTab(selectedTab);
+    });
   }
 
-  /** Close all menu tabs */
+  /** Close all menu tabs and the tab bar */
   private closeAllMenuTabs(): void {
     if (this.inventoryOpen) {
       this.inventoryUI.hide();
@@ -808,11 +806,12 @@ export class Game {
       this.mapUI.hide();
       this.mapOpen = false;
     }
+    this.menuTabBar.hide();
     this.activeMenuTab = null;
     this.recomputeStats();
   }
 
-  /** Handle LB/RB tab cycling between menu tabs */
+  /** Handle [/] or LB/RB tab cycling between menu tabs */
   private handleTabCycling(): void {
     if (!this.activeMenuTab) return;
 
@@ -821,12 +820,19 @@ export class Game {
     if (this.actions.wasActionPressed('tabRight')) direction = 1;
     if (direction === 0) return;
 
+    const mapAvailable = this.state === 'dungeon' && !!this.dungeonData;
     const currentIndex = this.menuTabs.indexOf(this.activeMenuTab);
-    const nextIndex = (currentIndex + direction + this.menuTabs.length) % this.menuTabs.length;
-    const nextTab = this.menuTabs[nextIndex];
+    const len = this.menuTabs.length;
 
-    if (nextTab !== this.activeMenuTab) {
-      this.openMenuTab(nextTab);
+    // Find the next valid (non-disabled) tab in the given direction
+    for (let i = 1; i < len; i++) {
+      const nextIndex = (currentIndex + direction * i + len) % len;
+      const nextTab = this.menuTabs[nextIndex];
+      if (nextTab === 'map' && !mapAvailable) continue;
+      if (nextTab !== this.activeMenuTab) {
+        this.openMenuTab(nextTab);
+      }
+      return;
     }
   }
 

@@ -207,3 +207,25 @@ Both bugs fixed. Inventory highlight now follows the mouse correctly. Settings X
 ### Notes
 - The root cause of the settings bug affects all menu UIs, not just settings — any UI that re-renders its DOM in response to `uiConfirm` would have the same broken close button. The fix in MouseProvider addresses this class of bugs globally.
 - The inventory fix required changing `for (const item of bag)` to `for (let bagIdx = 0; ...)` to have index access in closure-captured event handlers.
+
+## 2026-03-06 — Unified Menu Tab Bar & ESC Key Fix
+
+### Prompt
+> "I don't see any control information for opening the settings, I can't see any map, and the esc key seems like it may be mapped for multiple UI actions where I can't use it to close the settings dialog, and if I have some other dialog open it opens the settings page without closing whatever dialog I have open."
+> "I don't think I'm seeing any main menu where I could switch between tabs in a single unified menu dialog to show diagnostics info, a few setting controls, map, skills, and inventory that I can switch between tabs."
+
+### Plan
+1. Investigate the ESC key conflict — found that ESC maps to both `uiCancel` and `toggleMenu`. When pressed with a menu open, `routeUIActions` fires `uiCancel` (closing the panel), then `handleUIToggle` sees `toggleMenu` with nothing open and reopens Settings. Fix by removing `uiCancel` from ESC.
+2. Add a visual `MenuTabBar` component that renders clickable tabs at the top of the screen when any menu panel is open.
+3. Add keyboard bindings for tab cycling (`[`/`]`) and map toggle (`M`), since these were previously gamepad-only.
+4. Add `toggleMap` input action so M key opens the Map tab directly.
+5. Update `handleUIToggle` so ESC closes all overlay types (including Floor Select and Library Dialog) and opens Inventory as the default tab instead of Settings.
+6. Make tab cycling skip disabled tabs (e.g., Map when not in dungeon).
+
+### Outcome
+All issues fixed. ESC now cleanly opens/closes the menu without conflicts. Visual tab bar shows at top of screen with all 5 tabs. Keyboard users can cycle tabs with `[`/`]` and open Map with `M`. Lint, typecheck, and build all clean.
+
+### Notes
+- The ESC double-action was a subtle frame-ordering bug: `routeUIActions` ran before `handleUIToggle`, so the panel's `uiCancel` handler closed it before `toggleMenu` could detect it was open. Removing `uiCancel` from ESC is clean because gamepad B (which fires `uiCancel`) is a separate button from Start (which fires `toggleMenu`).
+- Changed default menu tab from Settings to Inventory since it's the most commonly needed panel.
+- Made `FloorSelectUI.cancel()` public so `handleUIToggle` can close it via ESC.
