@@ -229,3 +229,21 @@ All issues fixed. ESC now cleanly opens/closes the menu without conflicts. Visua
 - The ESC double-action was a subtle frame-ordering bug: `routeUIActions` ran before `handleUIToggle`, so the panel's `uiCancel` handler closed it before `toggleMenu` could detect it was open. Removing `uiCancel` from ESC is clean because gamepad B (which fires `uiCancel`) is a separate button from Start (which fires `toggleMenu`).
 - Changed default menu tab from Settings to Inventory since it's the most commonly needed panel.
 - Made `FloorSelectUI.cancel()` public so `handleUIToggle` can close it via ESC.
+
+---
+
+## 2026-03-06 — Fix Inventory Tooltip Hover Jitter
+
+### Prompt
+> "The mouse correctly highlights an item now but because an item's description may be longer than another the window resizes and causes the mouse cursor to hover over a different item and it jitters back and forth between two items. Maybe the dialog needs to have a fixed upper bound or something so that what the cursor hovers over doesn't move."
+
+### Plan
+1. Identify root cause: the tooltip panel below the inventory/vault item list has dynamic height based on content. When hovering changes the selected item, the tooltip content changes, the panel resizes, items shift vertically, and the cursor lands on a different item — creating a jitter loop.
+2. Fix: give the tooltip panel a fixed `height` (6rem) with `overflowY: auto` so it never causes layout reflows regardless of content length.
+3. Apply the same fix to both `InventoryUI.ts` and `VaultUI.ts`.
+
+### Outcome
+Fixed in both InventoryUI and VaultUI. The tooltip panel now has a fixed height of 6rem with scrolling for longer tooltips, preventing any layout shift when hovering between items.
+
+### Notes
+- Simple CSS-only fix — no logic changes needed. The root cause was purely a layout reflow issue.
