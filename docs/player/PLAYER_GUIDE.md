@@ -52,10 +52,11 @@ The Hub persists — your position resets to the spawn point each time you retur
 | Interact | E |
 | Inventory | I |
 | Skill Tree | K |
+| Map (in dungeon) | M |
 | Drop Item | X (with item selected) |
 | Respawn (on death) | R, Enter, or Space |
-| Close Overlay / Cancel | Escape |
-| Settings / Pause Menu | Escape (when no overlay is open) |
+| Open / Close Menu | Escape |
+| Cycle Menu Tabs | \[ / \] (when a menu is open) |
 
 ### Gamepad
 
@@ -252,9 +253,27 @@ Enemies and chests drop randomized loot. Drop quality scales with floor difficul
 
 ---
 
-## Settings Menu
+## Menu System
 
-Open the Settings menu by pressing **Escape** (keyboard) or **Start** (gamepad) when no other overlay is active. The settings panel includes:
+Press **Escape** (keyboard) or **Start** (gamepad) to open the menu. A **tab bar** appears at the top of the screen showing all available tabs. Press **Escape** again to close the menu.
+
+### Tab Bar
+
+When any menu panel is open, a visual tab bar displays at the top with clickable tabs:
+
+**Inventory** | **Skills** | **Map** | **Settings** | **Diagnostics**
+
+Switch tabs by:
+- **Clicking** a tab in the tab bar
+- Pressing **\[** or **\]** on keyboard
+- Pressing **LB / RB** on gamepad
+- Pressing a tab's shortcut key (**I** for Inventory, **K** for Skills, **M** for Map)
+
+The Map tab is only available while inside a dungeon and appears grayed out in the Hub.
+
+### Settings Tab
+
+The Settings tab includes:
 
 | Setting | Options | Description |
 |---------|---------|-------------|
@@ -262,13 +281,11 @@ Open the Settings menu by pressing **Escape** (keyboard) or **Start** (gamepad) 
 | Controller | Auto-Detect / Keyboard / Gamepad | Choose automatic input detection or lock to a specific device |
 | Diagnostics | OFF / ON | Show a real-time FPS counter and draw call count in the top-right corner |
 
-Use **Up/Down** (or D-pad) to navigate between options, **Left/Right** to change values, and **Escape / B** to close.
-
-When any menu overlay is open (Inventory, Skill Tree, Settings, Diagnostics, or Map), press **LB / RB** on a gamepad to cycle between them without closing and reopening.
+Use **Up/Down** (or D-pad) to navigate between options, **Left/Right** to change values.
 
 ### Map Tab
 
-The Map tab shows an expanded view of the dungeon you're currently exploring. It is only available while inside a dungeon (not in the Hub). Access it by cycling to the 5th tab with **LB / RB** from any open menu overlay.
+The Map tab shows an expanded view of the dungeon you're currently exploring. It is only available while inside a dungeon (not in the Hub). Open it directly with **M** or switch to it from any open menu tab.
 
 - **Discovery percentage** — Shows how much of the floor you've explored.
 - **Key indicators** — Entrance (blue), exit (green), boss room outline (red), and your position (blue dot).
@@ -278,13 +295,13 @@ The Map tab shows an expanded view of the dungeon you're currently exploring. It
 
 ### Diagnostics Tab
 
-The Diagnostics tab provides system and performance information. Access it by cycling to the 4th tab with **LB / RB** from any open menu overlay. It shows:
+The Diagnostics tab provides system and performance information:
 
 - **System** — Operating system, browser (with version), screen resolution, device pixel ratio, viewport size.
 - **Renderer** — GPU name, live FPS counter, draw call count.
 - **Controller** — Active input device (keyboard/mouse, gamepad, or touch) and connected gamepad name/ID.
 
-Use **Up/Down** to scroll (or D-pad on gamepad), and **Escape / B** to close.
+Use **Up/Down** to scroll (or D-pad on gamepad).
 
 ---
 

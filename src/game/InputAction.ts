@@ -21,8 +21,9 @@ export type InputAction =
   | 'toggleInventory'
   | 'toggleSkillTree'
   | 'toggleMenu' // Start button / Escape — opens pause menu
-  | 'tabLeft' // LB — cycle menu tab left
-  | 'tabRight' // RB — cycle menu tab right
+  | 'toggleMap' // M key — opens Map tab directly
+  | 'tabLeft' // LB / [ — cycle menu tab left
+  | 'tabRight' // RB / ] — cycle menu tab right
   | 'dropItem'
   | 'respawn'
   // Menu-specific
@@ -75,8 +76,13 @@ export const DEFAULT_KEYBOARD_MAPPING: KeyboardMappingConfig = {
   // Respawn / confirm
   KeyR: [{ action: 'respawn' }],
   Enter: [{ action: 'respawn' }, { action: 'uiConfirm' }],
-  // Cancel
-  Escape: [{ action: 'uiCancel' }, { action: 'toggleMenu' }],
+  // Menu toggle (ESC opens/closes the unified menu)
+  Escape: [{ action: 'toggleMenu' }],
+  // Tab cycling
+  BracketLeft: [{ action: 'tabLeft' }],
+  BracketRight: [{ action: 'tabRight' }],
+  // Map toggle
+  KeyM: [{ action: 'toggleMap' }],
   // Slot selection (1-4 map to both slots and floors)
   Digit1: [{ action: 'selectSlot1' }, { action: 'selectFloor1' }],
   Digit2: [{ action: 'selectSlot2' }, { action: 'selectFloor2' }],
