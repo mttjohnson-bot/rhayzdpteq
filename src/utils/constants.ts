@@ -26,7 +26,7 @@ export const PLAYER_INVINCIBILITY_TIME = 0.5; // seconds of i-frames after hit
 export const KNOCKBACK_FORCE = 2.0;
 export const KNOCKBACK_CHANCE = 0.35;
 
-export const ENEMY_HP = 40;
+export const ENEMY_HP = 80;
 export const ENEMY_SPEED = 2.0;
 export const ENEMY_ATTACK_DAMAGE = 10;
 export const ENEMY_ATTACK_RANGE = 1.0;

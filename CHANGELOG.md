@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Balance enemy and boss stats, buff Regeneration skill.
+
+- **Doubled regular enemy health** — Base enemy HP increased from 40 to 80, making trash mobs more durable and encouraging use of skills and gear upgrades.
+- **Halved boss damage** — All boss damage multipliers reduced by 50% across all 10 floors, making boss fights less punishing and more about sustained combat.
+- **Increased boss health to 150%** — Boss HP multipliers adjusted upward by 50%, creating longer boss encounters that reward consistent play.
+- **Doubled Regeneration rate** — The Guardian skill tree's Regeneration node now grants +1 HP/sec per rank (up from +0.5), making the defensive path more viable.
+- **Added 3rd Regeneration tier** — Regeneration now supports 3 ranks (up from 2), allowing a maximum of +3 HP/sec for fully invested Guardian builds.
+
+---
+
 Fix item description overflow and vault hover tooltips.
 
 - **Fixed description overflow in tooltips** — Item descriptions that exceeded the fixed-height tooltip panel were cut off. The tooltip now auto-sizes downward to fit all content, since the description area is below hoverable items and won't cause jitter.
