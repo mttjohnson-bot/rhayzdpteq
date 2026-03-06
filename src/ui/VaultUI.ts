@@ -140,6 +140,8 @@ export class VaultUI {
       color: '#ccc',
       display: 'none',
       whiteSpace: 'pre-line',
+      height: '6rem',
+      overflowY: 'auto',
     });
     this.container.appendChild(this.tooltipEl);
 

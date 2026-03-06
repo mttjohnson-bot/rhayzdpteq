@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Fix Inventory Tooltip Hover Jitter — prevent item list from shifting when hovering different items.
+
+- **Fixed tooltip hover jitter** — Hovering over inventory items caused the tooltip panel to resize (different items have different description lengths), which shifted item positions and caused the cursor to land on a different item, creating a rapid jitter loop. The tooltip panel now has a fixed height so its content never causes layout reflows.
+- **Applied fix to Vault UI** — The same fixed-height tooltip was applied to the Vault storage screen which had the same issue.
+
+---
+
 Unified Menu Tab Bar & ESC Key Fix — visual tab bar for menu navigation, keyboard tab cycling, and ESC conflict resolution.
 
 - **Visual tab bar** — Added a `MenuTabBar` component that appears at the top of the screen whenever any menu panel is open. Displays clickable tabs for Inventory, Skills, Map, Settings, and Diagnostics with the active tab highlighted.
