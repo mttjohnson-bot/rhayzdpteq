@@ -22,6 +22,7 @@ const VALID_ACTIONS: Set<string> = new Set([
   'toggleInventory',
   'toggleSkillTree',
   'toggleMenu',
+  'toggleMap',
   'tabLeft',
   'tabRight',
   'dropItem',
