@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Further balance pass on damage values — regular enemies hit harder, bosses hit softer.
+
+- **Doubled regular enemy damage** — Base enemy attack damage increased from 10 to 20, making trash mobs more threatening and encouraging defensive play and gear upgrades.
+- **Halved boss damage again** — All boss damage multipliers quartered (to offset the doubled base) across all 10 floors, resulting in a net 50% reduction from previous values.
+
+---
+
 Balance enemy and boss stats, buff Regeneration skill.
 
 - **Doubled regular enemy health** — Base enemy HP increased from 40 to 80, making trash mobs more durable and encouraging use of skills and gear upgrades.
