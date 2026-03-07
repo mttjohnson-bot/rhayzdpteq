@@ -324,3 +324,20 @@ Plan document created with architecture analysis showing the existing codebase i
 - The user's observation that Quest controllers are treated as "touch controls" is expected — Quest browser translates controller input into touch/pointer events for non-XR pages. The WebXR Gamepads Module is the only way to get proper button/axis input from Quest controllers.
 - Minimum viable VR is Phases 1 + 2 + DOM Overlay (Phase 4 Option A), which would be the least development effort for a playable VR experience.
 - Performance should be achievable — the game already targets 60 FPS on Chromebooks with instanced voxel rendering, and Quest 2 needs 72 FPS.
+
+---
+
+## 2026-03-07 — Further Damage Balance Pass
+
+### Prompt
+> "Let's reduce the boss attack damage by about half again... it seems to be too powerful right now, but make regular enemies deal about twice as much damage."
+
+### Plan
+1. Double `ENEMY_ATTACK_DAMAGE` from 10 to 20 (doubles regular enemy damage).
+2. Quarter all boss `dmgMultiplier` values across 10 floors (halved for the nerf + halved again to compensate for the doubled base constant, yielding a net 50% reduction in boss damage).
+
+### Outcome
+Updated `constants.ts` and `FloorConfig.ts`. Type check, lint, and build all pass.
+
+### Notes
+- Since both enemies and bosses share the `ENEMY_ATTACK_DAMAGE` base constant, boss multipliers were divided by 4 (not 2) to achieve the net halving after the base was doubled.
