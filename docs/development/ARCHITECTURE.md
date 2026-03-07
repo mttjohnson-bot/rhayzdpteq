@@ -73,12 +73,13 @@ src/
 │   ├── TouchControls.ts         # Virtual joystick & action buttons
 │   ├── InstructionsPanel.ts     # Control hints overlay (device-adaptive)
 │   ├── InputHints.ts            # Centralized device-specific hint text
-│   ├── SettingsUI.ts            # Settings panel (camera, controller, diagnostics)
+│   ├── SettingsUI.ts            # Settings panel (camera, controller, character model, diagnostics)
 │   ├── DiagnosticsOverlay.ts    # Real-time FPS & draw call counter
 │   └── VaultUI.ts               # Vault storage transfer interface
 ├── rendering/                   # Voxel renderer, scene management, lighting
 │   ├── SceneManager.ts          # Three.js scene setup & management
-│   └── OcclusionOutline.ts      # Character silhouettes behind walls
+│   ├── OcclusionOutline.ts      # Character silhouettes behind walls
+│   └── CharacterModelLoader.ts  # Async GLB model loading with caching
 └── utils/                       # Math helpers, constants, event bus
     ├── math.ts                  # clamp, lerp, lerpVector3 helpers
     ├── EventBus.ts              # Pub/sub event system

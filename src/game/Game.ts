@@ -118,6 +118,7 @@ export class Game {
     cameraMode: 'third-person',
     controllerMode: 'auto',
     diagnosticsEnabled: false,
+    characterModel: 'simple',
   };
 
   // Menu tab cycling
@@ -853,6 +854,11 @@ export class Game {
       this.settingsUI.setInputDevice(settings.controllerMode);
       this.diagnosticsInfoUI.setInputDevice(settings.controllerMode);
       this.mapUI.setInputDevice(settings.controllerMode);
+    }
+
+    // Character model
+    if (settings.characterModel !== this.player.getCharacterModelId()) {
+      void this.player.setCharacterModel(settings.characterModel);
     }
 
     // Diagnostics overlay
