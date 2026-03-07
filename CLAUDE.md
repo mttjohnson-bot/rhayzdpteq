@@ -41,7 +41,7 @@ See `GAME_PLAN.md` for the full game design document including milestones, archi
 │   └── utils/       # Math helpers, constants
 ├── assets/characters/ # Source .vox models (canonical location)
 ├── public/assets/     # Static assets served at runtime (.glb models generated here)
-├── scripts/           # Build scripts (convert-models.sh, verify-assets.mjs)
+├── scripts/           # Build scripts (convert-models.mjs, verify-assets.mjs)
 └── tests/             # Test files (mirrors src/ structure)
 ```
 
@@ -54,7 +54,7 @@ See `GAME_PLAN.md` for the full game design document including milestones, archi
 Character models use a `.vox` → `.glb` conversion pipeline:
 
 1. **Source files** live in `assets/characters/*.vox` (MagicaVoxel format)
-2. **CI converts** `.vox` → optimized `.glb` using `v-optimizer` + `gltfpack`
+2. **CI converts** `.vox` → optimized `.glb` using a Node.js script (`scripts/convert-models.mjs`) with `@gltf-transform/core`
 3. **Output `.glb` files** are placed in `public/assets/characters/` (served at runtime)
 4. **The game loads `.glb` files** via Three.js `GLTFLoader` (`CharacterModelLoader.ts`)
 
@@ -67,9 +67,9 @@ Character models use a `.vox` → `.glb` conversion pipeline:
 3. **Never duplicate `.vox` files into `public/assets/characters/`.** The source `.vox` files live in `assets/characters/`. The conversion script reads from there and writes `.glb` files to `public/assets/characters/`. Copying `.vox` files into `public/` is wasteful and bypasses the optimization pipeline.
 
 4. **If a `.glb` file is missing or fails to load**, diagnose the conversion pipeline:
-   - Has `./scripts/convert-models.sh` been run?
+   - Has `./scripts/convert-models.mjs` been run?
    - Does the CI deploy workflow include the model conversion step?
-   - Are the conversion tools (`v-optimizer`, `gltfpack`) downloading correctly in CI?
+   - Is `@gltf-transform/core` installed? (It's a devDependency — `npm ci` installs it.)
    - Run `node scripts/verify-assets.mjs` to check if `.glb` files are present.
 
 5. **The deploy workflow (`deploy.yml`) includes model conversion.** It converts `.vox` → `.glb` with caching, verifies `.glb` files exist, then builds. Do not remove these steps.
@@ -87,7 +87,7 @@ When debugging model loading issues:
 
 ### Local Development
 
-To generate `.glb` files locally, install `v-optimizer` and `gltfpack`, then run `./scripts/convert-models.sh`. Without `.glb` files, character models will not load — this is intentional to surface pipeline issues early.
+To generate `.glb` files locally, run `node scripts/convert-models.mjs` (requires `npm install` first for `@gltf-transform/core`). Without `.glb` files, character models will not load — this is intentional to surface pipeline issues early.
 
 ## Development Setup
 

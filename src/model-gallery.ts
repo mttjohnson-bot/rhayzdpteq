@@ -96,7 +96,7 @@ async function loadOwl(): Promise<void> {
     if (!glbResponse.ok) {
       console.error(
         `[ModelGallery] .glb not found at ${glbUrl} (HTTP ${glbResponse.status}).`,
-        `Run ./scripts/convert-models.sh or trigger the CI conversion workflow.`,
+        `Run ./scripts/convert-models.mjs or trigger the CI conversion workflow.`,
       );
       statusOwl.textContent = `Failed: .glb not found (HTTP ${glbResponse.status})`;
       statusOwl.className = 'status failed';

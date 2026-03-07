@@ -87,7 +87,7 @@ src/
 │   └── constants.ts             # Game-wide constants & enemy definitions
 ├── assets/characters/           # Source .vox models (canonical location)
 ├── scripts/
-│   ├── convert-models.sh        # .vox → .glb conversion (v-optimizer + gltfpack)
+│   ├── convert-models.mjs       # .vox → .glb conversion (Node.js, @gltf-transform/core)
 │   ├── verify-assets.mjs        # Pre-build: check .glb files exist for all .vox sources
 │   └── verify-build-assets.mjs  # Post-build: check code-referenced assets exist in dist/
 ```
@@ -101,7 +101,7 @@ Character models follow a `.vox` → `.glb` conversion pipeline:
 ```
 assets/characters/*.vox  (source, checked into git)
         ↓
-  convert-models.sh      (v-optimizer + gltfpack)
+  convert-models.mjs     (Node.js, @gltf-transform/core)
         ↓
 public/assets/characters/*.glb  (optimized, generated in CI)
         ↓

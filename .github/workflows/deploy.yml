@@ -25,47 +25,27 @@ jobs:
           node-version: 20
           cache: npm
 
-      # ── Convert .vox models to optimized .glb ──
-      - name: Compute .vox hash
-        id: vox-hash
-        run: |
-          if ls assets/characters/*.vox 1>/dev/null 2>&1; then
-            hash=$(find assets/characters -name '*.vox' -exec md5sum {} \; | sort | md5sum | cut -d' ' -f1)
-          else
-            hash="no-vox-files"
-          fi
-          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+      - run: npm ci
 
+      # ── Convert .vox models to optimized .glb ──
+      # Uses a Node.js script with @gltf-transform/core — no external tools needed.
+      # The script has built-in MD5-based caching (skips unchanged models).
       - name: Restore cached .glb files
         id: cache-glb
         uses: actions/cache@v4
         with:
-          path: public/assets/characters/*.glb
-          key: glb-models-${{ steps.vox-hash.outputs.hash }}
+          path: |
+            public/assets/characters/*.glb
+            public/assets/characters/*.md5
+          key: glb-models-${{ hashFiles('assets/characters/*.vox') }}
 
-      - name: Install v-optimizer
+      - name: Convert .vox models to .glb
         if: steps.cache-glb.outputs.cache-hit != 'true'
-        run: |
-          curl -L -o v-optimizer https://github.com/nicholasgasior/v-optimizer/releases/latest/download/v-optimizer-linux-amd64
-          chmod +x v-optimizer
-          sudo mv v-optimizer /usr/local/bin/
-
-      - name: Install gltfpack
-        if: steps.cache-glb.outputs.cache-hit != 'true'
-        run: |
-          curl -L -o gltfpack.tar.gz https://github.com/nicholasgasior/gltfpack/releases/latest/download/gltfpack-linux-amd64.tar.gz
-          tar xzf gltfpack.tar.gz
-          chmod +x gltfpack
-          sudo mv gltfpack /usr/local/bin/
-
-      - name: Convert models
-        if: steps.cache-glb.outputs.cache-hit != 'true'
-        run: ./scripts/convert-models.sh
+        run: node scripts/convert-models.mjs
 
       - name: Verify .glb assets exist
         run: node scripts/verify-assets.mjs
 
-      - run: npm ci
       - run: npm run build
 
       - name: Verify .glb files in build output
@@ -101,7 +81,7 @@ jobs:
 
       - name: Verify key asset URLs return 200
         run: |
-          SITE_URL="${{ needs.deploy.outputs.url || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}"
+          SITE_URL="${{ format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}"
           echo "Site URL: $SITE_URL"
 
           FAILED=0

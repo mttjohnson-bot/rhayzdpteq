@@ -1,7 +1,8 @@
 name: Convert Character Models
 
 # Converts .vox source files to optimized .glb for the game.
-# Uses caching so unchanged models are not re-converted.
+# Uses a Node.js script with @gltf-transform/core — no external tools needed.
+# The script has built-in MD5-based caching (skips unchanged models).
 # Commits the results back to the branch.
 
 on:
@@ -23,42 +24,26 @@ jobs:
         with:
           ref: ${{ inputs.branch }}
 
-      # Cache converted .glb files keyed on hash of all .vox source files
-      - name: Compute .vox hash
-        id: vox-hash
-        run: |
-          if ls assets/characters/*.vox 1>/dev/null 2>&1; then
-            hash=$(find assets/characters -name '*.vox' -exec md5sum {} \; | sort | md5sum | cut -d' ' -f1)
-          else
-            hash="no-vox-files"
-          fi
-          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 20
+          cache: npm
 
+      - run: npm ci
+
+      # Cache converted .glb files keyed on hash of all .vox source files
       - name: Restore cached .glb files
         id: cache-glb
         uses: actions/cache@v4
         with:
-          path: public/assets/characters/*.glb
-          key: glb-models-${{ steps.vox-hash.outputs.hash }}
-
-      - name: Install v-optimizer
-        if: steps.cache-glb.outputs.cache-hit != 'true'
-        run: |
-          curl -L -o v-optimizer https://github.com/nicholasgasior/v-optimizer/releases/latest/download/v-optimizer-linux-amd64
-          chmod +x v-optimizer
-          sudo mv v-optimizer /usr/local/bin/
-
-      - name: Install gltfpack
-        if: steps.cache-glb.outputs.cache-hit != 'true'
-        run: |
-          curl -L -o gltfpack.tar.gz https://github.com/nicholasgasior/gltfpack/releases/latest/download/gltfpack-linux-amd64.tar.gz
-          tar xzf gltfpack.tar.gz
-          chmod +x gltfpack
-          sudo mv gltfpack /usr/local/bin/
+          path: |
+            public/assets/characters/*.glb
+            public/assets/characters/*.md5
+          key: glb-models-${{ hashFiles('assets/characters/*.vox') }}
 
       - name: Convert models
         if: steps.cache-glb.outputs.cache-hit != 'true'
-        run: ./scripts/convert-models.sh
+        run: node scripts/convert-models.mjs
 
       - name: Commit converted models
         if: steps.cache-glb.outputs.cache-hit != 'true'
