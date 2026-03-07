@@ -70,7 +70,22 @@ Everything below has been implemented, tested, and is live on the deployed game.
 
 These items are well-defined enough to be picked up in a development session. They have clear scope and can be implemented without significant design decisions.
 
-*(No items currently — see Needs Planning below for upcoming work.)*
+### Optimized Model Pipeline (v-optimizer + gltfpack)
+
+The current `.vox` → `.glb` conversion (`convert-models.mjs`) uses `@gltf-transform/core` to build mesh geometry and write GLB output. This works but does not apply the advanced optimizations that dedicated tools provide:
+
+- **v-optimizer** — Greedy voxel meshing algorithm that produces significantly fewer vertices and faces than naive per-voxel cubes. Reduces draw calls and GPU memory.
+- **gltfpack** (meshoptimizer) — Mesh compression, vertex cache optimization, overdraw reduction, and quantization. Produces smaller `.glb` files that load faster and render more efficiently.
+
+The current Node.js script was implemented as a working interim solution after the original CI pipeline failed (the tool download URLs were invalid). The goal is to integrate the real tools for production-quality asset optimization.
+
+**What needs to happen:**
+- Validate correct download URLs for `v-optimizer` CLI binary (check [VOptimizer/VoxelOptimizer](https://github.com/VOptimizer/VoxelOptimizer) or itch.io releases) and `gltfpack` (from [zeux/meshoptimizer releases](https://github.com/zeux/meshoptimizer/releases) or via `npm i gltfpack`).
+- Update `convert-models.mjs` to optionally use these tools when available, falling back to the current @gltf-transform approach.
+- Update CI workflows with validated, working download URLs.
+- Benchmark the optimized output vs current output (file size, vertex count, load time, FPS impact).
+
+See detailed plan: [optimized-model-pipeline.md](plans/optimized-model-pipeline.md)
 
 ---
 
@@ -157,5 +172,6 @@ Detailed design documents for completed and in-progress features live in the `pl
 | [input-abstraction.md](plans/input-abstraction.md) | Completed | Action-based input system with provider architecture |
 | [quality-roadmap.md](plans/quality-roadmap.md) | Completed | 6-phase testing and quality infrastructure plan |
 | [quest-2-webxr.md](plans/quest-2-webxr.md) | Planning | Meta Quest 2 WebXR VR support — 5-phase plan |
+| [optimized-model-pipeline.md](plans/optimized-model-pipeline.md) | Ready to Build | gltfpack + greedy meshing for optimized GLB output |
 
 When a "Needs Planning" item above is ready for design, create a new plan document in `plans/` and link it here.
