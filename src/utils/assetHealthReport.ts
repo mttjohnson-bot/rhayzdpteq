@@ -12,9 +12,7 @@
 /** Known asset paths relative to BASE_URL. */
 const EXPECTED_ASSETS = [
   { path: 'assets/characters/owl.glb', type: 'model (optimized)' },
-  { path: 'assets/characters/owl.vox', type: 'model (source)' },
   { path: 'assets/characters/owlbear.glb', type: 'model (optimized)' },
-  { path: 'assets/characters/owlbear.vox', type: 'model (source)' },
   { path: 'favicon.svg', type: 'icon' },
   { path: 'favicon.ico', type: 'icon' },
 ];

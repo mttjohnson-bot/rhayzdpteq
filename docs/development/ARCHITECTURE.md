@@ -79,8 +79,7 @@ src/
 ├── rendering/                   # Voxel renderer, scene management, lighting
 │   ├── SceneManager.ts          # Three.js scene setup & management
 │   ├── OcclusionOutline.ts      # Character silhouettes behind walls
-│   ├── CharacterModelLoader.ts  # Async GLB model loading with caching (GLTFLoader primary)
-│   └── VoxLoader.ts             # Runtime .vox parser (dev-only fallback)
+│   └── CharacterModelLoader.ts  # Async GLB model loading with caching (GLTFLoader only)
 ├── utils/                       # Math helpers, constants, event bus
 │   ├── math.ts                  # clamp, lerp, lerpVector3 helpers
 │   ├── EventBus.ts              # Pub/sub event system
@@ -112,9 +111,8 @@ public/assets/characters/*.glb  (optimized, generated in CI)
 ```
 
 **Key principles:**
-- `.glb` (GLTF Binary) is the production format — loaded via Three.js `GLTFLoader`
-- `.vox` files are source assets only — never loaded in production
-- `VoxLoader.ts` is a dev-only fallback with loud console warnings
+- `.glb` (GLTF Binary) is the only runtime format — loaded via Three.js `GLTFLoader`
+- `.vox` files are source assets only — never loaded at runtime (no VoxLoader exists)
 - The deploy workflow generates `.glb` files automatically with caching
 - Three verification layers prevent silent 404s: pre-build (`verify-assets.mjs`), post-build (`verify-build-assets.mjs`), and post-deploy smoke test
 
