@@ -28,7 +28,7 @@ export const KNOCKBACK_CHANCE = 0.35;
 
 export const ENEMY_HP = 80;
 export const ENEMY_SPEED = 2.0;
-export const ENEMY_ATTACK_DAMAGE = 10;
+export const ENEMY_ATTACK_DAMAGE = 20;
 export const ENEMY_ATTACK_RANGE = 1.0;
 export const ENEMY_ATTACK_COOLDOWN = 1.0;
 export const ENEMY_CHASE_RANGE = 8;

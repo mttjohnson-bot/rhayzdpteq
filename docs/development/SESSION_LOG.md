@@ -301,3 +301,20 @@ Fixed tooltip sizing in both InventoryUI and VaultUI to auto-expand downward. Ad
 
 ### Notes
 - The previous fix (fixed-height tooltip to prevent jitter) was correct for the upper portion of the UI where hovering items are located. The tooltip sits below all hoverable items, so expanding it downward doesn't cause the jitter loop.
+
+---
+
+## 2026-03-07 — Further Damage Balance Pass
+
+### Prompt
+> "Let's reduce the boss attack damage by about half again... it seems to be too powerful right now, but make regular enemies deal about twice as much damage."
+
+### Plan
+1. Double `ENEMY_ATTACK_DAMAGE` from 10 to 20 (doubles regular enemy damage).
+2. Quarter all boss `dmgMultiplier` values across 10 floors (halved for the nerf + halved again to compensate for the doubled base constant, yielding a net 50% reduction in boss damage).
+
+### Outcome
+Updated `constants.ts` and `FloorConfig.ts`. Type check, lint, and build all pass.
+
+### Notes
+- Since both enemies and bosses share the `ENEMY_ATTACK_DAMAGE` base constant, boss multipliers were divided by 4 (not 2) to achieve the net halving after the base was doubled.
