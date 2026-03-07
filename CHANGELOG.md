@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Meta Quest 2 WebXR support plan.
+
+- **Created VR/WebXR plan document** — 5-phase development plan for Meta Quest 2 support covering immersive rendering via WebXR sessions, XR controller input provider, VR comfort options (snap/smooth turning, vignette, teleport), VR-compatible UI strategies, and VR-specific gameplay enhancements.
+
+---
+
 Balance enemy and boss stats, buff Regeneration skill.
 
 - **Doubled regular enemy health** — Base enemy HP increased from 40 to 80, making trash mobs more durable and encouraging use of skills and gear upgrades.
