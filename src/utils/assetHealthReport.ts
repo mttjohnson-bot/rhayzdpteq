@@ -92,7 +92,7 @@ export async function runAssetHealthReport(): Promise<void> {
 
   if (missing.length > 0) {
     console.warn(
-      `[Asset Health] Missing .glb files? Run: ./scripts/convert-models.sh\n` +
+      `[Asset Health] Missing .glb files? Run: ./scripts/convert-models.mjs\n` +
         `Missing .vox files? They should be in assets/characters/ (source dir).`,
     );
   }

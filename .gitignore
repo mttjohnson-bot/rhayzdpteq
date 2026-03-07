@@ -7,3 +7,7 @@ coverage/
 .playwright-browsers/
 test-results/
 playwright-report/
+
+# Generated model assets (built by scripts/convert-models.mjs in CI)
+public/assets/characters/*.glb
+public/assets/characters/*.md5

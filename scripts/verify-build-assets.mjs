@@ -95,7 +95,7 @@ if (missing > 0) {
   console.error(
     `verify-build-assets: ${missing} asset(s) referenced in source but missing from dist/.\n` +
       `Ensure the asset pipeline generates these files before building.\n` +
-      `For .glb files, run: ./scripts/convert-models.sh\n`,
+      `For .glb files, run: ./scripts/convert-models.mjs\n`,
   );
   process.exit(1);
 }

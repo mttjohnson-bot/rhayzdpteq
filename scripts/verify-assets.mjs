@@ -42,7 +42,7 @@ for (const voxFile of voxFiles) {
 if (missing > 0) {
   console.error(
     `\nverify-assets: ${missing} .glb file(s) missing. Run the model conversion pipeline:\n` +
-      `  ./scripts/convert-models.sh\n` +
+      `  ./scripts/convert-models.mjs\n` +
       `Or trigger the "Convert Character Models" GitHub Actions workflow.\n`
   );
   process.exit(1);

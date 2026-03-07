@@ -3,7 +3,7 @@
  *
  * IMPORTANT — Asset Pipeline:
  *   Models are optimized .glb files generated from .vox sources by the CI
- *   model conversion pipeline (scripts/convert-models.sh). The GLTFLoader
+ *   model conversion pipeline (scripts/convert-models.mjs). The GLTFLoader
  *   is the ONLY loader used. There is no runtime .vox fallback.
  *
  *   If a .glb file is missing, the correct fix is to run the conversion
@@ -51,7 +51,7 @@ function loadGlb(url: string): Promise<THREE.Group | null> {
         console.error(
           `[CharacterModelLoader] Failed to load .glb model from ${url}.`,
           `This means the model conversion pipeline has not been run.`,
-          `Run: ./scripts/convert-models.sh`,
+          `Run: ./scripts/convert-models.mjs`,
           `Or trigger the "Convert Character Models" GitHub Actions workflow.`,
           error,
         );
@@ -83,7 +83,7 @@ export async function loadCharacterModel(id: CharacterModelId): Promise<THREE.Gr
     console.error(
       `[CharacterModelLoader] Model "${id}" not found at ${glbUrl}.`,
       `The model conversion pipeline may not have run.`,
-      `Check the deploy workflow or run: ./scripts/convert-models.sh`,
+      `Check the deploy workflow or run: ./scripts/convert-models.mjs`,
     );
     return null;
   }

@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 Asset pipeline overhaul and diagnostics improvements.
 
+- **Replaced broken conversion pipeline with Node.js script** — The previous `convert-models.sh` relied on external tools (`v-optimizer`, `gltfpack`) at URLs that didn't exist, causing the deploy workflow to fail. Replaced with `convert-models.mjs`, a self-contained Node.js script using `@gltf-transform/core` that requires no external tool downloads.
 - **Fixed GLB asset pipeline** — The deploy workflow now converts `.vox` models to optimized `.glb` files during CI with caching, ensuring GLTFLoader is the only model loader used.
 - **Removed VoxLoader** — Deleted `VoxLoader.ts` entirely. There is no runtime `.vox` fallback. If `.glb` files are missing, the conversion pipeline must be fixed — not worked around.
 - **Removed duplicate .vox files from public/** — Source `.vox` files now live only in `assets/characters/` (the canonical location). The `public/assets/characters/` directory is reserved for generated `.glb` output.
@@ -37,7 +38,7 @@ Runtime .vox loading, model gallery, and owl model fix.
 Character model system with .vox-to-.glb asset pipeline and settings toggle.
 
 - **Added character model switching** — New "Character" setting in the Settings menu lets players switch between the default simple box model and the Owl voxel model (.glb loaded via Three.js GLTFLoader).
-- **Created .vox-to-.glb conversion pipeline** — Shell script (`scripts/convert-models.sh`) converts MagicaVoxel .vox files to optimized .glb using v-optimizer and gltfpack, with MD5-based skip logic to avoid redundant conversions.
+- **Created .vox-to-.glb conversion pipeline** — Node.js script (`scripts/convert-models.mjs`) converts MagicaVoxel .vox files to optimized .glb using @gltf-transform/core, with MD5-based skip logic to avoid redundant conversions.
 - **Added CI workflow for model conversion** — GitHub Actions workflow (`convert-models.yml`) runs the conversion with cache keyed on .vox file hashes, so unchanged models are never re-processed.
 - **Added CharacterModelLoader** — New module (`src/rendering/CharacterModelLoader.ts`) handles async GLB loading with caching, cloning, and graceful fallback on load failure.
 - **Added Vite client types** — `env.d.ts` now references `vite/client` for proper `import.meta.env` typing.
