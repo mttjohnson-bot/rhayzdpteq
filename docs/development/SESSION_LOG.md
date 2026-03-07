@@ -366,3 +366,26 @@ All code implemented. Lint, format, typecheck, build, and 476 unit tests pass. T
 - The CI workflow (`convert-models.yml`) is manual-dispatch for now, since model conversion is infrequent.
 - The v-optimizer and gltfpack download URLs in the workflow are placeholders — they will need to be updated to match the actual release artifacts for those tools.
 - An alternative approach (committing pre-built .glb files alongside .vox sources) may be simpler if the team prefers fewer CI dependencies.
+
+---
+
+## Session — 2026-03-07: Fix Owl Model Loading & Add Model Gallery
+
+### Prompt
+> "I reloaded the game with the latest version where I was expecting to see the owl model loaded for the main character, but it looks like it defaults to the simple model, and when I tried switching to the owl for the main character and escaped out of the setting dialog nothing changed with the character. How can I confirm the owl model loaded properly... could we add the simple player character model and the owl model in the library somewhere so that I could preview both of them and confirm that the owl model actually loaded and renders as well."
+
+### Plan
+1. Diagnose why the owl model doesn't load — the `.glb` file was never generated, so the loader silently failed.
+2. Write a runtime `.vox` file parser (`VoxLoader.ts`) that can load MagicaVoxel files directly without the conversion pipeline.
+3. Update `CharacterModelLoader` to try `.glb` first, then fall back to `.vox`.
+4. Copy `.vox` source files to `public/assets/characters/` so they're served at runtime.
+5. Create a standalone model gallery page (`model-gallery.html`) with split viewports showing both Simple and Owl models side-by-side with orbit controls and load status.
+6. Optimize bundle chunking so Three.js is shared across entry points.
+
+### Outcome
+All code implemented. The owl model now loads from the `.vox` file at runtime. The model gallery page at `/model-gallery.html` shows both models side-by-side with auto-rotation, drag-to-orbit, and status indicators showing whether each model loaded successfully and from which format. Lint, format, typecheck, and build all pass.
+
+### Notes
+- The `.glb` conversion pipeline still exists but is no longer required — the runtime `.vox` loader serves as a reliable fallback.
+- The VoxLoader uses neighbor-based face culling and merged BufferGeometry with vertex colors for good performance.
+- Previous session noted the `.glb` files weren't generated — this was the root cause of the user's reported issue.
