@@ -17,6 +17,7 @@ import { ComputedStats } from '../rpg/Stats';
 import { createOcclusionSilhouette } from '../rendering/OcclusionOutline';
 import { ItemRarity } from '../rpg/LootTable';
 import { RARITY_HEX, type WallAABB } from './AssetLibrary';
+import { loadCharacterModel, type CharacterModelId } from '../rendering/CharacterModelLoader';
 
 export class Player {
   readonly mesh: THREE.Mesh;
@@ -73,8 +74,15 @@ export class Player {
   private armorPadR: THREE.Mesh | null = null;
   private ringVisual: THREE.Mesh | null = null;
 
+  // Character model switching
+  private activeModelId: CharacterModelId = 'simple';
+  private loadedModelGroup: THREE.Group | null = null;
+  private simpleGeometry: THREE.BufferGeometry;
+  private simpleSilhouette: THREE.Mesh;
+
   constructor() {
     const geometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_HEIGHT, PLAYER_SIZE);
+    this.simpleGeometry = geometry;
     this.baseMaterial = new THREE.MeshLambertMaterial({ color: COLORS.player });
     this.mesh = new THREE.Mesh(geometry, this.baseMaterial);
     this.mesh.castShadow = true;
@@ -82,8 +90,13 @@ export class Player {
     this.position = this.mesh.position;
 
     // Occlusion silhouette: visible through walls
-    const silhouette = createOcclusionSilhouette(PLAYER_SIZE, PLAYER_HEIGHT, PLAYER_SIZE, 0x66ccff);
-    this.mesh.add(silhouette);
+    this.simpleSilhouette = createOcclusionSilhouette(
+      PLAYER_SIZE,
+      PLAYER_HEIGHT,
+      PLAYER_SIZE,
+      0x66ccff,
+    );
+    this.mesh.add(this.simpleSilhouette);
 
     const arcGeo = new THREE.CylinderGeometry(0, 1.0, 0.1, 8, 1, false, 0, Math.PI / 2);
     const arcMat = new THREE.MeshBasicMaterial({
@@ -458,5 +471,68 @@ export class Player {
     const dx = this.position.x - x;
     const dz = this.position.z - z;
     return Math.sqrt(dx * dx + dz * dz) < range;
+  }
+
+  /** Get the currently active character model ID. */
+  getCharacterModelId(): CharacterModelId {
+    return this.activeModelId;
+  }
+
+  /**
+   * Switch the player's visual model.
+   * 'simple' restores the default box geometry.
+   * Other IDs asynchronously load the corresponding .glb model.
+   * Falls back to simple if the model fails to load.
+   */
+  async setCharacterModel(id: CharacterModelId): Promise<void> {
+    if (id === this.activeModelId) return;
+
+    // Remove any previously loaded model group
+    if (this.loadedModelGroup) {
+      this.mesh.remove(this.loadedModelGroup);
+      this.loadedModelGroup = null;
+    }
+
+    if (id === 'simple') {
+      // Restore default box appearance
+      this.mesh.geometry = this.simpleGeometry;
+      this.mesh.material = this.baseMaterial;
+      this.simpleSilhouette.visible = true;
+      this.activeModelId = 'simple';
+      return;
+    }
+
+    // Load the GLB model
+    const group = await loadCharacterModel(id);
+    if (!group) {
+      // Loading failed — keep current model
+      console.warn(`Character model "${id}" failed to load, keeping current model`);
+      return;
+    }
+
+    // Hide the simple box geometry (make it invisible but keep the mesh as a
+    // positional container so all existing code that references this.mesh and
+    // this.position continues to work).
+    this.mesh.geometry = new THREE.BufferGeometry(); // empty geometry — nothing rendered
+    this.mesh.material = new THREE.MeshBasicMaterial({ visible: false });
+    this.simpleSilhouette.visible = false;
+
+    // Scale the loaded model to roughly match player dimensions
+    const box = new THREE.Box3().setFromObject(group);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const targetSize = Math.max(PLAYER_SIZE, PLAYER_HEIGHT);
+    const scale = targetSize / maxDim;
+    group.scale.setScalar(scale);
+
+    // Center the model vertically within the player mesh
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    group.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+
+    this.mesh.add(group);
+    this.loadedModelGroup = group;
+    this.activeModelId = id;
   }
 }

@@ -4,11 +4,13 @@
  * Options:
  *  - Camera mode: third-person isometric (default) or first-person
  *  - Controller detection: auto (default) or manual (keyboard / gamepad)
+ *  - Character model: simple box (default) or owl voxel model
  *  - Diagnostics overlay: off (default) or on (FPS + draw calls)
  */
 
 import type { ActionManager } from '../game/ActionManager';
 import type { InputDevice } from '../game/ActionManager';
+import type { CharacterModelId } from '../rendering/CharacterModelLoader';
 
 export type CameraMode = 'third-person' | 'first-person';
 export type ControllerMode = 'auto' | 'keyboard' | 'gamepad';
@@ -17,6 +19,7 @@ export interface GameSettings {
   cameraMode: CameraMode;
   controllerMode: ControllerMode;
   diagnosticsEnabled: boolean;
+  characterModel: CharacterModelId;
 }
 
 export class SettingsUI {
@@ -28,11 +31,12 @@ export class SettingsUI {
     cameraMode: 'third-person',
     controllerMode: 'auto',
     diagnosticsEnabled: false,
+    characterModel: 'simple',
   };
 
   // Navigation state for keyboard/gamepad
   private selectedIndex = 0;
-  private readonly optionCount = 3;
+  private readonly optionCount = 4;
 
   // DOM references for highlight updates
   private rows: HTMLDivElement[] = [];
@@ -140,7 +144,13 @@ export class SettingsUI {
         this.settings.controllerMode = modes[(cur + direction + modes.length) % modes.length];
         break;
       }
-      case 2:
+      case 2: {
+        const models: CharacterModelId[] = ['simple', 'owl'];
+        const cur = models.indexOf(this.settings.characterModel);
+        this.settings.characterModel = models[(cur + direction + models.length) % models.length];
+        break;
+      }
+      case 3:
         this.settings.diagnosticsEnabled = !this.settings.diagnosticsEnabled;
         break;
     }
@@ -184,7 +194,8 @@ export class SettingsUI {
     // Option rows
     this.addOptionRow('Camera', this.formatCamera(this.settings.cameraMode), 0);
     this.addOptionRow('Controller', this.formatController(this.settings.controllerMode), 1);
-    this.addOptionRow('Diagnostics', this.settings.diagnosticsEnabled ? 'ON' : 'OFF', 2);
+    this.addOptionRow('Character', this.formatCharacterModel(this.settings.characterModel), 2);
+    this.addOptionRow('Diagnostics', this.settings.diagnosticsEnabled ? 'ON' : 'OFF', 3);
 
     // Hint line
     this.hintEl = document.createElement('div');
@@ -309,6 +320,15 @@ export class SettingsUI {
         return 'Keyboard';
       case 'gamepad':
         return 'Gamepad';
+    }
+  }
+
+  private formatCharacterModel(model: CharacterModelId): string {
+    switch (model) {
+      case 'simple':
+        return 'Simple';
+      case 'owl':
+        return 'Owl (Voxel)';
     }
   }
 }

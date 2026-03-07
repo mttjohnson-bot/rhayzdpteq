@@ -341,3 +341,28 @@ Updated `constants.ts` and `FloorConfig.ts`. Type check, lint, and build all pas
 
 ### Notes
 - Since both enemies and bosses share the `ENEMY_ATTACK_DAMAGE` base constant, boss multipliers were divided by 4 (not 2) to achieve the net halving after the base was doubled.
+
+---
+
+## 2026-03-07 — Character Model System & Vox-to-GLB Pipeline
+
+### Prompt
+> "I have added a couple character 3d models to the `assets/characters` directory in the repo. I was told that I could use v-optimizer and gltfpack to convert the vox files to a more optimized glb format so that it would perform well in the three.js game... I would like to use the owl.vox as the model for the primary player character for now, but I would like something in the setting menu where I can switch between the current simple model and the assets/characters/owl optimized model."
+
+The user also asked about storing .vox files in the repo vs committing .glb files, and whether CI conversion could be cached efficiently.
+
+### Plan
+1. Create a conversion script (`scripts/convert-models.sh`) with MD5-based skip logic.
+2. Create a GitHub Actions workflow with cache keyed on .vox file hashes — unchanged models skip conversion entirely.
+3. Build a `CharacterModelLoader` module using Three.js GLTFLoader with async loading, caching, and graceful fallback.
+4. Modify `Player.ts` to support swapping between the simple box geometry and loaded GLB models.
+5. Add a "Character" setting to `SettingsUI` with options "Simple" and "Owl (Voxel)".
+6. Wire the setting through `Game.ts` `applySettings`.
+
+### Outcome
+All code implemented. Lint, format, typecheck, build, and 476 unit tests pass. The .glb files are not yet generated (requires running the conversion script with v-optimizer and gltfpack installed, or triggering the CI workflow). The code gracefully falls back to the simple model if the .glb file is not found.
+
+### Notes
+- The CI workflow (`convert-models.yml`) is manual-dispatch for now, since model conversion is infrequent.
+- The v-optimizer and gltfpack download URLs in the workflow are placeholders — they will need to be updated to match the actual release artifacts for those tools.
+- An alternative approach (committing pre-built .glb files alongside .vox sources) may be simpler if the team prefers fewer CI dependencies.

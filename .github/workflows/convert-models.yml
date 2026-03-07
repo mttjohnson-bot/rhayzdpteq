@@ -1,0 +1,74 @@
+name: Convert Character Models
+
+# Converts .vox source files to optimized .glb for the game.
+# Uses caching so unchanged models are not re-converted.
+# Commits the results back to the branch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to convert models on
+        required: true
+        default: main
+
+permissions:
+  contents: write
+
+jobs:
+  convert:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.branch }}
+
+      # Cache converted .glb files keyed on hash of all .vox source files
+      - name: Compute .vox hash
+        id: vox-hash
+        run: |
+          if ls assets/characters/*.vox 1>/dev/null 2>&1; then
+            hash=$(find assets/characters -name '*.vox' -exec md5sum {} \; | sort | md5sum | cut -d' ' -f1)
+          else
+            hash="no-vox-files"
+          fi
+          echo "hash=$hash" >> "$GITHUB_OUTPUT"
+
+      - name: Restore cached .glb files
+        id: cache-glb
+        uses: actions/cache@v4
+        with:
+          path: public/assets/characters/*.glb
+          key: glb-models-${{ steps.vox-hash.outputs.hash }}
+
+      - name: Install v-optimizer
+        if: steps.cache-glb.outputs.cache-hit != 'true'
+        run: |
+          curl -L -o v-optimizer https://github.com/nicholasgasior/v-optimizer/releases/latest/download/v-optimizer-linux-amd64
+          chmod +x v-optimizer
+          sudo mv v-optimizer /usr/local/bin/
+
+      - name: Install gltfpack
+        if: steps.cache-glb.outputs.cache-hit != 'true'
+        run: |
+          curl -L -o gltfpack.tar.gz https://github.com/nicholasgasior/gltfpack/releases/latest/download/gltfpack-linux-amd64.tar.gz
+          tar xzf gltfpack.tar.gz
+          chmod +x gltfpack
+          sudo mv gltfpack /usr/local/bin/
+
+      - name: Convert models
+        if: steps.cache-glb.outputs.cache-hit != 'true'
+        run: ./scripts/convert-models.sh
+
+      - name: Commit converted models
+        if: steps.cache-glb.outputs.cache-hit != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add public/assets/characters/*.glb
+          if git diff --cached --quiet; then
+            echo "No new .glb files to commit"
+          else
+            git commit -m "chore: auto-convert .vox models to optimized .glb"
+            git push origin ${{ inputs.branch }}
+          fi

@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Character model system with .vox-to-.glb asset pipeline and settings toggle.
+
+- **Added character model switching** — New "Character" setting in the Settings menu lets players switch between the default simple box model and the Owl voxel model (.glb loaded via Three.js GLTFLoader).
+- **Created .vox-to-.glb conversion pipeline** — Shell script (`scripts/convert-models.sh`) converts MagicaVoxel .vox files to optimized .glb using v-optimizer and gltfpack, with MD5-based skip logic to avoid redundant conversions.
+- **Added CI workflow for model conversion** — GitHub Actions workflow (`convert-models.yml`) runs the conversion with cache keyed on .vox file hashes, so unchanged models are never re-processed.
+- **Added CharacterModelLoader** — New module (`src/rendering/CharacterModelLoader.ts`) handles async GLB loading with caching, cloning, and graceful fallback on load failure.
+- **Added Vite client types** — `env.d.ts` now references `vite/client` for proper `import.meta.env` typing.
+
+---
+
 Meta Quest 2 WebXR support plan.
 
 - **Created VR/WebXR plan document** — 5-phase development plan for Meta Quest 2 support covering immersive rendering via WebXR sessions, XR controller input provider, VR comfort options (snap/smooth turning, vignette, teleport), VR-compatible UI strategies, and VR-specific gameplay enhancements.
