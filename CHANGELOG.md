@@ -4,6 +4,19 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Asset pipeline overhaul and diagnostics improvements.
+
+- **Fixed GLB asset pipeline** — The deploy workflow now converts `.vox` models to optimized `.glb` files during CI with caching, ensuring GLTFLoader is used in production instead of the slower runtime VoxLoader.
+- **Removed duplicate .vox files from public/** — Source `.vox` files now live only in `assets/characters/` (the canonical location). The `public/assets/characters/` directory is reserved for generated `.glb` output.
+- **Added build-time asset verification** — New `verify-assets.mjs` script checks that every source `.vox` file has a corresponding `.glb` output before building. Fails the deploy if assets are missing.
+- **Added build-time asset manifest check** — New `verify-build-assets.mjs` script scans source code for asset path references and verifies each one exists in `dist/`, catching silent 404s before deployment.
+- **Added post-deploy smoke test** — After deploying to GitHub Pages, CI now curls key asset URLs and fails if any return 404, catching deployment issues immediately.
+- **Improved CharacterModelLoader diagnostics** — GLB load failures now log detailed error messages with remediation steps. VoxLoader fallback is restricted to dev mode only with loud warnings. Production builds fail loudly instead of silently falling back.
+- **Added runtime asset health report** — In dev mode, the app logs a console table of all expected assets and their HTTP status on startup, making pipeline issues immediately visible.
+- **Added CLAUDE.md asset pipeline guardrails** — New "Asset Pipeline" section with explicit rules preventing future sessions from bypassing GLTFLoader or duplicating `.vox` files.
+
+---
+
 Favicon for GitHub Pages site.
 
 - **Added favicon** — Created SVG and ICO favicons with "RP" letters (gold on dark purple) to eliminate 404 errors on GitHub Pages. Added `<link>` tags to `index.html` for both formats.

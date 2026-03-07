@@ -88,11 +88,13 @@ function assetBase(): string {
 async function loadOwl(): Promise<void> {
   const base = assetBase();
 
-  // Try .glb first, then .vox
+  // Try .glb first (preferred optimized format), then .vox as dev fallback
   let group: THREE.Group | null = null;
+  let loadSource = '';
 
   try {
-    const glbResponse = await fetch(base + 'assets/characters/owl.glb');
+    const glbUrl = base + 'assets/characters/owl.glb';
+    const glbResponse = await fetch(glbUrl);
     if (glbResponse.ok) {
       const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
       const loader = new GLTFLoader();
@@ -101,22 +103,34 @@ async function loadOwl(): Promise<void> {
         loader.parse(buffer, '', resolve, reject);
       });
       group = gltf.scene;
-      statusOwl.textContent = 'Loaded (from .glb)';
+      loadSource = '.glb (optimized)';
+      console.log(`[ModelGallery] Loaded owl from .glb (optimized format)`);
+    } else {
+      console.error(
+        `[ModelGallery] .glb not found at ${glbUrl} (HTTP ${glbResponse.status}).`,
+        `Run ./scripts/convert-models.sh or trigger the CI conversion workflow.`,
+      );
     }
-  } catch {
-    // .glb not available, try .vox
+  } catch (err) {
+    console.error(`[ModelGallery] Error loading .glb:`, err);
   }
 
   if (!group) {
+    console.warn(
+      `[ModelGallery] Falling back to .vox loader (less performant).`,
+      `This should only happen in development when .glb files have not been generated.`,
+    );
     try {
       group = await loadVoxModel(base + 'assets/characters/owl.vox');
-      statusOwl.textContent = 'Loaded (from .vox)';
+      loadSource = '.vox (dev fallback)';
     } catch (err) {
       statusOwl.textContent = `Failed: ${err instanceof Error ? err.message : String(err)}`;
       statusOwl.className = 'status failed';
       return;
     }
   }
+
+  statusOwl.textContent = `Loaded (${loadSource})`;
 
   // Scale to match player dimensions
   const box = new THREE.Box3().setFromObject(group);

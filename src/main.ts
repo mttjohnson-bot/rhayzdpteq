@@ -1,4 +1,5 @@
 import { Game } from './game/Game';
+import { runAssetHealthReport } from './utils/assetHealthReport';
 
 function showErrorOverlay(message: string): void {
   const overlay = document.createElement('div');
@@ -28,6 +29,9 @@ window.addEventListener('unhandledrejection', (event) => {
 });
 
 try {
+  // In dev mode, log a table of all expected assets and their HTTP status
+  runAssetHealthReport();
+
   const game = new Game();
   game.start();
 } catch (err) {

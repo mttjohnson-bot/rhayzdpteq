@@ -39,9 +39,56 @@ See `GAME_PLAN.md` for the full game design document including milestones, archi
 │   ├── ui/          # HUD, menus, damage numbers
 │   ├── rendering/   # Voxel renderer, scene management, lighting
 │   └── utils/       # Math helpers, constants
-├── public/assets/   # Static assets (textures, sounds)
-└── tests/           # Test files (mirrors src/ structure)
+├── assets/characters/ # Source .vox models (canonical location)
+├── public/assets/     # Static assets served at runtime (.glb models generated here)
+├── scripts/           # Build scripts (convert-models.sh, verify-assets.mjs)
+└── tests/             # Test files (mirrors src/ structure)
 ```
+
+## Asset Pipeline (Character Models)
+
+**CRITICAL: Read this section before modifying anything related to character models or asset loading.**
+
+### Architecture
+
+Character models use a `.vox` → `.glb` conversion pipeline:
+
+1. **Source files** live in `assets/characters/*.vox` (MagicaVoxel format)
+2. **CI converts** `.vox` → optimized `.glb` using `v-optimizer` + `gltfpack`
+3. **Output `.glb` files** are placed in `public/assets/characters/` (served at runtime)
+4. **The game loads `.glb` files** via Three.js `GLTFLoader` (`CharacterModelLoader.ts`)
+
+### Rules — DO NOT VIOLATE
+
+1. **Always use `GLTFLoader` as the primary model loader.** The `.glb` format is optimized for Three.js and is significantly more performant than parsing `.vox` at runtime.
+
+2. **Never make `VoxLoader` the primary loader.** `VoxLoader.ts` exists only as a development fallback when `.glb` files haven't been generated locally. It must never be used in production. If a `.glb` file is missing in production, that is a CI pipeline bug to fix — not a reason to switch to VoxLoader.
+
+3. **Never duplicate `.vox` files into `public/assets/characters/`.** The source `.vox` files live in `assets/characters/`. The conversion script reads from there and writes `.glb` files to `public/assets/characters/`. Copying `.vox` files into `public/` is wasteful and bypasses the optimization pipeline.
+
+4. **If a `.glb` file is missing or fails to load**, the correct fix is to ensure the conversion pipeline runs — not to add a `.vox` fallback workaround. Check:
+   - Has `./scripts/convert-models.sh` been run?
+   - Does the CI deploy workflow include the model conversion step?
+   - Are the conversion tools (`v-optimizer`, `gltfpack`) downloading correctly in CI?
+
+5. **The deploy workflow (`deploy.yml`) includes model conversion.** It converts `.vox` → `.glb` with caching, verifies `.glb` files exist, then builds. Do not remove these steps.
+
+6. **The `verify-assets.mjs` script** checks that every `.vox` source has a corresponding `.glb` output. It runs in CI before the build step. If it fails, the deploy fails — preventing silent 404s in production.
+
+### Diagnostics
+
+When debugging model loading issues:
+- Check browser console for `[CharacterModelLoader]` messages — they now report whether the model loaded from `.glb`, fell back to `.vox` (dev only), or failed entirely
+- Check the model gallery page (`/model-gallery.html`) — it shows load status and format used
+- In CI, check the "Verify .glb assets exist" step output
+- Run `node scripts/verify-assets.mjs` locally to check if `.glb` files are present
+
+### Local Development
+
+For local development without running the conversion pipeline, the `VoxLoader` fallback allows models to render from `.vox` files. This is acceptable for development but:
+- Console warnings will appear indicating the fallback is active
+- The `.vox` runtime parser is less performant than loading pre-optimized `.glb`
+- To generate `.glb` locally, install `v-optimizer` and `gltfpack`, then run `./scripts/convert-models.sh`
 
 ## Development Setup
 
