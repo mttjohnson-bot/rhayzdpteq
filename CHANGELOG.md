@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Favicon for GitHub Pages site.
+
+- **Added favicon** — Created SVG and ICO favicons with "RP" letters (gold on dark purple) to eliminate 404 errors on GitHub Pages. Added `<link>` tags to `index.html` for both formats.
+
+---
+
 Runtime .vox loading, model gallery, and owl model fix.
 
 - **Fixed owl model not loading** — The owl model failed to load because the `.glb` file was never generated. The CharacterModelLoader now falls back to loading `.vox` files directly when `.glb` is unavailable, so the owl model works out of the box.

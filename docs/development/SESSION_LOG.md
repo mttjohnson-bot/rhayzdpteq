@@ -389,3 +389,23 @@ All code implemented. The owl model now loads from the `.vox` file at runtime. T
 - The `.glb` conversion pipeline still exists but is no longer required — the runtime `.vox` loader serves as a reliable fallback.
 - The VoxLoader uses neighbor-based face culling and merged BufferGeometry with vertex colors for good performance.
 - Previous session noted the `.glb` files weren't generated — this was the root cause of the user's reported issue.
+
+---
+
+## Session: 2026-03-07 — Add Favicon
+
+### Prompt
+> "When the GitHub Pages site is built and I visit it I also get a 404 error when any browser attempts to download the favicon.ico. Can we get a simple icon with the two letters RP as the contents of the icon."
+
+### Plan
+1. Generate a 32x32 `.ico` file with "RP" in gold on dark purple background.
+2. Create an SVG version for better quality in modern browsers.
+3. Add `<link>` tags to `index.html` referencing both formats.
+4. Place both files in `public/` so Vite copies them to `dist/`.
+
+### Outcome
+Both `public/favicon.ico` and `public/favicon.svg` created. `index.html` updated with `<link rel="icon">` tags for SVG (preferred) and ICO (fallback). Vite build confirms both files are copied to `dist/`.
+
+### Notes
+- SVG favicon uses text rendering so it looks crisp at any size.
+- ICO uses a programmatically drawn bitmap for maximum compatibility with older browsers.
