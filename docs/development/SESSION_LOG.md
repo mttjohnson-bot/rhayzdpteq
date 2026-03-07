@@ -409,3 +409,35 @@ Both `public/favicon.ico` and `public/favicon.svg` created. `index.html` updated
 ### Notes
 - SVG favicon uses text rendering so it looks crisp at any size.
 - ICO uses a programmatically drawn bitmap for maximum compatibility with older browsers.
+
+---
+
+## 2026-03-07 — Asset Pipeline Overhaul & Diagnostics
+
+### Prompt
+> "I am getting a 404 when switching to the owl character model for the .glb file... the owl.vox appears to be the one being used which is much less performant than loading a converted .glb file. The issue is how GitHub Actions builds the GLB assets and makes sure those optimized assets are the ones being used."
+>
+> "PR 86 was an initial attempt to get the github actions fixed so that the GLB file would be built and loaded with GLTFLoader correctly. Instead those efforts were avoided and duplicate files were made and VoxLoader was used instead bypassing the use of GLTFLoader."
+>
+> "I don't want to use VoxLoader, I want to use the optimized models with GLTFLoader. I want to try to prevent this kind of issue in future Claude Code sessions, and improve the ability to diagnose issues."
+>
+> Also requested all 5 recommended improvements: error logging on loadGlb, post-deploy smoke test, build-time asset manifest check, runtime asset health report, CI integration for convert-models.
+
+### Plan
+1. Remove duplicate `.vox` files from `public/assets/characters/` (keep only source in `assets/characters/`).
+2. Integrate model conversion (`.vox` → `.glb`) directly into `deploy.yml` with caching, so `.glb` files are always available in production.
+3. Add `verify-assets.mjs` — pre-build script that checks every `.vox` source has a corresponding `.glb` output.
+4. Add `verify-build-assets.mjs` — post-build script that scans source code for asset path references and verifies they exist in `dist/`.
+5. Add post-deploy smoke test that curls key asset URLs after GitHub Pages deployment.
+6. Fix `CharacterModelLoader` to log loud errors on GLB failure, restrict VoxLoader to dev-only fallback, and fail loudly in production.
+7. Add runtime asset health report (dev mode console table of all assets and their HTTP status).
+8. Add comprehensive "Asset Pipeline" section to `CLAUDE.md` with explicit rules preventing future sessions from bypassing GLTFLoader.
+
+### Outcome
+All 8 items implemented. Deploy workflow now includes model conversion, three layers of asset verification (pre-build, post-build, post-deploy), and CLAUDE.md has guardrails to prevent the VoxLoader bypass pattern from recurring. All quality gates pass (lint, format, typecheck, build).
+
+### Notes
+- **Root cause analysis**: PR 85 set up the GLB pipeline correctly, but the conversion never ran during deploy (it was manual-dispatch only). PR 86 worked around the missing GLB by duplicating `.vox` into `public/` and adding VoxLoader fallback — a well-intentioned but misguided fix that masked the real problem.
+- **Key lesson for future prompts**: When an asset fails to load, the fix should address the pipeline (why wasn't the asset generated?), not add a fallback loader. The CLAUDE.md rules now make this explicit.
+- **Three layers of defense**: (1) `verify-assets.mjs` catches missing `.glb` before build, (2) `verify-build-assets.mjs` catches missing assets in `dist/`, (3) post-deploy smoke test catches 404s on the live site.
+- The `CharacterModelLoader` now has separate dev and production behavior — dev allows VoxLoader fallback with warnings, production fails loudly to surface pipeline issues.

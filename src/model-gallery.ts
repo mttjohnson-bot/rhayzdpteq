@@ -4,7 +4,6 @@
  */
 
 import * as THREE from 'three';
-import { loadVoxModel } from './rendering/VoxLoader';
 import { PLAYER_SIZE, PLAYER_HEIGHT } from './utils/constants';
 
 // ── Scene setup ──
@@ -87,61 +86,60 @@ function assetBase(): string {
 
 async function loadOwl(): Promise<void> {
   const base = assetBase();
-
-  // Try .glb first, then .vox
-  let group: THREE.Group | null = null;
+  const glbUrl = base + 'assets/characters/owl.glb';
 
   try {
-    const glbResponse = await fetch(base + 'assets/characters/owl.glb');
-    if (glbResponse.ok) {
-      const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
-      const loader = new GLTFLoader();
-      const buffer = await glbResponse.arrayBuffer();
-      const gltf = await new Promise<{ scene: THREE.Group }>((resolve, reject) => {
-        loader.parse(buffer, '', resolve, reject);
-      });
-      group = gltf.scene;
-      statusOwl.textContent = 'Loaded (from .glb)';
-    }
-  } catch {
-    // .glb not available, try .vox
-  }
+    const { GLTFLoader } = await import('three/examples/jsm/loaders/GLTFLoader.js');
+    const loader = new GLTFLoader();
+    const glbResponse = await fetch(glbUrl);
 
-  if (!group) {
-    try {
-      group = await loadVoxModel(base + 'assets/characters/owl.vox');
-      statusOwl.textContent = 'Loaded (from .vox)';
-    } catch (err) {
-      statusOwl.textContent = `Failed: ${err instanceof Error ? err.message : String(err)}`;
+    if (!glbResponse.ok) {
+      console.error(
+        `[ModelGallery] .glb not found at ${glbUrl} (HTTP ${glbResponse.status}).`,
+        `Run ./scripts/convert-models.sh or trigger the CI conversion workflow.`,
+      );
+      statusOwl.textContent = `Failed: .glb not found (HTTP ${glbResponse.status})`;
       statusOwl.className = 'status failed';
       return;
     }
+
+    const buffer = await glbResponse.arrayBuffer();
+    const gltf = await new Promise<{ scene: THREE.Group }>((resolve, reject) => {
+      loader.parse(buffer, '', resolve, reject);
+    });
+    const group = gltf.scene;
+    console.log(`[ModelGallery] Loaded owl from .glb (optimized format)`);
+
+    // Scale to match player dimensions
+    const box = new THREE.Box3().setFromObject(group);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const targetSize = Math.max(PLAYER_SIZE, PLAYER_HEIGHT);
+    const scale = targetSize / maxDim;
+    group.scale.setScalar(scale);
+
+    // Re-center after scaling
+    const scaledBox = new THREE.Box3().setFromObject(group);
+    const center = new THREE.Vector3();
+    scaledBox.getCenter(center);
+    group.position.sub(center);
+    group.position.y += scaledBox.getSize(new THREE.Vector3()).y / 2;
+
+    group.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+      }
+    });
+
+    sceneRight.add(group);
+    statusOwl.textContent = 'Loaded (.glb)';
+    statusOwl.className = 'status loaded';
+  } catch (err) {
+    console.error(`[ModelGallery] Error loading .glb:`, err);
+    statusOwl.textContent = `Failed: ${err instanceof Error ? err.message : String(err)}`;
+    statusOwl.className = 'status failed';
   }
-
-  // Scale to match player dimensions
-  const box = new THREE.Box3().setFromObject(group);
-  const size = new THREE.Vector3();
-  box.getSize(size);
-  const maxDim = Math.max(size.x, size.y, size.z);
-  const targetSize = Math.max(PLAYER_SIZE, PLAYER_HEIGHT);
-  const scale = targetSize / maxDim;
-  group.scale.setScalar(scale);
-
-  // Re-center after scaling
-  const scaledBox = new THREE.Box3().setFromObject(group);
-  const center = new THREE.Vector3();
-  scaledBox.getCenter(center);
-  group.position.sub(center);
-  group.position.y += scaledBox.getSize(new THREE.Vector3()).y / 2;
-
-  group.traverse((child) => {
-    if (child instanceof THREE.Mesh) {
-      child.castShadow = true;
-    }
-  });
-
-  sceneRight.add(group);
-  statusOwl.className = 'status loaded';
 }
 
 loadOwl();

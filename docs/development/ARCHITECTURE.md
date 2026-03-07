@@ -79,12 +79,44 @@ src/
 ├── rendering/                   # Voxel renderer, scene management, lighting
 │   ├── SceneManager.ts          # Three.js scene setup & management
 │   ├── OcclusionOutline.ts      # Character silhouettes behind walls
-│   └── CharacterModelLoader.ts  # Async GLB model loading with caching
-└── utils/                       # Math helpers, constants, event bus
-    ├── math.ts                  # clamp, lerp, lerpVector3 helpers
-    ├── EventBus.ts              # Pub/sub event system
-    └── constants.ts             # Game-wide constants & enemy definitions
+│   └── CharacterModelLoader.ts  # Async GLB model loading with caching (GLTFLoader only)
+├── utils/                       # Math helpers, constants, event bus
+│   ├── math.ts                  # clamp, lerp, lerpVector3 helpers
+│   ├── EventBus.ts              # Pub/sub event system
+│   ├── assetHealthReport.ts     # Dev-mode asset status diagnostics
+│   └── constants.ts             # Game-wide constants & enemy definitions
+├── assets/characters/           # Source .vox models (canonical location)
+├── scripts/
+│   ├── convert-models.sh        # .vox → .glb conversion (v-optimizer + gltfpack)
+│   ├── verify-assets.mjs        # Pre-build: check .glb files exist for all .vox sources
+│   └── verify-build-assets.mjs  # Post-build: check code-referenced assets exist in dist/
 ```
+
+---
+
+## Asset Pipeline
+
+Character models follow a `.vox` → `.glb` conversion pipeline:
+
+```
+assets/characters/*.vox  (source, checked into git)
+        ↓
+  convert-models.sh      (v-optimizer + gltfpack)
+        ↓
+public/assets/characters/*.glb  (optimized, generated in CI)
+        ↓
+  Vite build copies to dist/
+        ↓
+  GLTFLoader loads at runtime (CharacterModelLoader.ts)
+```
+
+**Key principles:**
+- `.glb` (GLTF Binary) is the only runtime format — loaded via Three.js `GLTFLoader`
+- `.vox` files are source assets only — never loaded at runtime (no VoxLoader exists)
+- The deploy workflow generates `.glb` files automatically with caching
+- Three verification layers prevent silent 404s: pre-build (`verify-assets.mjs`), post-build (`verify-build-assets.mjs`), and post-deploy smoke test
+
+See CLAUDE.md "Asset Pipeline" section for the full set of rules and diagnostics.
 
 ---
 
