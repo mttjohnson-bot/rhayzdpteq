@@ -119,13 +119,9 @@ Each of these needs its own design pass — what does the UI look like, what's t
 
 ### VR / WebXR Support
 
-Support for Meta Quest 2 via WebVR/WebXR and VR controllers. This is a significant architectural change:
-- Camera system rework for VR perspective.
-- VR controller input provider (fits the existing ActionManager architecture).
-- UI rendering in 3D space instead of DOM overlays.
-- Performance implications on standalone VR hardware.
+Support for Meta Quest 2 via WebXR and VR controllers. 5-phase plan covering immersive rendering, XR controller input, VR comfort options, UI in VR, and VR-specific gameplay enhancements.
 
-Needs a dedicated plan document with feasibility analysis.
+See detailed plan: [quest-2-webxr.md](plans/quest-2-webxr.md)
 
 ### Sound & Music
 
@@ -160,5 +156,6 @@ Detailed design documents for completed and in-progress features live in the `pl
 |----------|--------|-------------|
 | [input-abstraction.md](plans/input-abstraction.md) | Completed | Action-based input system with provider architecture |
 | [quality-roadmap.md](plans/quality-roadmap.md) | Completed | 6-phase testing and quality infrastructure plan |
+| [quest-2-webxr.md](plans/quest-2-webxr.md) | Planning | Meta Quest 2 WebXR VR support — 5-phase plan |
 
 When a "Needs Planning" item above is ready for design, create a new plan document in `plans/` and link it here.

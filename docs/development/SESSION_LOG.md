@@ -304,6 +304,29 @@ Fixed tooltip sizing in both InventoryUI and VaultUI to auto-expand downward. Ad
 
 ---
 
+## 2026-03-07 — Meta Quest 2 WebXR Support Plan
+
+### Prompt
+> "Can we build a development plan for supporting running the game immersively on a Meta Quest 2? I can open the game in a web browser on the Quest 2 and play it, but it wasn't detecting the controls as gamepad controls — it ended up treating them like touch controls on the web page. Right now in the browser it just shows up like a panel window rather than some immersive experience. I would like to know how to make it so the player can enter the game so that looking around in VR would look around in the 3D game. How would we detect if someone is using VR and support the controls better?"
+
+### Plan
+Created [quest-2-webxr.md](plans/quest-2-webxr.md) — a 5-phase plan covering:
+1. **Immersive rendering** — Enable `renderer.xr`, VRButton, camera rig for head tracking
+2. **XR controller input** — New `XRControllerProvider` using WebXR Gamepads Module (explains why standard Gamepad API doesn't see Quest controllers)
+3. **VR comfort** — Snap/smooth turning, vignette, teleport movement, scale calibration
+4. **VR UI** — Three options analyzed: DOM Overlay API (simplest), 3D world-space UI (most immersive), hybrid (recommended)
+5. **VR gameplay enhancements** — Motion-controlled combat, hand tracking, spatial audio (stretch goals)
+
+### Outcome
+Plan document created with architecture analysis showing the existing codebase is well-suited for VR (ActionManager provider pattern, camera mode system, device-agnostic game logic). Includes technical explanation of why Quest controllers only work through WebXR sessions, not the standard Gamepad API. Updated roadmap with plan link.
+
+### Notes
+- The user's observation that Quest controllers are treated as "touch controls" is expected — Quest browser translates controller input into touch/pointer events for non-XR pages. The WebXR Gamepads Module is the only way to get proper button/axis input from Quest controllers.
+- Minimum viable VR is Phases 1 + 2 + DOM Overlay (Phase 4 Option A), which would be the least development effort for a playable VR experience.
+- Performance should be achievable — the game already targets 60 FPS on Chromebooks with instanced voxel rendering, and Quest 2 needs 72 FPS.
+
+---
+
 ## 2026-03-07 — Further Damage Balance Pass
 
 ### Prompt

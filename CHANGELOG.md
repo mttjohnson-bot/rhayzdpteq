@@ -4,6 +4,12 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Meta Quest 2 WebXR support plan.
+
+- **Created VR/WebXR plan document** — 5-phase development plan for Meta Quest 2 support covering immersive rendering via WebXR sessions, XR controller input provider, VR comfort options (snap/smooth turning, vignette, teleport), VR-compatible UI strategies, and VR-specific gameplay enhancements.
+
+---
+
 Further balance pass on damage values — regular enemies hit harder, bosses hit softer.
 
 - **Doubled regular enemy damage** — Base enemy attack damage increased from 10 to 20, making trash mobs more threatening and encouraging defensive play and gear upgrades.
