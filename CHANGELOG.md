@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ## [Unreleased]
 
+Runtime .vox loading, model gallery, and owl model fix.
+
+- **Fixed owl model not loading** — The owl model failed to load because the `.glb` file was never generated. The CharacterModelLoader now falls back to loading `.vox` files directly when `.glb` is unavailable, so the owl model works out of the box.
+- **Added runtime VoxLoader** — New module (`src/rendering/VoxLoader.ts`) parses MagicaVoxel `.vox` files at runtime and builds optimized Three.js geometry with per-face vertex colors and neighbor-based face culling.
+- **Added model preview gallery** — New `/model-gallery.html` page renders both the Simple and Owl character models side-by-side in split viewports with orbit controls, auto-rotation, and load status indicators for verifying models render correctly.
+- **Shipped .vox assets in public/** — Owl and owlbear `.vox` files are now served from `public/assets/characters/` so they load without the conversion pipeline.
+- **Optimized bundle chunking** — Three.js is now extracted into a shared chunk across entry points, keeping the VoxLoader and gallery bundles small.
+
+---
+
 Character model system with .vox-to-.glb asset pipeline and settings toggle.
 
 - **Added character model switching** — New "Character" setting in the Settings menu lets players switch between the default simple box model and the Owl voxel model (.glb loaded via Three.js GLTFLoader).
