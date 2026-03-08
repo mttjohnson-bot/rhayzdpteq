@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-03-08
+
+Boss hitbox fix.
+
+- **Fixed boss hitbox not scaling with model size** — Player attack hit detection now accounts for the target's collision radius, so hits register at the edge of the boss model rather than requiring the player to push into the boss's center. Also fixed auto-face targeting to use the same edge-distance calculation for consistent behavior.
+
 ## 2026-03-07
 
 Asset pipeline overhaul, character models, balance tuning, and favicon.
