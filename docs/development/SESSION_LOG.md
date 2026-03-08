@@ -462,3 +462,24 @@ Fixed in `CombatSystem.ts`. Both `tryHitTarget` and `findNearestTarget` now comp
 ### Notes
 - The bug existed since bosses were introduced — regular enemies were too small for it to be noticeable.
 - The fix is target-size-aware, so it automatically scales correctly for all enemy types (regular, captain, boss) without needing separate logic per type.
+
+---
+
+## 2026-03-08 — Fix Touch Inventory Item Action Menu
+
+### Prompt
+> "It doesn't seem possible to use a health potion using touch controls, and using touch controls it is very difficult to hit the x to attempt to destroy an item in the inventory. If an item is selected with touch controls can we present a simple menu dialog to allow them to choose which action they want to do with the item?"
+
+### Plan
+1. Investigate why the existing touch-friendly `ItemActionDialog` (Use/Equip/Drop/Cancel) wasn't appearing when tapping inventory items on touch devices.
+2. Root cause: `TouchProvider.onWindowTouchStart` only set `_active = true` for joystick touches on the game canvas and button element touches. Touches on UI elements (like inventory rows) were filtered out by the `isGameArea` check, so the provider was never marked active for those touches.
+3. Meanwhile, the browser fired synthetic mouse events for the touch, which made `MouseProvider._active = true`, switching `primaryDevice` from `'touch'` to `'keyboard'`.
+4. With `inputDevice === 'keyboard'`, `InventoryUI`'s click handler skipped the action dialog and fell through to the keyboard/mouse path (click = equip only, right-click = use, shift+click = drop — none of which work on touch).
+5. Fix: move `this._active = true` to the top of `onWindowTouchStart`, before the per-touch filtering loop, so any touch on the screen keeps the provider active for device detection purposes.
+
+### Outcome
+One-line fix in `TouchProvider.ts`. The `ItemActionDialog` now reliably appears when tapping inventory items on touch devices, providing Use, Equip, Drop, and Cancel buttons in a large, touch-friendly modal.
+
+### Notes
+- The `ItemActionDialog` component was already fully implemented and wired up — the bug was purely in device detection, not in the dialog itself.
+- The ActionManager's device priority (`touch > gamepad > keyboard`) ensures that even if synthetic mouse events fire alongside real touches, touch wins as long as the provider is marked active.
