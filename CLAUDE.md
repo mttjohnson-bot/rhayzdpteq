@@ -225,12 +225,13 @@ Target: Chromebook-playable (60 FPS mid-range, 30 FPS minimum low-end)
 ### Rules
 
 1. **Update `CHANGELOG.md` before creating a commit or pull request.** Every session that modifies code, configuration, or assets must include a corresponding changelog update in the same commit(s).
-2. **Add entries under the `[Unreleased]` section** at the top of the file. When a PR is merged or a release is cut, unreleased entries get moved under a dated heading.
+2. **Add entries under today's date heading (`## YYYY-MM-DD`).** If today's date already exists as a heading, add entries to that section. If not, create a new date heading at the top of the file (below the title and description line). Entries are grouped by date, not by release — there is no `[Unreleased]` section. The most recent date should always be at the top.
 3. **Match entries to actual changes.** Each changelog bullet should reflect a real change made during the session. Do not add speculative or planned items — only document what was actually implemented, fixed, or changed.
 4. **Use the existing format.** Follow the style already in `CHANGELOG.md`:
-   - A short summary line under the date/section heading describing the theme of the changes.
+   - A short summary line under the date heading describing the theme of the changes.
    - Bulleted entries with **bold lead text** followed by an em dash and description.
    - Group related changes logically (features, fixes, infrastructure, etc.).
+   - If adding to an existing date section, update the summary line if the new changes expand the scope of that day's work.
 5. **Keep it user-facing.** Write entries from the perspective of someone playing or developing the game. Focus on *what changed and why*, not implementation minutiae.
 6. **Verify accuracy before committing.** Review the changelog entries against the actual diff to confirm they accurately reflect the work done. If a PR is being created, the changelog should cover all commits in the branch, not just the last one.
 
