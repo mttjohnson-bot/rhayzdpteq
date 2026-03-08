@@ -184,8 +184,10 @@ export class CombatSystem {
       const dx = enemy.position.x - px;
       const dz = enemy.position.z - pz;
       const dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist <= range && (!nearest || dist < nearest.dist)) {
-        nearest = { x: enemy.position.x, z: enemy.position.z, dist };
+      // Use effective distance (to model edge) for range check
+      const effectiveDist = Math.max(0, dist - enemy.collisionRadius);
+      if (effectiveDist <= range && (!nearest || effectiveDist < nearest.dist)) {
+        nearest = { x: enemy.position.x, z: enemy.position.z, dist: effectiveDist };
       }
     }
     for (const boss of this.bosses) {
@@ -193,8 +195,10 @@ export class CombatSystem {
       const dx = boss.position.x - px;
       const dz = boss.position.z - pz;
       const dist = Math.sqrt(dx * dx + dz * dz);
-      if (dist <= range && (!nearest || dist < nearest.dist)) {
-        nearest = { x: boss.position.x, z: boss.position.z, dist };
+      // Use effective distance (to model edge) for range check
+      const effectiveDist = Math.max(0, dist - boss.collisionRadius);
+      if (effectiveDist <= range && (!nearest || effectiveDist < nearest.dist)) {
+        nearest = { x: boss.position.x, z: boss.position.z, dist: effectiveDist };
       }
     }
 
@@ -222,7 +226,12 @@ export class CombatSystem {
   };
 
   private tryHitTarget(
-    target: { position: THREE.Vector3; alive: boolean; takeDamage: (n: number) => void },
+    target: {
+      position: THREE.Vector3;
+      alive: boolean;
+      takeDamage: (n: number) => void;
+      collisionRadius: number;
+    },
     px: number,
     pz: number,
     angle: number,
@@ -234,7 +243,9 @@ export class CombatSystem {
     const dz = target.position.z - pz;
     const dist = Math.sqrt(dx * dx + dz * dz);
 
-    if (dist > PLAYER_ATTACK_RANGE) return;
+    // Subtract target's collision radius so hits register at the model edge, not center
+    const effectiveDist = Math.max(0, dist - target.collisionRadius);
+    if (effectiveDist > PLAYER_ATTACK_RANGE) return;
 
     const angleToTarget = Math.atan2(dz, dx);
     let angleDiff = angleToTarget - angle;

@@ -442,3 +442,23 @@ All 8 items implemented. Deploy workflow now includes model conversion, three la
 - **Three layers of defense**: (1) `verify-assets.mjs` catches missing `.glb` before build, (2) `verify-build-assets.mjs` catches missing assets in `dist/`, (3) post-deploy smoke test catches 404s on the live site.
 - VoxLoader was subsequently removed entirely — GLTFLoader is the only model loader. No fallback.
 - The deploy workflow failed on merge because `convert-models.sh` referenced tools (`nicholasgasior/v-optimizer`, `nicholasgasior/gltfpack`) at GitHub URLs that don't exist. These were placeholder URLs from the original session that were never validated. The fix was to rewrite the conversion as a self-contained Node.js script (`convert-models.mjs`) using `@gltf-transform/core`, eliminating all external tool dependencies.
+
+---
+
+## 2026-03-08 — Fix Boss Hitbox Scaling
+
+### Prompt
+> "It seems like the hit box when attacking one of the boss characters is very small and I have to push into the enemy in order for it to register a hit, rather than when the area of attack ends up intersecting with the edge of the boss character's model. It seems like the hit box might not have scaled with the size of the boss."
+
+### Plan
+1. Diagnose the hit detection code in `CombatSystem.ts` — found that `tryHitTarget` checks distance to the target's center point against `PLAYER_ATTACK_RANGE` (1.2) without accounting for the target's `collisionRadius`.
+2. For regular enemies (radius 0.2–0.35), this is barely noticeable. For bosses (scale 2.2–3.0, radius 0.66–0.90), the player must push deep into the model to reach within 1.2 of center.
+3. Fix `tryHitTarget` to subtract the target's `collisionRadius` from the distance, so hits register at the model edge.
+4. Apply the same fix to `findNearestTarget` for consistent auto-facing behavior.
+
+### Outcome
+Fixed in `CombatSystem.ts`. Both `tryHitTarget` and `findNearestTarget` now compute effective distance as `max(0, dist - collisionRadius)`, meaning player attacks connect when reaching the edge of any enemy model. Build passes.
+
+### Notes
+- The bug existed since bosses were introduced — regular enemies were too small for it to be noticeable.
+- The fix is target-size-aware, so it automatically scales correctly for all enemy types (regular, captain, boss) without needing separate logic per type.
