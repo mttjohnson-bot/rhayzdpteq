@@ -4,8 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-08
 
-Boss hitbox fix.
+Boss hitbox fix and touch inventory fix.
 
+- **Fixed touch inventory action menu not appearing** — The TouchProvider only marked itself as active for joystick and button touches on the game canvas, causing touches on inventory items to fall through to the MouseProvider. This switched the detected input device from "touch" to "keyboard," preventing the touch-friendly item action dialog (Use/Equip/Drop) from appearing. Now any touch on the screen keeps the provider active for device detection, so the action menu reliably appears when tapping inventory items.
 - **Fixed boss hitbox not scaling with model size** — Player attack hit detection now accounts for the target's collision radius, so hits register at the edge of the boss model rather than requiring the player to push into the boss's center. Also fixed auto-face targeting to use the same edge-distance calculation for consistent behavior.
 
 ## 2026-03-07

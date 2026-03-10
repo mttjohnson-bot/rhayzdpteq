@@ -91,6 +91,11 @@ export class TouchProvider implements InputProvider {
     this.onWindowTouchStart = (e: TouchEvent) => {
       this.lastTouchTime = performance.now();
 
+      // Any touch on the screen means the user is using touch input — mark
+      // the provider active so device detection keeps reporting 'touch' even
+      // when the touch lands on a UI element (inventory rows, dialogs, etc.).
+      this._active = true;
+
       // Auto-show controls on first touch
       if (!this.controls.visible) {
         this.controls.show();
