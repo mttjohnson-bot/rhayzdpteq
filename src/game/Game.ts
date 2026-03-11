@@ -992,7 +992,7 @@ export class Game {
 
     // Place player just inside the library entrance
     this.player.teleportTo(10, 0);
-    this.player.setBounds(8.5, 49.5, -23.5, 23.5);
+    this.player.setBounds(8.5, 54, -32, 22);
     this.player.setDungeonCollision(null);
     this.player.setWallSegments(this.assetLibrary.getWallSegments());
 
@@ -1042,8 +1042,8 @@ export class Game {
       return;
     }
 
-    // Check if player is near the training area (centered around x=16, z=0)
-    const nearTraining = this.player.isNear(16, 0, 6);
+    // Check if player is near the training area (separate room, south side at ~x=27.5, z=10.5)
+    const nearTraining = this.player.isNear(27.5, 10.5, 8);
 
     const highlighted = this.assetLibrary.getHighlightedAsset();
     if (highlighted) {

@@ -3,14 +3,15 @@
  *
  * Layout (top-down, positive X is east, negative Z is north):
  *
- *   Hub → [entry corridor] → [Entry Hall] ── east corr ──→ [Structure Wing]
- *                                 |        |
- *                           north corr  south corr
- *                                 |        |
- *                          [Enemy Wing]  [Items Wing]
+ *                  [NPC Room]        [Enemy Wing]           [Structure Wing]
+ *                      |                  |                       |
+ *   Hub → [entry] → ══[corridor]════════[corridor]══════════════[corridor]══ [end]
+ *                      |                  |                       |
+ *                 [Player Chars]     [Training Room]          [Items Wing]
  *
- * Side wings (Enemy/Items) span x=11.5..29.5 so they do not overlap with
- * the Structure Wing (x=29.5..49.5).  Interior walls have AABB collision.
+ * The main corridor runs east from the hub entry, with rooms branching off
+ * north and south via short connector corridors.  This spine-and-branch layout
+ * makes it easy to add new rooms — just extend the corridor and add a branch.
  *
  * Assets sit on pedestals sorted by stable string keys so positions never change
  * as new assets are added — new entries always append to the end of their section.
@@ -20,6 +21,9 @@ import * as THREE from 'three';
 import {
   TILE_SIZE,
   WALL_HEIGHT,
+  PLAYER_SIZE,
+  PLAYER_HEIGHT,
+  COLORS,
   ENEMY_TYPES,
   ENEMY_HP,
   ENEMY_SPEED,
@@ -50,7 +54,8 @@ export type LibraryAssetCategory =
   | 'item_potion'
   | 'structure'
   | 'obstacle'
-  | 'npc';
+  | 'npc'
+  | 'player_character';
 
 export interface LibraryAssetStats {
   rows: Array<{ label: string; value: string }>;
@@ -384,6 +389,221 @@ function buildNpcDisplayMesh(): THREE.Group {
 }
 
 // ---------------------------------------------------------------------------
+// Player character display mesh builders
+// ---------------------------------------------------------------------------
+
+/** Simple box player — matches the default in-game model */
+function buildSimplePlayerDisplayMesh(): THREE.Group {
+  const group = new THREE.Group();
+  const mat = new THREE.MeshLambertMaterial({ color: COLORS.player });
+
+  const bodyGeo = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_HEIGHT, PLAYER_SIZE);
+  const body = new THREE.Mesh(bodyGeo, mat);
+  body.position.y = PLAYER_HEIGHT / 2;
+  body.castShadow = true;
+  group.add(body);
+
+  // Eyes — two small dark boxes on the "face" side
+  const eyeMat = new THREE.MeshLambertMaterial({ color: 0x222244 });
+  const eyeGeo = new THREE.BoxGeometry(0.08, 0.08, 0.04);
+  const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+  leftEye.position.set(-0.12, PLAYER_HEIGHT * 0.7, -PLAYER_SIZE / 2 - 0.01);
+  group.add(leftEye);
+  const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+  rightEye.position.set(0.12, PLAYER_HEIGHT * 0.7, -PLAYER_SIZE / 2 - 0.01);
+  group.add(rightEye);
+
+  return group;
+}
+
+/** Owl character — geometric representation of the voxel owl model */
+function buildOwlDisplayMesh(): THREE.Group {
+  const group = new THREE.Group();
+  const bodyColor = 0x8b6844;
+  const bellyColor = 0xd4b896;
+  const eyeColor = 0xffcc00;
+
+  // Body — rounded barrel shape (cylinder)
+  const bodyMat = new THREE.MeshLambertMaterial({ color: bodyColor });
+  const bodyGeo = new THREE.CylinderGeometry(0.25, 0.3, 0.55, 8);
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 0.45;
+  body.castShadow = true;
+  group.add(body);
+
+  // Belly patch
+  const bellyMat = new THREE.MeshLambertMaterial({ color: bellyColor });
+  const bellyGeo = new THREE.BoxGeometry(0.28, 0.35, 0.08);
+  const belly = new THREE.Mesh(bellyGeo, bellyMat);
+  belly.position.set(0, 0.4, -0.26);
+  group.add(belly);
+
+  // Head
+  const headGeo = new THREE.BoxGeometry(0.36, 0.3, 0.34);
+  const head = new THREE.Mesh(headGeo, bodyMat);
+  head.position.y = 0.88;
+  head.castShadow = true;
+  group.add(head);
+
+  // Ear tufts (two small cones)
+  const tuftMat = new THREE.MeshLambertMaterial({ color: 0x6a4e2e });
+  const tuftGeo = new THREE.ConeGeometry(0.06, 0.15, 4);
+  const leftTuft = new THREE.Mesh(tuftGeo, tuftMat);
+  leftTuft.position.set(-0.12, 1.1, 0);
+  group.add(leftTuft);
+  const rightTuft = new THREE.Mesh(tuftGeo, tuftMat);
+  rightTuft.position.set(0.12, 1.1, 0);
+  group.add(rightTuft);
+
+  // Eyes — large golden circles
+  const eyeMat = new THREE.MeshLambertMaterial({ color: eyeColor });
+  const eyeGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.04, 8);
+  const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+  leftEye.rotation.x = Math.PI / 2;
+  leftEye.position.set(-0.1, 0.9, -0.17);
+  group.add(leftEye);
+  const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+  rightEye.rotation.x = Math.PI / 2;
+  rightEye.position.set(0.1, 0.9, -0.17);
+  group.add(rightEye);
+
+  // Pupils
+  const pupilMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
+  const pupilGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.04, 6);
+  const leftPupil = new THREE.Mesh(pupilGeo, pupilMat);
+  leftPupil.rotation.x = Math.PI / 2;
+  leftPupil.position.set(-0.1, 0.9, -0.19);
+  group.add(leftPupil);
+  const rightPupil = new THREE.Mesh(pupilGeo, pupilMat);
+  rightPupil.rotation.x = Math.PI / 2;
+  rightPupil.position.set(0.1, 0.9, -0.19);
+  group.add(rightPupil);
+
+  // Beak
+  const beakMat = new THREE.MeshLambertMaterial({ color: 0xff8822 });
+  const beakGeo = new THREE.ConeGeometry(0.05, 0.12, 4);
+  const beak = new THREE.Mesh(beakGeo, beakMat);
+  beak.rotation.x = Math.PI / 2;
+  beak.position.set(0, 0.82, -0.22);
+  group.add(beak);
+
+  // Wings — flat boxes on the sides
+  const wingMat = new THREE.MeshLambertMaterial({ color: 0x7a5c3a });
+  const wingGeo = new THREE.BoxGeometry(0.06, 0.35, 0.2);
+  const leftWing = new THREE.Mesh(wingGeo, wingMat);
+  leftWing.position.set(-0.3, 0.5, 0);
+  leftWing.rotation.z = 0.15;
+  group.add(leftWing);
+  const rightWing = new THREE.Mesh(wingGeo, wingMat);
+  rightWing.position.set(0.3, 0.5, 0);
+  rightWing.rotation.z = -0.15;
+  group.add(rightWing);
+
+  // Feet
+  const feetMat = new THREE.MeshLambertMaterial({ color: 0xff8822 });
+  const footGeo = new THREE.BoxGeometry(0.1, 0.06, 0.14);
+  const leftFoot = new THREE.Mesh(footGeo, feetMat);
+  leftFoot.position.set(-0.1, 0.03, -0.02);
+  group.add(leftFoot);
+  const rightFoot = new THREE.Mesh(footGeo, feetMat);
+  rightFoot.position.set(0.1, 0.03, -0.02);
+  group.add(rightFoot);
+
+  return group;
+}
+
+/** Owlbear character — a hulking bear body with owl features */
+function buildOwlbearDisplayMesh(): THREE.Group {
+  const group = new THREE.Group();
+  const furColor = 0x5c4028;
+  const bellyColor = 0x9a7a55;
+
+  // Bulky body
+  const bodyMat = new THREE.MeshLambertMaterial({ color: furColor });
+  const bodyGeo = new THREE.BoxGeometry(0.55, 0.7, 0.45);
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 0.55;
+  body.castShadow = true;
+  group.add(body);
+
+  // Belly patch
+  const bellyMat = new THREE.MeshLambertMaterial({ color: bellyColor });
+  const bellyGeo = new THREE.BoxGeometry(0.35, 0.45, 0.08);
+  const belly = new THREE.Mesh(bellyGeo, bellyMat);
+  belly.position.set(0, 0.5, -0.22);
+  group.add(belly);
+
+  // Head — owl-like but larger
+  const headGeo = new THREE.BoxGeometry(0.42, 0.36, 0.38);
+  const head = new THREE.Mesh(headGeo, bodyMat);
+  head.position.y = 1.1;
+  head.castShadow = true;
+  group.add(head);
+
+  // Ear tufts (like an owl but beefier)
+  const tuftMat = new THREE.MeshLambertMaterial({ color: 0x4a3020 });
+  const tuftGeo = new THREE.ConeGeometry(0.08, 0.18, 4);
+  const leftTuft = new THREE.Mesh(tuftGeo, tuftMat);
+  leftTuft.position.set(-0.14, 1.38, 0);
+  group.add(leftTuft);
+  const rightTuft = new THREE.Mesh(tuftGeo, tuftMat);
+  rightTuft.position.set(0.14, 1.38, 0);
+  group.add(rightTuft);
+
+  // Eyes — large golden owl eyes
+  const eyeMat = new THREE.MeshLambertMaterial({ color: 0xffaa00 });
+  const eyeGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.04, 8);
+  const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
+  leftEye.rotation.x = Math.PI / 2;
+  leftEye.position.set(-0.11, 1.14, -0.19);
+  group.add(leftEye);
+  const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
+  rightEye.rotation.x = Math.PI / 2;
+  rightEye.position.set(0.11, 1.14, -0.19);
+  group.add(rightEye);
+
+  // Beak — sharper, larger
+  const beakMat = new THREE.MeshLambertMaterial({ color: 0xcc6600 });
+  const beakGeo = new THREE.ConeGeometry(0.07, 0.16, 4);
+  const beak = new THREE.Mesh(beakGeo, beakMat);
+  beak.rotation.x = Math.PI / 2;
+  beak.position.set(0, 1.05, -0.24);
+  group.add(beak);
+
+  // Arms / paws — thick stumpy limbs
+  const armMat = new THREE.MeshLambertMaterial({ color: furColor });
+  const armGeo = new THREE.BoxGeometry(0.14, 0.45, 0.16);
+  const leftArm = new THREE.Mesh(armGeo, armMat);
+  leftArm.position.set(-0.35, 0.55, 0);
+  group.add(leftArm);
+  const rightArm = new THREE.Mesh(armGeo, armMat);
+  rightArm.position.set(0.35, 0.55, 0);
+  group.add(rightArm);
+
+  // Claws on each arm
+  const clawMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
+  const clawGeo = new THREE.BoxGeometry(0.04, 0.08, 0.04);
+  for (const side of [-1, 1]) {
+    for (let ci = -1; ci <= 1; ci++) {
+      const claw = new THREE.Mesh(clawGeo, clawMat);
+      claw.position.set(side * 0.35 + ci * 0.04, 0.29, -0.06);
+      group.add(claw);
+    }
+  }
+
+  // Legs — thick
+  const legGeo = new THREE.BoxGeometry(0.16, 0.3, 0.18);
+  const leftLeg = new THREE.Mesh(legGeo, bodyMat);
+  leftLeg.position.set(-0.16, 0.15, 0);
+  group.add(leftLeg);
+  const rightLeg = new THREE.Mesh(legGeo, bodyMat);
+  rightLeg.position.set(0.16, 0.15, 0);
+  group.add(rightLeg);
+
+  return group;
+}
+
+// ---------------------------------------------------------------------------
 // AssetLibrary class
 // ---------------------------------------------------------------------------
 
@@ -398,6 +618,96 @@ const HIGHLIGHT_RANGE = 2.5; // must be close to inspect (similar to attack rang
 const HIGHLIGHT_DOT_MIN = 0.5; // ~60° half-cone (wider to compensate for shorter range)
 const ROTATION_SPEED = 0.5; // rad/s
 const PEDESTAL_COLLISION_HALF = 0.45; // half-size of pedestal collision AABB
+
+// ---------------------------------------------------------------------------
+// Corridor layout constants
+// ---------------------------------------------------------------------------
+
+/** Main corridor: 3 tiles wide, centered at z=0 */
+const CORRIDOR_HALF_WIDTH = 1.5;
+
+/** X-coordinate where the main corridor starts (east of entry corridor) */
+const CORRIDOR_START_X = 11.5;
+
+/** X-coordinate where the main corridor ends */
+const CORRIDOR_END_X = 53;
+
+/** Room branch definitions — each room branches off the corridor */
+interface RoomBranch {
+  /** Label shown on the room sign */
+  label: string;
+  /** X center of the connector gap in the corridor wall */
+  connectorCX: number;
+  /** Width of the connector gap (and connector corridor floor) */
+  connectorWidth: number;
+  /** 'north' (negative z) or 'south' (positive z) */
+  side: 'north' | 'south';
+  /** Room floor width (x) */
+  roomWidth: number;
+  /** Room floor depth (z) */
+  roomDepth: number;
+  /** Room center X (defaults to connectorCX if not specified) */
+  roomCX?: number;
+}
+
+/** Z coordinate of the corridor north wall center */
+const CORR_WALL_N = -(CORRIDOR_HALF_WIDTH + 0.5);
+/** Z coordinate of the corridor south wall center */
+const CORR_WALL_S = CORRIDOR_HALF_WIDTH + 0.5;
+/** Connector corridor length (from corridor wall to room) */
+const CONNECTOR_LENGTH = 3;
+
+// Room branch specifications along the corridor
+const ROOM_BRANCHES: RoomBranch[] = [
+  {
+    label: 'PLAYER CHARACTERS',
+    connectorCX: 16.5,
+    connectorWidth: 3,
+    side: 'south',
+    roomWidth: 10,
+    roomDepth: 8,
+  },
+  {
+    label: 'NPC CHARACTERS',
+    connectorCX: 16.5,
+    connectorWidth: 3,
+    side: 'north',
+    roomWidth: 10,
+    roomDepth: 8,
+  },
+  {
+    label: 'TRAINING',
+    connectorCX: 27.5,
+    connectorWidth: 3,
+    side: 'south',
+    roomWidth: 12,
+    roomDepth: 10,
+  },
+  {
+    label: 'ENEMIES',
+    connectorCX: 27.5,
+    connectorWidth: 3,
+    side: 'north',
+    roomWidth: 18,
+    roomDepth: 16,
+  },
+  {
+    label: 'ITEMS',
+    connectorCX: 41.5,
+    connectorWidth: 3,
+    side: 'south',
+    roomWidth: 18,
+    roomDepth: 16,
+  },
+  {
+    label: 'DUNGEON STRUCTURES',
+    connectorCX: 41.5,
+    connectorWidth: 3,
+    side: 'north',
+    roomWidth: 20,
+    roomDepth: 26,
+  },
+];
 
 /** Axis-aligned wall bounding box in the XZ plane */
 export interface WallAABB {
@@ -417,14 +727,8 @@ export class AssetLibrary {
   constructor() {
     this.group = new THREE.Group();
     this._buildEntryCorridor();
-    this._buildEntryHall();
-    this._buildNorthCorridor();
-    this._buildEnemyWing();
-    this._buildSouthCorridor();
-    this._buildItemsWing();
-    this._buildEastCorridor();
-    this._buildStructureWing();
-    this._buildTrainingArea();
+    this._buildMainCorridor();
+    this._buildAllRooms();
   }
 
   // -------------------------------------------------------------------------
@@ -498,177 +802,267 @@ export class AssetLibrary {
   }
 
   // -------------------------------------------------------------------------
-  // Room geometry builders
+  // Entry corridor (hub → main corridor)
   // -------------------------------------------------------------------------
 
-  /** Entry corridor connecting hub east wall to entry hall (x=8.5→11.5, z=±1.5) */
+  /** Entry corridor connecting hub east wall to main corridor (x=8.5→11.5, z=±1.5) */
   private _buildEntryCorridor(): void {
     this._buildFloor(3, 3, 10, 0);
     // Side walls (north and south of corridor)
-    this._buildWall(3.2, 1, 10, -2);
-    this._buildWall(3.2, 1, 10, 2);
-  }
-
-  /** Entry hall: 15×12 floor centered at (19, 0) */
-  private _buildEntryHall(): void {
-    this._buildFloor(15, 12, 19, 0);
-
-    // West wall — two segments (corridor gap at z=±1.5)
-    this._buildWall(1, 4.5, 11, -3.75); // south of corridor
-    this._buildWall(1, 4.5, 11, 3.75); // north of corridor
-
-    // East wall — two segments (east corridor gap at z=±1.5)
-    this._buildWall(1, 4.5, 27, -3.75);
-    this._buildWall(1, 4.5, 27, 3.75);
-
-    // North wall — two segments (north corridor gap at x=17→20)
-    this._buildWall(5.5, 1, 14.25, -6.5); // west portion
-    this._buildWall(6.5, 1, 23.25, -6.5); // east portion
-
-    // South wall — two segments (south corridor gap at x=17→20)
-    this._buildWall(5.5, 1, 14.25, 6.5);
-    this._buildWall(6.5, 1, 23.25, 6.5);
-
-    // NPC section — two pedestals in northeast corner of entry hall
-    this._addNpcSection();
-  }
-
-  /** North corridor connecting entry hall to enemy wing (x=17→20, z=-9→-6) */
-  private _buildNorthCorridor(): void {
-    this._buildFloor(3, 3, 18.5, -7.5);
-    this._buildWall(1, 3.2, 16.5, -7.5);
-    this._buildWall(1, 3.2, 20.5, -7.5);
-  }
-
-  /** Enemy wing: 18×16 floor centered at (20.5, -17) */
-  private _buildEnemyWing(): void {
-    this._buildFloor(18, 16, 20.5, -17);
-
-    // West wall
-    this._buildWall(1, 16, 11, -17);
-    // East wall
-    this._buildWall(1, 16, 30, -17);
-    // North wall (solid)
-    this._buildWall(18, 1, 20.5, -25.5);
-    // South wall — two segments around corridor opening at x=17→20
-    this._buildWall(5.5, 1, 14.25, -9.5);
-    this._buildWall(9.5, 1, 24.75, -9.5);
-
-    this._addEnemySection();
-  }
-
-  /** South corridor connecting entry hall to items wing (x=17→20, z=6→9) */
-  private _buildSouthCorridor(): void {
-    this._buildFloor(3, 3, 18.5, 7.5);
-    this._buildWall(1, 3.2, 16.5, 7.5);
-    this._buildWall(1, 3.2, 20.5, 7.5);
-  }
-
-  /** Items wing: 18×16 floor centered at (20.5, +17) */
-  private _buildItemsWing(): void {
-    this._buildFloor(18, 16, 20.5, 17);
-
-    this._buildWall(1, 16, 11, 17);
-    this._buildWall(1, 16, 30, 17);
-    this._buildWall(18, 1, 20.5, 25.5);
-    // North wall — two segments around corridor opening at x=17→20
-    this._buildWall(5.5, 1, 14.25, 9.5);
-    this._buildWall(9.5, 1, 24.75, 9.5);
-
-    this._addItemsSection();
-  }
-
-  /** East corridor connecting entry hall to structure wing (x=26.5→29.5, z=±1.5) */
-  private _buildEastCorridor(): void {
-    this._buildFloor(3, 3, 28, 0);
-    this._buildWall(3.2, 1, 28, -2);
-    this._buildWall(3.2, 1, 28, 2);
-  }
-
-  /** Structure wing: 20×26 floor centered at (39.5, 5) — expanded for floors 6-10 + obstacles */
-  private _buildStructureWing(): void {
-    this._buildFloor(20, 26, 39.5, 5);
-
-    // West wall — two segments around east corridor gap at z=±1.5
-    this._buildWall(1, 6, 29, -5); // north of corridor (z=-8 to -2)
-    this._buildWall(1, 16, 29, 10); // south of corridor (z=+2 to +18)
-
-    // East wall (solid)
-    this._buildWall(1, 26, 50, 5);
-    // North wall (solid)
-    this._buildWall(20, 1, 39.5, -8.5);
-    // South wall (solid)
-    this._buildWall(20, 1, 39.5, 18.5);
-
-    this._addStructureSection();
+    this._buildWall(3.2, 1, 10, -(CORRIDOR_HALF_WIDTH + 0.5));
+    this._buildWall(3.2, 1, 10, CORRIDOR_HALF_WIDTH + 0.5);
   }
 
   // -------------------------------------------------------------------------
-  // Training area (test dummies)
+  // Main corridor spine
   // -------------------------------------------------------------------------
 
-  /**
-   * Build three attackable training dummies in the Entry Hall.
-   *
-   * Layout:
-   *   - Dummy 1 (solo): x=14.5, z=0    — for single-target & range testing
-   *   - Dummy 2 (pair): x=17.5, z=-0.5 — pair for AoE / cleave testing
-   *   - Dummy 3 (pair): x=17.5, z=+0.5 — pair for AoE / cleave testing
-   *
-   * A raised training platform visually marks the area.
-   */
-  private _buildTrainingArea(): void {
-    // Raised platform under the training area
-    const platGeo = new THREE.BoxGeometry(6, 0.08, 5);
-    const platMat = new THREE.MeshLambertMaterial({ color: 0x5c4433 });
-    const platform = new THREE.Mesh(platGeo, platMat);
-    platform.position.set(16, 0.04, 0);
-    platform.receiveShadow = true;
-    this.group.add(platform);
+  private _buildMainCorridor(): void {
+    const corridorLength = CORRIDOR_END_X - CORRIDOR_START_X;
 
-    // Border ring around platform
-    const borderGeo = new THREE.BoxGeometry(6.3, 0.04, 5.3);
-    const borderMat = new THREE.MeshLambertMaterial({ color: 0x7a6a55 });
-    const border = new THREE.Mesh(borderGeo, borderMat);
-    border.position.set(16, 0.01, 0);
-    border.receiveShadow = true;
-    this.group.add(border);
+    // Floor: long strip from entry to end
+    this._buildFloor(corridorLength, 3, CORRIDOR_START_X + corridorLength / 2, 0);
 
-    // "TRAINING" sign post behind the dummies
-    const signPostGeo = new THREE.BoxGeometry(0.08, 1.6, 0.08);
-    const signPostMat = new THREE.MeshLambertMaterial({ color: 0x6a5010 });
-    const signPost = new THREE.Mesh(signPostGeo, signPostMat);
-    signPost.position.set(19.2, 0.8, 0);
-    this.group.add(signPost);
+    // Build north and south walls with gaps for room connectors
+    this._buildCorridorWallWithGaps('north');
+    this._buildCorridorWallWithGaps('south');
 
-    const signGeo = new THREE.BoxGeometry(1.8, 0.5, 0.06);
-    const signMat = new THREE.MeshLambertMaterial({ color: 0x5c4433 });
-    const sign = new THREE.Mesh(signGeo, signMat);
-    sign.position.set(19.2, 1.5, 0);
-    this.group.add(sign);
+    // East end wall (closes off the corridor)
+    this._buildWall(1, 3, CORRIDOR_END_X + 0.5, 0);
+  }
 
-    // Create the three test dummies
-    const positions: Array<[number, number]> = [
-      [14.5, 0], // solo dummy — single-target & range testing
-      [17.5, -0.5], // pair dummy — AoE testing
-      [17.5, 0.5], // pair dummy — AoE testing
-    ];
+  /** Build one side of the corridor wall, leaving gaps where rooms branch off */
+  private _buildCorridorWallWithGaps(side: 'north' | 'south'): void {
+    const wallZ = side === 'north' ? CORR_WALL_N : CORR_WALL_S;
 
-    for (const [x, z] of positions) {
-      const dummy = new TestDummy(x, z);
-      this.testDummies.push(dummy);
-      this.group.add(dummy.mesh);
+    // Collect all gaps on this side, sorted by x
+    const gaps: Array<{ startX: number; endX: number }> = [];
+    for (const branch of ROOM_BRANCHES) {
+      if (branch.side !== side) continue;
+      const halfW = branch.connectorWidth / 2;
+      gaps.push({
+        startX: branch.connectorCX - halfW,
+        endX: branch.connectorCX + halfW,
+      });
+    }
+    gaps.sort((a, b) => a.startX - b.startX);
+
+    // Build wall segments between gaps
+    let curX = CORRIDOR_START_X;
+    for (const gap of gaps) {
+      const segLen = gap.startX - curX;
+      if (segLen > 0.1) {
+        this._buildWall(segLen, 1, curX + segLen / 2, wallZ);
+      }
+      curX = gap.endX;
+    }
+    // Final segment from last gap to corridor end
+    const finalLen = CORRIDOR_END_X - curX;
+    if (finalLen > 0.1) {
+      this._buildWall(finalLen, 1, curX + finalLen / 2, wallZ);
     }
   }
 
   // -------------------------------------------------------------------------
-  // Asset section builders
+  // Room construction
+  // -------------------------------------------------------------------------
+
+  private _buildAllRooms(): void {
+    for (const branch of ROOM_BRANCHES) {
+      this._buildRoomBranch(branch);
+    }
+
+    // Populate rooms with assets
+    this._addPlayerCharacterSection();
+    this._addNpcSection();
+    this._addTrainingArea();
+    this._addEnemySection();
+    this._addItemsSection();
+    this._addStructureSection();
+  }
+
+  /** Build a connector corridor and room for a single branch */
+  private _buildRoomBranch(branch: RoomBranch): void {
+    const sign = branch.side === 'south' ? 1 : -1;
+    const wallEdge = branch.side === 'south' ? CORR_WALL_S : CORR_WALL_N;
+    const wallEdgeOuter = wallEdge + sign * 0.5; // outer edge of corridor wall
+
+    // Connector corridor floor
+    const connCZ = wallEdgeOuter + (sign * CONNECTOR_LENGTH) / 2;
+    this._buildFloor(branch.connectorWidth, CONNECTOR_LENGTH, branch.connectorCX, connCZ);
+
+    // Connector side walls
+    const halfW = branch.connectorWidth / 2;
+    this._buildWall(1, CONNECTOR_LENGTH + 0.2, branch.connectorCX - halfW - 0.5, connCZ);
+    this._buildWall(1, CONNECTOR_LENGTH + 0.2, branch.connectorCX + halfW + 0.5, connCZ);
+
+    // Room floor
+    const roomCX = branch.roomCX ?? branch.connectorCX;
+    const roomEdge = wallEdgeOuter + sign * CONNECTOR_LENGTH;
+    const roomCZ = roomEdge + (sign * branch.roomDepth) / 2;
+    this._buildFloor(branch.roomWidth, branch.roomDepth, roomCX, roomCZ);
+
+    // Room walls (4 sides, with gap on the connector side)
+    const roomMinX = roomCX - branch.roomWidth / 2;
+    const roomMaxX = roomCX + branch.roomWidth / 2;
+    const roomMinZ = roomCZ - branch.roomDepth / 2;
+    const roomMaxZ = roomCZ + branch.roomDepth / 2;
+
+    // The wall facing the connector (has a gap)
+    const connWallZ = branch.side === 'south' ? roomMinZ : roomMaxZ;
+    const gapMinX = branch.connectorCX - halfW;
+    const gapMaxX = branch.connectorCX + halfW;
+
+    // Left portion of connector-side wall
+    const leftLen = gapMinX - roomMinX;
+    if (leftLen > 0.1) {
+      this._buildWall(leftLen, 1, roomMinX + leftLen / 2, connWallZ);
+    }
+    // Right portion of connector-side wall
+    const rightLen = roomMaxX - gapMaxX;
+    if (rightLen > 0.1) {
+      this._buildWall(rightLen, 1, gapMaxX + rightLen / 2, connWallZ);
+    }
+
+    // Opposite wall (solid)
+    const oppWallZ = branch.side === 'south' ? roomMaxZ : roomMinZ;
+    this._buildWall(branch.roomWidth, 1, roomCX, oppWallZ);
+
+    // Side walls (west and east)
+    this._buildWall(1, branch.roomDepth, roomMinX - 0.5, roomCZ);
+    this._buildWall(1, branch.roomDepth, roomMaxX + 0.5, roomCZ);
+
+    // Room sign
+    this._buildRoomSign(branch.label, branch.connectorCX, connCZ, branch.side);
+  }
+
+  /** Place a sign post with label near the connector entrance */
+  private _buildRoomSign(label: string, cx: number, cz: number, side: 'north' | 'south'): void {
+    // Sign post
+    const signPostGeo = new THREE.BoxGeometry(0.08, 1.6, 0.08);
+    const signPostMat = new THREE.MeshLambertMaterial({ color: 0x6a5010 });
+    const signPost = new THREE.Mesh(signPostGeo, signPostMat);
+    const signX = cx + 2;
+    signPost.position.set(signX, 0.8, cz);
+    this.group.add(signPost);
+
+    const signGeo = new THREE.BoxGeometry(Math.min(label.length * 0.18 + 0.4, 3.0), 0.5, 0.06);
+    const signMat = new THREE.MeshLambertMaterial({ color: 0x5c4433 });
+    const sign = new THREE.Mesh(signGeo, signMat);
+    sign.position.set(signX, 1.5, cz);
+    // Rotate sign so it faces the corridor (player walking east)
+    if (side === 'south') {
+      sign.rotation.y = Math.PI / 2;
+      signPost.position.z = cz - 0.5;
+      sign.position.z = cz - 0.5;
+    } else {
+      sign.rotation.y = Math.PI / 2;
+      signPost.position.z = cz + 0.5;
+      sign.position.z = cz + 0.5;
+    }
+    this.group.add(sign);
+  }
+
+  // -------------------------------------------------------------------------
+  // Room helper: compute room center for a branch
+  // -------------------------------------------------------------------------
+
+  private _getRoomCenter(branch: RoomBranch): { cx: number; cz: number } {
+    const sign = branch.side === 'south' ? 1 : -1;
+    const wallEdge = branch.side === 'south' ? CORR_WALL_S : CORR_WALL_N;
+    const wallEdgeOuter = wallEdge + sign * 0.5;
+    const roomEdge = wallEdgeOuter + sign * CONNECTOR_LENGTH;
+    const cx = branch.roomCX ?? branch.connectorCX;
+    const cz = roomEdge + (sign * branch.roomDepth) / 2;
+    return { cx, cz };
+  }
+
+  // -------------------------------------------------------------------------
+  // Player Characters room (south, first branch)
+  // -------------------------------------------------------------------------
+
+  private _addPlayerCharacterSection(): void {
+    const branch = ROOM_BRANCHES[0]; // Player Characters
+    const { cx, cz } = this._getRoomCenter(branch);
+
+    // Three player models: simple, owl, owlbear
+    const models: Array<{
+      key: string;
+      name: string;
+      builder: () => THREE.Group;
+      stats: LibraryAssetStats;
+    }> = [
+      {
+        key: 'player_simple',
+        name: 'Simple (Default)',
+        builder: buildSimplePlayerDisplayMesh,
+        stats: {
+          rows: [
+            { label: 'Model', value: 'Simple Box' },
+            { label: 'Style', value: 'Geometric' },
+            { label: 'Status', value: 'Available' },
+            { label: 'Selection', value: 'Settings → Character' },
+          ],
+          accentColor: toHex(COLORS.player),
+          flavorText: 'The default adventurer. A sturdy blue box ready to take on the dungeon.',
+        },
+      },
+      {
+        key: 'player_owl',
+        name: 'Owl',
+        builder: buildOwlDisplayMesh,
+        stats: {
+          rows: [
+            { label: 'Model', value: 'Owl' },
+            { label: 'Style', value: 'Voxel (.glb)' },
+            { label: 'Status', value: 'Available' },
+            { label: 'Selection', value: 'Settings → Character' },
+          ],
+          accentColor: '#8b6844',
+          flavorText: 'A wise owl adventurer with keen eyes and silent wings. Sees in the dark.',
+        },
+      },
+      {
+        key: 'player_owlbear',
+        name: 'Owlbear',
+        builder: buildOwlbearDisplayMesh,
+        stats: {
+          rows: [
+            { label: 'Model', value: 'Owlbear' },
+            { label: 'Style', value: 'Voxel (.glb)' },
+            { label: 'Status', value: 'Coming soon' },
+            { label: 'Selection', value: 'Settings → Character' },
+          ],
+          accentColor: '#5c4028',
+          flavorText:
+            'A fearsome owlbear — the strength of a bear combined with the cunning of an owl.',
+        },
+      },
+    ];
+
+    models.forEach((m, i) => {
+      const pos = { x: cx - 3 + i * 3, z: cz };
+      this._addAsset(pos, {
+        key: m.key,
+        name: m.name,
+        category: 'player_character',
+        displayMesh: m.builder(),
+        stats: m.stats,
+      });
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // NPC Characters room (north, first branch)
   // -------------------------------------------------------------------------
 
   private _addNpcSection(): void {
-    // Merchant vendor placeholder
+    const branch = ROOM_BRANCHES[1]; // NPC Characters
+    const { cx, cz } = this._getRoomCenter(branch);
+
+    // Merchant vendor
     this._addAsset(
-      { x: 24, z: -3 },
+      { x: cx - 2, z: cz },
       {
         key: 'npc_merchant',
         name: 'Merchant Vendor',
@@ -686,15 +1080,105 @@ export class AssetLibrary {
         },
       },
     );
+
+    // Placeholder for future NPCs (quest giver, blacksmith, etc.)
+    this._addAsset(
+      { x: cx + 2, z: cz },
+      {
+        key: 'npc_questgiver',
+        name: 'Quest Giver',
+        category: 'npc',
+        displayMesh: (() => {
+          const g = buildNpcDisplayMesh();
+          // Recolor to distinguish from merchant
+          g.traverse((child) => {
+            if (
+              child instanceof THREE.Mesh &&
+              child.material instanceof THREE.MeshLambertMaterial
+            ) {
+              if (child.material.color.getHex() === 0x6644aa) {
+                child.material = new THREE.MeshLambertMaterial({ color: 0x226644 });
+              }
+            }
+          });
+          return g;
+        })(),
+        stats: {
+          rows: [
+            { label: 'Role', value: 'Quest Giver' },
+            { label: 'Location', value: 'Hub' },
+            { label: 'Status', value: 'Coming soon' },
+            { label: 'Function', value: 'Assign quests & bounties' },
+          ],
+          accentColor: '#44cc88',
+          flavorText: 'A weathered adventurer who sends heroes on dangerous missions.',
+        },
+      },
+    );
   }
 
+  // -------------------------------------------------------------------------
+  // Training room (south, second branch)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Build attackable training dummies in the dedicated Training Room.
+   *
+   * Layout:
+   *   - Dummy 1 (solo): left side — for single-target & range testing
+   *   - Dummy 2+3 (pair): right side — for AoE / cleave testing
+   *
+   * A raised training platform visually marks the area.
+   */
+  private _addTrainingArea(): void {
+    const branch = ROOM_BRANCHES[2]; // Training
+    const { cx, cz } = this._getRoomCenter(branch);
+
+    // Raised platform under the training area
+    const platGeo = new THREE.BoxGeometry(8, 0.08, 6);
+    const platMat = new THREE.MeshLambertMaterial({ color: 0x5c4433 });
+    const platform = new THREE.Mesh(platGeo, platMat);
+    platform.position.set(cx, 0.04, cz);
+    platform.receiveShadow = true;
+    this.group.add(platform);
+
+    // Border ring around platform
+    const borderGeo = new THREE.BoxGeometry(8.3, 0.04, 6.3);
+    const borderMat = new THREE.MeshLambertMaterial({ color: 0x7a6a55 });
+    const border = new THREE.Mesh(borderGeo, borderMat);
+    border.position.set(cx, 0.01, cz);
+    border.receiveShadow = true;
+    this.group.add(border);
+
+    // Create test dummies
+    const positions: Array<[number, number]> = [
+      [cx - 2.5, cz], // solo dummy — single-target & range testing
+      [cx + 1.5, cz - 0.8], // pair dummy — AoE testing
+      [cx + 1.5, cz + 0.8], // pair dummy — AoE testing
+    ];
+
+    for (const [x, z] of positions) {
+      const dummy = new TestDummy(x, z);
+      this.testDummies.push(dummy);
+      this.group.add(dummy.mesh);
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Enemy wing (north, second branch)
+  // -------------------------------------------------------------------------
+
   private _addEnemySection(): void {
+    const branch = ROOM_BRANCHES[3]; // Enemies
+    const { cx, cz } = this._getRoomCenter(branch);
+    const startX = cx - branch.roomWidth / 2 + 3;
+
     // Sorted alphabetically by typeId — order never changes
     const sortedTypes = (Object.keys(ENEMY_TYPES) as EnemyTypeId[]).sort();
 
-    // Row 1: Regular mobs — z = -11.5, x starting at 14 with spacing 3.0
+    // Row 1: Regular mobs
     sortedTypes.forEach((typeId, i) => {
-      const pos = { x: 14 + i * 3.0, z: -11.5 };
+      const pos = { x: startX + i * 3.0, z: cz - 3 };
       this._addAsset(pos, {
         key: `mob_${typeId}`,
         name: ENEMY_TYPES[typeId].name,
@@ -704,10 +1188,10 @@ export class AssetLibrary {
       });
     });
 
-    // Row 2: Captain variants — z = -15
+    // Row 2: Captain variants
     sortedTypes.forEach((typeId, i) => {
       const type = ENEMY_TYPES[typeId];
-      const pos = { x: 14 + i * 3.0, z: -15 };
+      const pos = { x: startX + i * 3.0, z: cz };
       this._addAsset(pos, {
         key: `captain_${typeId}`,
         name: `${type.name} Captain`,
@@ -717,10 +1201,10 @@ export class AssetLibrary {
       });
     });
 
-    // Row 3: Bosses for floors 1-5 — z = -18.5, spacing 3.0
+    // Row 3: Bosses for floors 1-5
     for (let floor = 1; floor <= 5; floor++) {
       const config = getFloorConfig(floor).boss;
-      const pos = { x: 13 + (floor - 1) * 3.0, z: -18.5 };
+      const pos = { x: startX - 1 + (floor - 1) * 3.0, z: cz + 3.5 };
       this._addAsset(pos, {
         key: `boss_floor${floor}`,
         name: config.name,
@@ -730,10 +1214,10 @@ export class AssetLibrary {
       });
     }
 
-    // Row 4: Bosses for floors 6-10 — z = -22, spacing 3.0
+    // Row 4: Bosses for floors 6-10
     for (let floor = 6; floor <= 10; floor++) {
       const config = getFloorConfig(floor).boss;
-      const pos = { x: 13 + (floor - 6) * 3.0, z: -22 };
+      const pos = { x: startX - 1 + (floor - 6) * 3.0, z: cz + 7 };
       this._addAsset(pos, {
         key: `boss_floor${floor}`,
         name: config.name,
@@ -744,7 +1228,15 @@ export class AssetLibrary {
     }
   }
 
+  // -------------------------------------------------------------------------
+  // Items wing (south, third branch)
+  // -------------------------------------------------------------------------
+
   private _addItemsSection(): void {
+    const branch = ROOM_BRANCHES[4]; // Items
+    const { cx, cz } = this._getRoomCenter(branch);
+    const startX = cx - branch.roomWidth / 2 + 3;
+
     // Weapon categories sorted alphabetically
     const weaponCategories = ['axe', 'dagger', 'mace', 'spear', 'sword'];
     const rarities: ItemRarity[] = ['common', 'uncommon', 'rare', 'epic'];
@@ -752,7 +1244,7 @@ export class AssetLibrary {
     // Weapons: 5 types × 4 rarities, laid out as rows=rarity, cols=category
     weaponCategories.forEach((cat, ci) => {
       rarities.forEach((rarity, ri) => {
-        const pos = { x: 13 + ci * 2.5, z: 11 + ri * 3.0 };
+        const pos = { x: startX + ci * 2.5, z: cz - 3 + ri * 3.0 };
         this._addAsset(pos, {
           key: `weapon_${cat}_${rarity}`,
           name: `${this._capitalize(rarity)} ${this._capitalize(cat)}`,
@@ -763,9 +1255,9 @@ export class AssetLibrary {
       });
     });
 
-    // Armor: 4 rarities, single column at x=26
+    // Armor: 4 rarities, single column
     rarities.forEach((rarity, ri) => {
-      const pos = { x: 26, z: 11 + ri * 3.0 };
+      const pos = { x: startX + 13, z: cz - 3 + ri * 3.0 };
       this._addAsset(pos, {
         key: `armor_${rarity}`,
         name: `${this._capitalize(rarity)} Armor`,
@@ -775,9 +1267,9 @@ export class AssetLibrary {
       });
     });
 
-    // Rings: 4 rarities, single column at x=28
+    // Rings: 4 rarities, single column
     rarities.forEach((rarity, ri) => {
-      const pos = { x: 28, z: 11 + ri * 3.0 };
+      const pos = { x: startX + 15, z: cz - 3 + ri * 3.0 };
       this._addAsset(pos, {
         key: `ring_${rarity}`,
         name: `${this._capitalize(rarity)} Ring`,
@@ -787,7 +1279,7 @@ export class AssetLibrary {
       });
     });
 
-    // Potions: 4 types, single row at z=22, spacing 3.0
+    // Potions: 4 types, single row at the back of the room
     const potionDefs: Array<{ effect: ConsumeEffect; name: string }> = [
       { effect: 'heal', name: 'Health Potion' },
       { effect: 'manaShield', name: 'Shield Draught' },
@@ -795,7 +1287,7 @@ export class AssetLibrary {
       { effect: 'strengthBoost', name: 'Might Tonic' },
     ];
     potionDefs.forEach((p, i) => {
-      const pos = { x: 14 + i * 3.0, z: 22 };
+      const pos = { x: startX + 1 + i * 3.0, z: cz + 6 };
       this._addAsset(pos, {
         key: `potion_${p.effect}`,
         name: p.name,
@@ -806,11 +1298,16 @@ export class AssetLibrary {
     });
   }
 
+  // -------------------------------------------------------------------------
+  // Structure wing (north, third branch)
+  // -------------------------------------------------------------------------
+
   private _addStructureSection(): void {
+    const branch = ROOM_BRANCHES[5]; // Dungeon Structures
+    const { cx, cz } = this._getRoomCenter(branch);
+    const startX = cx - branch.roomWidth / 2 + 3;
+
     // 10 floor themes × 3 tile types, split into two groups
-    // Group 1 (Floors 1-5): columns x=31..43, rows z=-3 (floor), 0 (wall), +3 (door)
-    // Group 2 (Floors 6-10): columns x=31..43, rows z=+7 (floor), +10 (wall), +13 (door)
-    // Obstacle displays: z=+16
     const tileTypes: Array<'floor' | 'wall' | 'door'> = ['floor', 'wall', 'door'];
 
     for (let floorNum = 1; floorNum <= 10; floorNum++) {
@@ -818,13 +1315,13 @@ export class AssetLibrary {
       const theme = config.theme;
       const group = floorNum <= 5 ? 0 : 1;
       const indexInGroup = group === 0 ? floorNum - 1 : floorNum - 6;
-      const cx = 31 + indexInGroup * 3;
-      const zBase = group === 0 ? -3 : 7;
+      const colX = startX + indexInGroup * 3;
+      const zBase = group === 0 ? cz - 5 : cz + 3;
 
       tileTypes.forEach((tileType, ti) => {
-        const cz = zBase + ti * 3;
+        const tileZ = zBase + ti * 3;
         this._addAsset(
-          { x: cx, z: cz },
+          { x: colX, z: tileZ },
           {
             key: `structure_${floorNum}_${tileType}`,
             name: `${theme.name} — ${this._capitalize(tileType)}`,
@@ -854,7 +1351,7 @@ export class AssetLibrary {
       });
     }
 
-    // Obstacle displays — 5 obstacle types at z=+16
+    // Obstacle displays — 5 obstacle types
     const obstacleDefs: Array<{
       type: ObstacleType;
       name: string;
@@ -907,7 +1404,7 @@ export class AssetLibrary {
     ];
 
     obstacleDefs.forEach((def, i) => {
-      const pos = { x: 31 + i * 3, z: 16 };
+      const pos = { x: startX + i * 3, z: cz + 10 };
       this._addAsset(pos, {
         key: `obstacle_${def.type}`,
         name: def.name,
