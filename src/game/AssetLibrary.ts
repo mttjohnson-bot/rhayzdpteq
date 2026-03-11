@@ -3,11 +3,11 @@
  *
  * Layout (top-down, positive X is east, negative Z is north):
  *
- *                  [NPC Room]        [Enemy Wing]           [Structure Wing]
- *                      |                  |                       |
- *   Hub → [entry] → ══[corridor]════════[corridor]══════════════[corridor]══ [end]
- *                      |                  |                       |
- *                 [Player Chars]     [Training Room]          [Items Wing]
+ *                  [NPC Room]          [Enemy Wing]               [Structure Wing]
+ *                      |                    |                           |
+ *   Hub → [entry] → ════[wide corridor]══════════════════════════════════════ [end]
+ *                      |                    |                           |
+ *                 [Player Chars]       [Training Room]              [Items Wing]
  *
  * The main corridor runs east from the hub entry, with rooms branching off
  * north and south via short connector corridors.  This spine-and-branch layout
@@ -623,14 +623,14 @@ const PEDESTAL_COLLISION_HALF = 0.45; // half-size of pedestal collision AABB
 // Corridor layout constants
 // ---------------------------------------------------------------------------
 
-/** Main corridor: 3 tiles wide, centered at z=0 */
-const CORRIDOR_HALF_WIDTH = 1.5;
+/** Main corridor: 5 tiles wide, centered at z=0 */
+const CORRIDOR_HALF_WIDTH = 2.5;
 
 /** X-coordinate where the main corridor starts (east of entry corridor) */
 const CORRIDOR_START_X = 11.5;
 
 /** X-coordinate where the main corridor ends */
-const CORRIDOR_END_X = 53;
+const CORRIDOR_END_X = 63;
 
 /** Room branch definitions — each room branches off the corridor */
 interface RoomBranch {
@@ -658,6 +658,7 @@ const CORR_WALL_S = CORRIDOR_HALF_WIDTH + 0.5;
 const CONNECTOR_LENGTH = 3;
 
 // Room branch specifications along the corridor
+// Connector positions are spread so that rooms on the same side never overlap.
 const ROOM_BRANCHES: RoomBranch[] = [
   {
     label: 'PLAYER CHARACTERS',
@@ -677,7 +678,7 @@ const ROOM_BRANCHES: RoomBranch[] = [
   },
   {
     label: 'TRAINING',
-    connectorCX: 27.5,
+    connectorCX: 31,
     connectorWidth: 3,
     side: 'south',
     roomWidth: 12,
@@ -685,7 +686,7 @@ const ROOM_BRANCHES: RoomBranch[] = [
   },
   {
     label: 'ENEMIES',
-    connectorCX: 27.5,
+    connectorCX: 31,
     connectorWidth: 3,
     side: 'north',
     roomWidth: 18,
@@ -693,7 +694,7 @@ const ROOM_BRANCHES: RoomBranch[] = [
   },
   {
     label: 'ITEMS',
-    connectorCX: 41.5,
+    connectorCX: 51,
     connectorWidth: 3,
     side: 'south',
     roomWidth: 18,
@@ -701,7 +702,7 @@ const ROOM_BRANCHES: RoomBranch[] = [
   },
   {
     label: 'DUNGEON STRUCTURES',
-    connectorCX: 41.5,
+    connectorCX: 51,
     connectorWidth: 3,
     side: 'north',
     roomWidth: 20,
@@ -805,9 +806,10 @@ export class AssetLibrary {
   // Entry corridor (hub → main corridor)
   // -------------------------------------------------------------------------
 
-  /** Entry corridor connecting hub east wall to main corridor (x=8.5→11.5, z=±1.5) */
+  /** Entry corridor connecting hub east wall to main corridor */
   private _buildEntryCorridor(): void {
-    this._buildFloor(3, 3, 10, 0);
+    const entryDepth = CORRIDOR_HALF_WIDTH * 2;
+    this._buildFloor(3, entryDepth, 10, 0);
     // Side walls (north and south of corridor)
     this._buildWall(3.2, 1, 10, -(CORRIDOR_HALF_WIDTH + 0.5));
     this._buildWall(3.2, 1, 10, CORRIDOR_HALF_WIDTH + 0.5);
@@ -820,15 +822,17 @@ export class AssetLibrary {
   private _buildMainCorridor(): void {
     const corridorLength = CORRIDOR_END_X - CORRIDOR_START_X;
 
-    // Floor: long strip from entry to end
-    this._buildFloor(corridorLength, 3, CORRIDOR_START_X + corridorLength / 2, 0);
+    // Floor: long strip from entry to end — extend depth to cover under
+    // the wall positions so doorway openings don't have floor gaps.
+    const floorDepth = (CORRIDOR_HALF_WIDTH + 0.5) * 2;
+    this._buildFloor(corridorLength, floorDepth, CORRIDOR_START_X + corridorLength / 2, 0);
 
     // Build north and south walls with gaps for room connectors
     this._buildCorridorWallWithGaps('north');
     this._buildCorridorWallWithGaps('south');
 
     // East end wall (closes off the corridor)
-    this._buildWall(1, 3, CORRIDOR_END_X + 0.5, 0);
+    this._buildWall(1, CORRIDOR_HALF_WIDTH * 2, CORRIDOR_END_X + 0.5, 0);
   }
 
   /** Build one side of the corridor wall, leaving gaps where rooms branch off */
