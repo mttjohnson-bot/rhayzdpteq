@@ -82,6 +82,29 @@ Entries are listed in reverse chronological order (newest first).
 
 ---
 
+## 2026-03-11 — Library Navigation Refactor
+
+### Prompt
+> Make improvements to the library. Fix navigation issues when walking into rooms. Organize the library so it's easier to expand — a long corridor with rooms branching off the sides. Add a Player Characters room showing the simple model, owl, and owlbear as possible player models. Add a separate NPC Characters room for the merchant and future NPCs. Move practice dummies into a separate Training room.
+
+### Plan
+Replace the hub-style entry hall layout with a corridor-based spine:
+1. Main corridor runs east from the hub entry, with rooms branching north/south via connector corridors.
+2. Six rooms: Player Characters (south), NPC Characters (north), Training (south), Enemies (north), Items (south), Structures (north).
+3. Data-driven room definitions (`ROOM_BRANCHES` array) with automated wall/gap generation for easy future expansion.
+4. Build geometric display meshes for owl and owlbear player characters.
+5. Update library bounds and training area coordinates in Game.ts.
+
+### Outcome
+Complete refactor of AssetLibrary.ts. New corridor-based layout with six rooms, three new room types (Player Characters, NPC Characters, Training). All existing content (enemies, items, structures, obstacles) preserved in their original wings. Geometric owl and owlbear display meshes created. All quality gates pass (lint, format, typecheck, build).
+
+### Notes
+- The `ROOM_BRANCHES` array makes it trivial to add new rooms — just append a new entry with connector position, side, and dimensions.
+- The owlbear model exists as a `.vox` file but isn't yet available as a selectable character model (listed as "Coming soon" in the library).
+- The cluttered entry hall problem is resolved: training dummies, NPCs, and display assets each have their own dedicated room now.
+
+---
+
 ## 2026-03-05 — Item Storage Vault
 
 ### Prompt

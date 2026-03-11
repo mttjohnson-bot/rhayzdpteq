@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-03-11
+
+Library layout refactor and new rooms.
+
+- **Refactored library to corridor-based layout** — Replaced the hub-style entry hall with a long east-west corridor spine that rooms branch off of via short connector corridors. This makes it much easier to add new rooms in the future — just extend the corridor and add a branch. Room signs mark each connector entrance.
+- **Added Player Characters room** — New room (south side, first branch) displaying the three player models: Simple (default box), Owl, and Owlbear. Each sits on an inspectable pedestal with model info and flavor text. Geometric display meshes built for owl (with ear tufts, wings, beak) and owlbear (hulking bear body with owl features and claws).
+- **Added dedicated NPC Characters room** — Moved the Merchant Vendor out of the entry hall into a separate north-side room for NPC characters. Added a Quest Giver placeholder NPC to preview future hub inhabitants.
+- **Added dedicated Training room** — Moved the three practice dummies out of the entry hall into a separate south-side room with a raised platform. Training area is now clearly separated from the display wings.
+- **Improved navigation between rooms** — The corridor-and-branch layout eliminates the cluttered entry hall where training dummies, NPCs, and corridor openings were all competing for space. Each room is now accessed via a clearly visible connector corridor with consistent 3-tile-wide openings.
+
 ## 2026-03-08
 
 Boss hitbox fix and touch inventory fix.

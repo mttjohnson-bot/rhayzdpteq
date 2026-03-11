@@ -35,7 +35,7 @@ The Hub is your home base between dungeon runs. It is a fixed, hand-built area w
 - **Manage inventory** — Open your inventory (I key / X button) to equip, use, or drop items.
 - **Spend skill points** — Open the skill tree (K key / Y button) to allocate points earned from leveling up.
 - **Select a dungeon floor** — Walk to the glowing purple portal and interact (E key / B button) to choose which floor to enter.
-- **Visit the Asset Library** — Walk through the side door to inspect all game assets on display pedestals.
+- **Visit the Asset Library** — Walk through the east door to enter a long corridor with rooms branching off each side: Player Characters, NPC Characters, Training, Enemies, Items, and Dungeon Structures. Each room has assets on display pedestals you can inspect.
 
 The Hub persists — your position resets to the spawn point each time you return, but your character data carries over.
 
