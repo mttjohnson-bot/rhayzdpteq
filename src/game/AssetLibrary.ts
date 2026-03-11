@@ -1030,7 +1030,7 @@ export class AssetLibrary {
           rows: [
             { label: 'Model', value: 'Owlbear' },
             { label: 'Style', value: 'Voxel (.glb)' },
-            { label: 'Status', value: 'Coming soon' },
+            { label: 'Status', value: 'Available' },
             { label: 'Selection', value: 'Settings → Character' },
           ],
           accentColor: '#5c4028',

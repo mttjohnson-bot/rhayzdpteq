@@ -506,3 +506,23 @@ One-line fix in `TouchProvider.ts`. The `ItemActionDialog` now reliably appears 
 ### Notes
 - The `ItemActionDialog` component was already fully implemented and wired up — the bug was purely in device detection, not in the dialog itself.
 - The ActionManager's device priority (`touch > gamepad > keyboard`) ensures that even if synthetic mouse events fire alongside real touches, touch wins as long as the provider is marked active.
+
+---
+
+## 2026-03-11 — Add Owlbear as Selectable Player Character
+
+### Prompt
+> "Can we make the owlbear 3d asset model an option to change the player character to, just like the owl model?"
+
+### Plan
+1. Add `'owlbear'` to the `CharacterModelId` type union and `MODEL_PATHS` in `CharacterModelLoader.ts`.
+2. Add owlbear to the character cycling array in `SettingsUI.ts` and add a display label.
+3. Update the Asset Library pedestal status from "Coming soon" to "Available".
+4. Update player guide and changelog.
+
+### Outcome
+Owlbear is now selectable in Settings → Character alongside Simple and Owl. The `.vox` source file already existed; the conversion pipeline generates the `.glb` at build time. The Asset Library now shows "Available" for the owlbear pedestal.
+
+### Notes
+- The owlbear `.vox` file, display mesh, and asset health report entry already existed from previous sessions — only the selection wiring was missing.
+- No new assets or conversion pipeline changes needed.
