@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-11
 
-Library layout refactor, new rooms, and owlbear character selection.
+Library layout fixes, wider corridor, and owlbear character selection.
 
 - **Added Owlbear as a selectable player character** — The owlbear voxel model is now available as a player character option in Settings → Character, alongside Simple and Owl. Updated the Asset Library status from "Coming soon" to "Available."
 
@@ -13,6 +13,9 @@ Library layout refactor, new rooms, and owlbear character selection.
 - **Added dedicated NPC Characters room** — Moved the Merchant Vendor out of the entry hall into a separate north-side room for NPC characters. Added a Quest Giver placeholder NPC to preview future hub inhabitants.
 - **Added dedicated Training room** — Moved the three practice dummies out of the entry hall into a separate south-side room with a raised platform. Training area is now clearly separated from the display wings.
 - **Improved navigation between rooms** — The corridor-and-branch layout eliminates the cluttered entry hall where training dummies, NPCs, and corridor openings were all competing for space. Each room is now accessed via a clearly visible connector corridor with consistent 3-tile-wide openings.
+- **Widened main corridor from 3 to 5 tiles** — The main east-west corridor spine is now much more spacious, matching the scale of the rooms it connects.
+- **Fixed floor tile gaps at doorway openings** — Extended the corridor floor to cover the area under wall positions so that doorway openings no longer have visible gaps between the corridor and connector floors.
+- **Fixed room overlaps** — Spread room connector positions along the corridor so that rooms on the same side (north or south) no longer overlap each other. The Enemies and Dungeon Structures rooms (north) and Training and Items rooms (south) are now properly spaced apart.
 
 ## 2026-03-08
 
