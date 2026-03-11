@@ -14,7 +14,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-export type CharacterModelId = 'simple' | 'owl';
+export type CharacterModelId = 'simple' | 'owl' | 'owlbear';
 
 /** Resolved base path for static assets (handles Vite base config). */
 function assetBase(): string {
@@ -23,6 +23,7 @@ function assetBase(): string {
 
 const MODEL_PATHS: Record<Exclude<CharacterModelId, 'simple'>, string> = {
   owl: 'assets/characters/owl.glb',
+  owlbear: 'assets/characters/owlbear.glb',
 };
 
 const loader = new GLTFLoader();

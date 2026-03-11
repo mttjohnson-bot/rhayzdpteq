@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-11
 
-Library layout refactor and new rooms.
+Library layout refactor, new rooms, and owlbear character selection.
+
+- **Added Owlbear as a selectable player character** — The owlbear voxel model is now available as a player character option in Settings → Character, alongside Simple and Owl. Updated the Asset Library status from "Coming soon" to "Available."
 
 - **Refactored library to corridor-based layout** — Replaced the hub-style entry hall with a long east-west corridor spine that rooms branch off of via short connector corridors. This makes it much easier to add new rooms in the future — just extend the corridor and add a branch. Room signs mark each connector entrance.
 - **Added Player Characters room** — New room (south side, first branch) displaying the three player models: Simple (default box), Owl, and Owlbear. Each sits on an inspectable pedestal with model info and flavor text. Geometric display meshes built for owl (with ear tufts, wings, beak) and owlbear (hulking bear body with owl features and claws).

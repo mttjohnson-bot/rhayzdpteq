@@ -4,7 +4,7 @@
  * Options:
  *  - Camera mode: third-person isometric (default) or first-person
  *  - Controller detection: auto (default) or manual (keyboard / gamepad)
- *  - Character model: simple box (default) or owl voxel model
+ *  - Character model: simple box (default), owl, or owlbear voxel model
  *  - Diagnostics overlay: off (default) or on (FPS + draw calls)
  */
 
@@ -145,7 +145,7 @@ export class SettingsUI {
         break;
       }
       case 2: {
-        const models: CharacterModelId[] = ['simple', 'owl'];
+        const models: CharacterModelId[] = ['simple', 'owl', 'owlbear'];
         const cur = models.indexOf(this.settings.characterModel);
         this.settings.characterModel = models[(cur + direction + models.length) % models.length];
         break;
@@ -329,6 +329,8 @@ export class SettingsUI {
         return 'Simple';
       case 'owl':
         return 'Owl (Voxel)';
+      case 'owlbear':
+        return 'Owlbear (Voxel)';
     }
   }
 }
