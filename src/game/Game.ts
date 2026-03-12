@@ -1018,8 +1018,8 @@ export class Game {
     this.damageNumbers.hide();
     this.player.setWallSegments([]);
 
-    // Return to hub near the library door
-    const doorX = this.libraryDoor ? this.libraryDoor.x - 1.5 : 0;
+    // Return to hub near the library door (spawn beyond the 2.5 trigger radius)
+    const doorX = this.libraryDoor ? this.libraryDoor.x - 3.0 : 0;
     const doorZ = this.libraryDoor ? this.libraryDoor.z : 0;
     this.enterHub(doorX, doorZ);
   }

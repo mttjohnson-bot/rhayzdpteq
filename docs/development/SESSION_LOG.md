@@ -583,4 +583,21 @@ The Asset Library now loads and displays the actual `.glb` voxel models for Owl 
 
 ### Notes
 - The fix was minimal: one signature change and two call-site updates. No new systems or abstractions needed.
-- The offset values (-1.5 for library, +1.5 for portal) keep the player just outside the auto-enter proximity threshold to prevent re-triggering the transition immediately.
+- The offset values (-1.5 for library, +1.5 for portal) were intended to keep the player outside the auto-enter proximity threshold, but the library door trigger radius is 2.5 and 1.5 < 2.5, causing an immediate re-entry loop. Fixed in a follow-up by increasing the library exit offset to 3.0.
+
+## 2026-03-12 — Fix Library Exit Re-entry Loop
+
+### Prompt
+> "Now that we tried to get some improvements to entering and exiting the library from the hub it seems that there is a bit of an issue with moving between them where if I try to exit the library it just pushes me back into the library."
+
+### Plan
+1. Identify why exiting the library immediately re-triggers entry.
+2. The exit teleports the player to `libraryDoor.x - 1.5 = 7.0`, but the entry trigger checks `isNear(libraryDoor.x, libraryDoor.z, 2.5)` — distance 1.5 < 2.5, so it fires immediately.
+3. Increase the exit offset from 1.5 to 3.0 so the player spawns at 5.5, which is 3.0 units from the door (safely beyond the 2.5 trigger radius).
+
+### Outcome
+Changed the library exit spawn offset from `-1.5` to `-3.0` in `exitLibrary()`. Player now appears at `x = 5.5` after exiting the library, which is outside the 2.5-unit auto-enter trigger radius. Still well within hub bounds (`[-7.5, 7.5]`).
+
+### Notes
+- Root cause was a math oversight in the previous session: the exit offset (1.5) was smaller than the entry trigger radius (2.5).
+- Single-line fix in `Game.ts`.
