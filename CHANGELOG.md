@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-12
 
-Library collision fixes, corridor end gaps, and accurate player model display.
+Library collision fixes, corridor end gaps, accurate player model display, and room transition positioning.
+
+- **Fixed exit position when leaving library** — Previously, exiting the library teleported the player to the center of the hub instead of near the library door. Now exiting the library places the player just outside the library entrance on the hub's east wall, and returning from a dungeon places the player near the portal. Room transitions now feel spatially consistent in both directions.
 
 - **Asset Library now shows actual .glb models for Owl and Owlbear** — The player character pedestals previously displayed hand-built geometric approximations (cylinders, cones, boxes) that didn't match the real voxel art models. Now the Asset Library loads the actual `.glb` models from the conversion pipeline and displays them on pedestals, so what you see in the library matches what you get in gameplay. Falls back to the simple box if `.glb` files aren't available.
 

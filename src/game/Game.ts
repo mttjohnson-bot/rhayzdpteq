@@ -292,7 +292,7 @@ export class Game {
     });
   }
 
-  private enterHub(): void {
+  private enterHub(spawnX?: number, spawnZ?: number): void {
     this.state = 'hub';
     this.menuScreen.hide();
     this.minimap.hide();
@@ -360,8 +360,8 @@ export class Game {
     // Add player to scene
     this.sceneManager.scene.add(this.player.mesh);
 
-    // Place player at center of hub
-    this.player.teleportTo(0, 0);
+    // Place player at specified position or center of hub
+    this.player.teleportTo(spawnX ?? 0, spawnZ ?? 0);
 
     // Set movement bounds to hub interior
     const halfW = (HUB_WIDTH * TILE_SIZE) / 2;
@@ -1018,7 +1018,10 @@ export class Game {
     this.damageNumbers.hide();
     this.player.setWallSegments([]);
 
-    this.enterHub();
+    // Return to hub near the library door
+    const doorX = this.libraryDoor ? this.libraryDoor.x - 1.5 : 0;
+    const doorZ = this.libraryDoor ? this.libraryDoor.z : 0;
+    this.enterHub(doorX, doorZ);
   }
 
   private updateLibrary(dt: number): void {
@@ -1115,7 +1118,7 @@ export class Game {
             this.damageNumbers.hide();
             this.xpBar.hide();
             this.bossHealthBar.hide();
-            this.enterHub();
+            this.enterHub(this.portal?.x, this.portal ? this.portal.z + 1.5 : undefined);
           }
         }
       } else {
