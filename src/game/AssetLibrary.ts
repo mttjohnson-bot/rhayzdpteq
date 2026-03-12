@@ -823,8 +823,10 @@ export class AssetLibrary {
     const corridorLength = CORRIDOR_END_X - CORRIDOR_START_X;
 
     // Floor: long strip from entry to end — extend depth to cover under
-    // the wall positions so doorway openings don't have floor gaps.
-    const floorDepth = (CORRIDOR_HALF_WIDTH + 0.5) * 2;
+    // the full wall thickness so doorway openings don't have floor gaps.
+    // Must reach wall outer edge (CORRIDOR_HALF_WIDTH + 1.0) to meet
+    // the connector floor which starts at the wall outer edge.
+    const floorDepth = (CORRIDOR_HALF_WIDTH + 1.0) * 2;
     this._buildFloor(corridorLength, floorDepth, CORRIDOR_START_X + corridorLength / 2, 0);
 
     // Build north and south walls with gaps for room connectors

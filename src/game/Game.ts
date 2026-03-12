@@ -992,7 +992,7 @@ export class Game {
 
     // Place player just inside the library entrance
     this.player.teleportTo(10, 0);
-    this.player.setBounds(8.5, 54, -32, 22);
+    this.player.setBounds(8.5, 64, -33, 23);
     this.player.setDungeonCollision(null);
     this.player.setWallSegments(this.assetLibrary.getWallSegments());
 
