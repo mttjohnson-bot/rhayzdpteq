@@ -82,6 +82,25 @@ Entries are listed in reverse chronological order (newest first).
 
 ---
 
+## 2026-03-12 — Fix Library Collision Issues
+
+### Prompt
+> I'm still seeing some gaps in the floor in the library between the corridor and the rooms. I am also not able to go to the end of the corridor — it is as if there is an invisible wall or something preventing the player from reaching the end of the corridor.
+
+### Plan
+Two bugs from the 2026-03-11 library refactor:
+1. **Invisible wall**: Player bounds in `enterLibrary()` were set to maxX=54, but `CORRIDOR_END_X=63`. Updated bounds to cover the full library extent (X up to 64, Z from -33 to 23).
+2. **Floor gaps**: Main corridor floor depth was `(CORRIDOR_HALF_WIDTH + 0.5) * 2 = 6.0`, only reaching the wall center (Z=±3.0). Connector floors start at the wall outer edge (Z=±3.5), leaving 0.5-unit gaps at each opening. Extended corridor floor to `(CORRIDOR_HALF_WIDTH + 1.0) * 2 = 7.0` to reach the wall outer edge.
+
+### Outcome
+Both fixes applied. Player can now walk the full corridor length and floor is continuous at all connector openings. All quality gates pass.
+
+### Notes
+- The bounds issue was a simple oversight from the refactor — the hardcoded bounds weren't updated when the corridor was extended.
+- The floor gap fix from the previous session partially addressed the issue but only extended the floor to the wall center, not the wall outer edge where connector floors begin.
+
+---
+
 ## 2026-03-11 — Library Navigation Refactor
 
 ### Prompt
