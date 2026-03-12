@@ -545,3 +545,24 @@ Owlbear is now selectable in Settings → Character alongside Simple and Owl. Th
 ### Notes
 - The owlbear `.vox` file, display mesh, and asset health report entry already existed from previous sessions — only the selection wiring was missing.
 - No new assets or conversion pipeline changes needed.
+
+---
+
+## 2026-03-12 — Fix Player Models in Asset Library
+
+### Prompt
+> "There are some odd player models in the library and they don't look anything like the 3d asset models that are converted into glb files. The simple player model also doesn't look the same."
+
+### Plan
+1. Identify that the Asset Library used hand-built procedural display meshes (`buildOwlDisplayMesh`, `buildOwlbearDisplayMesh`) instead of the actual `.glb` models from the conversion pipeline.
+2. Replace the procedural meshes with async-loaded `.glb` models via `CharacterModelLoader`, using the same scaling logic as `Player.setCharacterModel`.
+3. Remove the ~190 lines of unused procedural mesh builder code.
+4. Keep the simple box model as-is (it IS the canonical simple model).
+5. Fall back to the simple box if `.glb` loading fails (pipeline not run).
+
+### Outcome
+The Asset Library now loads and displays the actual `.glb` voxel models for Owl and Owlbear on their pedestals. The pedestals show fallback meshes immediately while the `.glb` files load asynchronously, then swap in the real models once loaded. Removed `buildOwlDisplayMesh()` and `buildOwlbearDisplayMesh()` (~190 lines of procedural geometry).
+
+### Notes
+- The root cause was that the library was built with geometric approximations before the `.glb` pipeline was fully in place, and they were never replaced once the pipeline started working.
+- The async swap pattern (place fallback → load `.glb` → swap on pedestal) avoids blocking the library construction and gracefully handles missing `.glb` files.

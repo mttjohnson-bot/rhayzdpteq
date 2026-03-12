@@ -39,6 +39,7 @@ import { ObstacleType } from '../dungeon/DungeonGenerator';
 import { buildEnemyDisplayMesh } from '../combat/Enemy';
 import { buildBossDisplayMesh } from '../combat/Boss';
 import { type ItemRarity, type ConsumeEffect, rarityColor } from '../rpg/LootTable';
+import { loadCharacterModel, type CharacterModelId } from '../rendering/CharacterModelLoader';
 
 // ---------------------------------------------------------------------------
 // Interfaces
@@ -416,191 +417,23 @@ function buildSimplePlayerDisplayMesh(): THREE.Group {
   return group;
 }
 
-/** Owl character — geometric representation of the voxel owl model */
-function buildOwlDisplayMesh(): THREE.Group {
-  const group = new THREE.Group();
-  const bodyColor = 0x8b6844;
-  const bellyColor = 0xd4b896;
-  const eyeColor = 0xffcc00;
+/**
+ * Scale a loaded .glb model group to fit on a display pedestal.
+ * Uses the same approach as Player.setCharacterModel for consistency.
+ */
+function scaleModelForDisplay(group: THREE.Group): void {
+  const box = new THREE.Box3().setFromObject(group);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+  const maxDim = Math.max(size.x, size.y, size.z);
+  const targetSize = Math.max(PLAYER_SIZE, PLAYER_HEIGHT);
+  const scale = targetSize / maxDim;
+  group.scale.setScalar(scale);
 
-  // Body — rounded barrel shape (cylinder)
-  const bodyMat = new THREE.MeshLambertMaterial({ color: bodyColor });
-  const bodyGeo = new THREE.CylinderGeometry(0.25, 0.3, 0.55, 8);
-  const body = new THREE.Mesh(bodyGeo, bodyMat);
-  body.position.y = 0.45;
-  body.castShadow = true;
-  group.add(body);
-
-  // Belly patch
-  const bellyMat = new THREE.MeshLambertMaterial({ color: bellyColor });
-  const bellyGeo = new THREE.BoxGeometry(0.28, 0.35, 0.08);
-  const belly = new THREE.Mesh(bellyGeo, bellyMat);
-  belly.position.set(0, 0.4, -0.26);
-  group.add(belly);
-
-  // Head
-  const headGeo = new THREE.BoxGeometry(0.36, 0.3, 0.34);
-  const head = new THREE.Mesh(headGeo, bodyMat);
-  head.position.y = 0.88;
-  head.castShadow = true;
-  group.add(head);
-
-  // Ear tufts (two small cones)
-  const tuftMat = new THREE.MeshLambertMaterial({ color: 0x6a4e2e });
-  const tuftGeo = new THREE.ConeGeometry(0.06, 0.15, 4);
-  const leftTuft = new THREE.Mesh(tuftGeo, tuftMat);
-  leftTuft.position.set(-0.12, 1.1, 0);
-  group.add(leftTuft);
-  const rightTuft = new THREE.Mesh(tuftGeo, tuftMat);
-  rightTuft.position.set(0.12, 1.1, 0);
-  group.add(rightTuft);
-
-  // Eyes — large golden circles
-  const eyeMat = new THREE.MeshLambertMaterial({ color: eyeColor });
-  const eyeGeo = new THREE.CylinderGeometry(0.07, 0.07, 0.04, 8);
-  const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-  leftEye.rotation.x = Math.PI / 2;
-  leftEye.position.set(-0.1, 0.9, -0.17);
-  group.add(leftEye);
-  const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-  rightEye.rotation.x = Math.PI / 2;
-  rightEye.position.set(0.1, 0.9, -0.17);
-  group.add(rightEye);
-
-  // Pupils
-  const pupilMat = new THREE.MeshLambertMaterial({ color: 0x111111 });
-  const pupilGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.04, 6);
-  const leftPupil = new THREE.Mesh(pupilGeo, pupilMat);
-  leftPupil.rotation.x = Math.PI / 2;
-  leftPupil.position.set(-0.1, 0.9, -0.19);
-  group.add(leftPupil);
-  const rightPupil = new THREE.Mesh(pupilGeo, pupilMat);
-  rightPupil.rotation.x = Math.PI / 2;
-  rightPupil.position.set(0.1, 0.9, -0.19);
-  group.add(rightPupil);
-
-  // Beak
-  const beakMat = new THREE.MeshLambertMaterial({ color: 0xff8822 });
-  const beakGeo = new THREE.ConeGeometry(0.05, 0.12, 4);
-  const beak = new THREE.Mesh(beakGeo, beakMat);
-  beak.rotation.x = Math.PI / 2;
-  beak.position.set(0, 0.82, -0.22);
-  group.add(beak);
-
-  // Wings — flat boxes on the sides
-  const wingMat = new THREE.MeshLambertMaterial({ color: 0x7a5c3a });
-  const wingGeo = new THREE.BoxGeometry(0.06, 0.35, 0.2);
-  const leftWing = new THREE.Mesh(wingGeo, wingMat);
-  leftWing.position.set(-0.3, 0.5, 0);
-  leftWing.rotation.z = 0.15;
-  group.add(leftWing);
-  const rightWing = new THREE.Mesh(wingGeo, wingMat);
-  rightWing.position.set(0.3, 0.5, 0);
-  rightWing.rotation.z = -0.15;
-  group.add(rightWing);
-
-  // Feet
-  const feetMat = new THREE.MeshLambertMaterial({ color: 0xff8822 });
-  const footGeo = new THREE.BoxGeometry(0.1, 0.06, 0.14);
-  const leftFoot = new THREE.Mesh(footGeo, feetMat);
-  leftFoot.position.set(-0.1, 0.03, -0.02);
-  group.add(leftFoot);
-  const rightFoot = new THREE.Mesh(footGeo, feetMat);
-  rightFoot.position.set(0.1, 0.03, -0.02);
-  group.add(rightFoot);
-
-  return group;
-}
-
-/** Owlbear character — a hulking bear body with owl features */
-function buildOwlbearDisplayMesh(): THREE.Group {
-  const group = new THREE.Group();
-  const furColor = 0x5c4028;
-  const bellyColor = 0x9a7a55;
-
-  // Bulky body
-  const bodyMat = new THREE.MeshLambertMaterial({ color: furColor });
-  const bodyGeo = new THREE.BoxGeometry(0.55, 0.7, 0.45);
-  const body = new THREE.Mesh(bodyGeo, bodyMat);
-  body.position.y = 0.55;
-  body.castShadow = true;
-  group.add(body);
-
-  // Belly patch
-  const bellyMat = new THREE.MeshLambertMaterial({ color: bellyColor });
-  const bellyGeo = new THREE.BoxGeometry(0.35, 0.45, 0.08);
-  const belly = new THREE.Mesh(bellyGeo, bellyMat);
-  belly.position.set(0, 0.5, -0.22);
-  group.add(belly);
-
-  // Head — owl-like but larger
-  const headGeo = new THREE.BoxGeometry(0.42, 0.36, 0.38);
-  const head = new THREE.Mesh(headGeo, bodyMat);
-  head.position.y = 1.1;
-  head.castShadow = true;
-  group.add(head);
-
-  // Ear tufts (like an owl but beefier)
-  const tuftMat = new THREE.MeshLambertMaterial({ color: 0x4a3020 });
-  const tuftGeo = new THREE.ConeGeometry(0.08, 0.18, 4);
-  const leftTuft = new THREE.Mesh(tuftGeo, tuftMat);
-  leftTuft.position.set(-0.14, 1.38, 0);
-  group.add(leftTuft);
-  const rightTuft = new THREE.Mesh(tuftGeo, tuftMat);
-  rightTuft.position.set(0.14, 1.38, 0);
-  group.add(rightTuft);
-
-  // Eyes — large golden owl eyes
-  const eyeMat = new THREE.MeshLambertMaterial({ color: 0xffaa00 });
-  const eyeGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.04, 8);
-  const leftEye = new THREE.Mesh(eyeGeo, eyeMat);
-  leftEye.rotation.x = Math.PI / 2;
-  leftEye.position.set(-0.11, 1.14, -0.19);
-  group.add(leftEye);
-  const rightEye = new THREE.Mesh(eyeGeo, eyeMat);
-  rightEye.rotation.x = Math.PI / 2;
-  rightEye.position.set(0.11, 1.14, -0.19);
-  group.add(rightEye);
-
-  // Beak — sharper, larger
-  const beakMat = new THREE.MeshLambertMaterial({ color: 0xcc6600 });
-  const beakGeo = new THREE.ConeGeometry(0.07, 0.16, 4);
-  const beak = new THREE.Mesh(beakGeo, beakMat);
-  beak.rotation.x = Math.PI / 2;
-  beak.position.set(0, 1.05, -0.24);
-  group.add(beak);
-
-  // Arms / paws — thick stumpy limbs
-  const armMat = new THREE.MeshLambertMaterial({ color: furColor });
-  const armGeo = new THREE.BoxGeometry(0.14, 0.45, 0.16);
-  const leftArm = new THREE.Mesh(armGeo, armMat);
-  leftArm.position.set(-0.35, 0.55, 0);
-  group.add(leftArm);
-  const rightArm = new THREE.Mesh(armGeo, armMat);
-  rightArm.position.set(0.35, 0.55, 0);
-  group.add(rightArm);
-
-  // Claws on each arm
-  const clawMat = new THREE.MeshLambertMaterial({ color: 0x333333 });
-  const clawGeo = new THREE.BoxGeometry(0.04, 0.08, 0.04);
-  for (const side of [-1, 1]) {
-    for (let ci = -1; ci <= 1; ci++) {
-      const claw = new THREE.Mesh(clawGeo, clawMat);
-      claw.position.set(side * 0.35 + ci * 0.04, 0.29, -0.06);
-      group.add(claw);
-    }
-  }
-
-  // Legs — thick
-  const legGeo = new THREE.BoxGeometry(0.16, 0.3, 0.18);
-  const leftLeg = new THREE.Mesh(legGeo, bodyMat);
-  leftLeg.position.set(-0.16, 0.15, 0);
-  group.add(leftLeg);
-  const rightLeg = new THREE.Mesh(legGeo, bodyMat);
-  rightLeg.position.set(0.16, 0.15, 0);
-  group.add(rightLeg);
-
-  return group;
+  // Center horizontally, sit on ground
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  group.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
 }
 
 // ---------------------------------------------------------------------------
@@ -991,17 +824,19 @@ export class AssetLibrary {
     const branch = ROOM_BRANCHES[0]; // Player Characters
     const { cx, cz } = this._getRoomCenter(branch);
 
-    // Three player models: simple, owl, owlbear
+    // Three player models: simple (always a box), owl and owlbear (loaded from .glb)
     const models: Array<{
       key: string;
       name: string;
-      builder: () => THREE.Group;
+      modelId: CharacterModelId;
+      fallback: () => THREE.Group;
       stats: LibraryAssetStats;
     }> = [
       {
         key: 'player_simple',
         name: 'Simple (Default)',
-        builder: buildSimplePlayerDisplayMesh,
+        modelId: 'simple',
+        fallback: buildSimplePlayerDisplayMesh,
         stats: {
           rows: [
             { label: 'Model', value: 'Simple Box' },
@@ -1016,7 +851,8 @@ export class AssetLibrary {
       {
         key: 'player_owl',
         name: 'Owl',
-        builder: buildOwlDisplayMesh,
+        modelId: 'owl',
+        fallback: buildSimplePlayerDisplayMesh,
         stats: {
           rows: [
             { label: 'Model', value: 'Owl' },
@@ -1031,7 +867,8 @@ export class AssetLibrary {
       {
         key: 'player_owlbear',
         name: 'Owlbear',
-        builder: buildOwlbearDisplayMesh,
+        modelId: 'owlbear',
+        fallback: buildSimplePlayerDisplayMesh,
         stats: {
           rows: [
             { label: 'Model', value: 'Owlbear' },
@@ -1046,16 +883,35 @@ export class AssetLibrary {
       },
     ];
 
-    models.forEach((m, i) => {
+    // Place pedestals immediately with fallback meshes, then swap in .glb models async
+    for (let i = 0; i < models.length; i++) {
+      const m = models[i];
       const pos = { x: cx - 3 + i * 3, z: cz };
+      const displayMesh = m.fallback();
       this._addAsset(pos, {
         key: m.key,
         name: m.name,
         category: 'player_character',
-        displayMesh: m.builder(),
+        displayMesh,
         stats: m.stats,
       });
-    });
+
+      // For non-simple models, load the real .glb and swap it in
+      if (m.modelId !== 'simple') {
+        const asset = this.assets[this.assets.length - 1];
+        loadCharacterModel(m.modelId).then((group) => {
+          if (!group) return; // .glb not available — keep fallback
+          scaleModelForDisplay(group);
+          // Preserve current rotation and position from the fallback mesh
+          group.position.copy(asset.displayMesh.position);
+          group.rotation.y = asset.displayMesh.rotation.y;
+          // Swap: remove old, add new
+          this.group.remove(asset.displayMesh);
+          this.group.add(group);
+          asset.displayMesh = group;
+        });
+      }
+    }
   }
 
   // -------------------------------------------------------------------------
