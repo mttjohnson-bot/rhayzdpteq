@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-12
 
-Library collision fixes, corridor end gaps, accurate player model display, and room transition positioning.
+Library collision fixes, corridor end gaps, accurate player model display, room transition positioning, and GitHub Actions Node.js 24 migration.
+
+- **Updated GitHub Actions to resolve Node.js 20 deprecation warnings** — Upgraded `actions/cache` from v4 to v5 (now runs on Node.js 24 natively) across deploy and convert-models workflows. Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` env for `upload-pages-artifact` (no v5 available yet). Updated all workflows from Node.js 20 to Node.js 22 LTS for the build runtime.
 
 - **Fixed exit position when leaving library** — Previously, exiting the library teleported the player to the center of the hub instead of near the library door. Now exiting the library places the player just outside the library entrance on the hub's east wall, and returning from a dungeon places the player near the portal. Room transitions now feel spatially consistent in both directions.
 
