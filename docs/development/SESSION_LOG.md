@@ -566,3 +566,21 @@ The Asset Library now loads and displays the actual `.glb` voxel models for Owl 
 ### Notes
 - The root cause was that the library was built with geometric approximations before the `.glb` pipeline was fully in place, and they were never replaced once the pipeline started working.
 - The async swap pattern (place fallback → load `.glb` → swap on pedestal) avoids blocking the library construction and gracefully handles missing `.glb` files.
+
+## 2026-03-12 — Fix Library Exit Position
+
+### Prompt
+> "When I exit the library I don't enter the hub where I exited it to go into the library, it puts me directly in the middle of the hub. I would like to see exiting one room to connect to the entrance of the other and vice versa."
+
+### Plan
+1. Add optional spawn position parameters to `enterHub()` so callers can specify where the player should appear.
+2. Update `exitLibrary()` to pass the library door coordinates (offset slightly inward) so the player appears near the library entrance on the hub's east wall.
+3. Update the dungeon exit to pass the portal coordinates so the player appears near the portal after ascending.
+4. Default to center (0, 0) for other cases (death respawn, win screen, menu load).
+
+### Outcome
+`enterHub()` now accepts optional `spawnX`/`spawnZ` parameters. Exiting the library places the player at `(libraryDoor.x - 1.5, libraryDoor.z)` — just west of the library door, facing back into the hub. Returning from a dungeon places the player at `(portal.x, portal.z + 1.5)` — just south of the portal. All other hub entries (death, win, menu) still default to center.
+
+### Notes
+- The fix was minimal: one signature change and two call-site updates. No new systems or abstractions needed.
+- The offset values (-1.5 for library, +1.5 for portal) keep the player just outside the auto-enter proximity threshold to prevent re-triggering the transition immediately.
