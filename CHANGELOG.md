@@ -8,6 +8,8 @@ Library collision fixes, corridor end gaps, accurate player model display, and r
 
 - **Fixed exit position when leaving library** — Previously, exiting the library teleported the player to the center of the hub instead of near the library door. Now exiting the library places the player just outside the library entrance on the hub's east wall, and returning from a dungeon places the player near the portal. Room transitions now feel spatially consistent in both directions.
 
+- **Fixed library exit loop** — Exiting the library placed the player 1.5 units from the library door, but the auto-enter trigger radius is 2.5 units, causing the player to immediately re-enter the library. Increased the exit offset to 3.0 units so the player spawns safely outside the trigger zone.
+
 - **Asset Library now shows actual .glb models for Owl and Owlbear** — The player character pedestals previously displayed hand-built geometric approximations (cylinders, cones, boxes) that didn't match the real voxel art models. Now the Asset Library loads the actual `.glb` models from the conversion pipeline and displays them on pedestals, so what you see in the library matches what you get in gameplay. Falls back to the simple box if `.glb` files aren't available.
 
 - **Fixed invisible wall blocking end of library corridor** — Player movement bounds were capped at X=54 but the corridor extends to X=63. Updated bounds to cover the full library extent so the player can reach the corridor end and all rooms.
