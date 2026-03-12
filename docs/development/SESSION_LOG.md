@@ -620,3 +620,21 @@ Updated all 5 workflow files. `actions/cache` upgraded to v5 in 2 workflows. Nod
 ### Notes
 - `actions/upload-pages-artifact` has no v5 yet — it's a composite action that internally pins `actions/upload-artifact` to a Node 20 SHA. The `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` env var is the recommended workaround until upstream releases an update.
 - `actions/upload-artifact@v7` (used in quality.yml) and `actions/github-script@v8` were already on recent versions and didn't need changes.
+
+---
+
+## 2026-03-12 — Fix CI Test Results Artifact Upload Warning
+
+### Prompt
+> "I noticed a warning on the GitHub Action quality job E2E Tests (Functional): No files were found with the provided path: test-results/. No artifacts will be uploaded. Is this an issue that should be addressed?"
+
+### Plan
+1. Diagnose why `test-results/` doesn't exist — Playwright only creates it when there are artifacts (screenshots on failure, traces on retry).
+2. Change `if: always()` to `if: failure()` for the functional E2E upload step, since artifacts only matter when tests fail.
+3. Change `if: always()` to `if: steps.visual.outcome == 'failure'` for the visual regression upload step, matching the condition already used for the PR comment step.
+
+### Outcome
+Updated both artifact upload conditions in `quality.yml`. The warning will no longer appear on passing test runs.
+
+### Notes
+- This was a cosmetic issue — the warning didn't cause job failures — but it added noise to CI logs and could mask real upload issues.

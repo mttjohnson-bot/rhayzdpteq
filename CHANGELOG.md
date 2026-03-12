@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-12
 
-Library collision fixes, corridor end gaps, accurate player model display, room transition positioning, and GitHub Actions Node.js 24 migration.
+Library collision fixes, corridor end gaps, accurate player model display, room transition positioning, GitHub Actions Node.js 24 migration, and CI artifact upload fix.
+
+- **Fixed spurious "No files were found" warning in CI artifact uploads** — Changed the E2E test results upload steps from `if: always()` to `if: failure()` (functional) and `if: steps.visual.outcome == 'failure'` (visual regression). Playwright only creates the `test-results/` directory when tests fail, so uploading unconditionally produced a harmless but noisy warning on every passing run.
 
 - **Updated GitHub Actions to resolve Node.js 20 deprecation warnings** — Upgraded `actions/cache` from v4 to v5 (now runs on Node.js 24 natively) across deploy and convert-models workflows. Added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` env for `upload-pages-artifact` (no v5 available yet). Updated all workflows from Node.js 20 to Node.js 22 LTS for the build runtime.
 
