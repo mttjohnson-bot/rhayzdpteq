@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-12
 
-Library collision fixes — corridor end and room connector gaps.
+Library collision fixes, corridor end gaps, and accurate player model display.
+
+- **Asset Library now shows actual .glb models for Owl and Owlbear** — The player character pedestals previously displayed hand-built geometric approximations (cylinders, cones, boxes) that didn't match the real voxel art models. Now the Asset Library loads the actual `.glb` models from the conversion pipeline and displays them on pedestals, so what you see in the library matches what you get in gameplay. Falls back to the simple box if `.glb` files aren't available.
 
 - **Fixed invisible wall blocking end of library corridor** — Player movement bounds were capped at X=54 but the corridor extends to X=63. Updated bounds to cover the full library extent so the player can reach the corridor end and all rooms.
 - **Fixed floor gaps between corridor and room connectors** — The main corridor floor only extended to the wall center line, leaving a 0.5-unit gap at each connector opening where the wall gap meets the connector floor. Extended the corridor floor to cover the full wall thickness, closing the gaps.
