@@ -601,3 +601,22 @@ Changed the library exit spawn offset from `-1.5` to `-3.0` in `exitLibrary()`. 
 ### Notes
 - Root cause was a math oversight in the previous session: the exit offset (1.5) was smaller than the entry trigger radius (2.5).
 - Single-line fix in `Game.ts`.
+
+---
+
+## 2026-03-12 — GitHub Actions Node.js 24 Migration
+
+### Prompt
+> "I noticed a warning on the GitHub Action deploy to GitHub Pages job build: Node.js 20 actions are deprecated. The following actions are running on Node.js 20 and may not work as expected: actions/cache@v4, actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02."
+
+### Plan
+1. Update `actions/cache@v4` → `@v5` (runs on Node.js 24 natively) in deploy.yml and convert-models.yml.
+2. For `upload-pages-artifact@v4` (no v5 available yet), add `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` env var.
+3. Update `node-version` from 20 to 22 (current LTS) across all workflows since Node 20 EOL is April 2026.
+
+### Outcome
+Updated all 5 workflow files. `actions/cache` upgraded to v5 in 2 workflows. Node.js build version updated from 20 to 22 in all workflows. Added Node 24 force flag for upload-pages-artifact.
+
+### Notes
+- `actions/upload-pages-artifact` has no v5 yet — it's a composite action that internally pins `actions/upload-artifact` to a Node 20 SHA. The `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` env var is the recommended workaround until upstream releases an update.
+- `actions/upload-artifact@v7` (used in quality.yml) and `actions/github-script@v8` were already on recent versions and didn't need changes.
