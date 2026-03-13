@@ -20,7 +20,9 @@ import { events } from '../utils/EventBus';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { FloorDifficulty } from '../dungeon/FloorConfig';
 import { createOcclusionSilhouette } from '../rendering/OcclusionOutline';
+import { loadEnemyModel } from '../rendering/CharacterModelLoader';
 
+export type EnemyModelStyle = 'simple' | 'custom';
 export type EnemyState = 'patrol' | 'chase' | 'attack' | 'dead';
 
 export class Enemy {
@@ -47,6 +49,13 @@ export class Enemy {
   private hitFlashTimer: number = 0;
   private deathTimer: number = 0;
   private readonly deathDuration = 0.5;
+
+  // Model switching
+  private modelStyle: EnemyModelStyle = 'simple';
+  private simpleChildren: THREE.Object3D[] = [];
+  private loadedModelGroup: THREE.Group | null = null;
+  private targetHeight: number = 0;
+  private targetSize: number = 0;
 
   // Health bar
   private healthBarFg: THREE.Mesh;
@@ -161,6 +170,13 @@ export class Enemy {
     this.mesh.position.set(x, 0, z);
     this.position = this.mesh.position;
 
+    // Store dimensions for model scaling
+    this.targetHeight = height;
+    this.targetSize = size;
+
+    // Snapshot simple children for model style toggling
+    this.simpleChildren = [...this.mesh.children];
+
     this.patrolOrigin = new THREE.Vector3(x, 0, z);
     this.patrolTarget = new THREE.Vector3(x, 0, z);
     this.pickNewPatrolTarget();
@@ -208,6 +224,71 @@ export class Enemy {
         break;
       }
     }
+  }
+
+  /**
+   * Switch between simple (procedural box) and custom (GLB voxel) model.
+   * When switching to 'custom', the GLB model is loaded asynchronously; simple
+   * geometry children are hidden. Switching back to 'simple' restores them.
+   */
+  async setModelStyle(style: EnemyModelStyle): Promise<void> {
+    if (style === this.modelStyle) return;
+    this.modelStyle = style;
+
+    if (style === 'custom') {
+      // Hide simple children (body, eyes, decorations, silhouette, health bar, captain crown)
+      for (const child of this.simpleChildren) {
+        child.visible = false;
+      }
+
+      const group = await loadEnemyModel(this.enemyType.id);
+      if (!group || this.modelStyle !== 'custom') {
+        // Loading failed or style changed back during async load — restore simple
+        for (const child of this.simpleChildren) {
+          child.visible = true;
+        }
+        this.modelStyle = 'simple';
+        return;
+      }
+
+      // Scale GLB to match enemy dimensions
+      const box = new THREE.Box3().setFromObject(group);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const targetDim = Math.max(this.targetSize, this.targetHeight);
+      const scale = targetDim / maxDim;
+      group.scale.setScalar(scale);
+
+      // Center vertically
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      group.position.set(
+        -center.x * scale,
+        -center.y * scale + this.targetHeight / 2,
+        -center.z * scale,
+      );
+
+      this.mesh.add(group);
+      this.loadedModelGroup = group;
+
+      // Re-show health bar on top of the custom model
+      this.healthBarBg.visible = true;
+      this.healthBarFg.visible = true;
+    } else {
+      // Switch back to simple
+      if (this.loadedModelGroup) {
+        this.mesh.remove(this.loadedModelGroup);
+        this.loadedModelGroup = null;
+      }
+      for (const child of this.simpleChildren) {
+        child.visible = true;
+      }
+    }
+  }
+
+  getModelStyle(): EnemyModelStyle {
+    return this.modelStyle;
   }
 
   setDungeonCollision(dungeon: DungeonData): void {

@@ -11,6 +11,7 @@
 import type { ActionManager } from '../game/ActionManager';
 import type { InputDevice } from '../game/ActionManager';
 import type { CharacterModelId } from '../rendering/CharacterModelLoader';
+import type { EnemyModelStyle } from '../combat/Enemy';
 
 export type CameraMode = 'third-person' | 'first-person';
 export type ControllerMode = 'auto' | 'keyboard' | 'gamepad';
@@ -20,6 +21,7 @@ export interface GameSettings {
   controllerMode: ControllerMode;
   diagnosticsEnabled: boolean;
   characterModel: CharacterModelId;
+  enemyModelStyle: EnemyModelStyle;
 }
 
 export class SettingsUI {
@@ -32,11 +34,12 @@ export class SettingsUI {
     controllerMode: 'auto',
     diagnosticsEnabled: false,
     characterModel: 'simple',
+    enemyModelStyle: 'simple',
   };
 
   // Navigation state for keyboard/gamepad
   private selectedIndex = 0;
-  private readonly optionCount = 4;
+  private readonly optionCount = 5;
 
   // DOM references for highlight updates
   private rows: HTMLDivElement[] = [];
@@ -150,7 +153,14 @@ export class SettingsUI {
         this.settings.characterModel = models[(cur + direction + models.length) % models.length];
         break;
       }
-      case 3:
+      case 3: {
+        const styles: EnemyModelStyle[] = ['simple', 'custom'];
+        const curStyle = styles.indexOf(this.settings.enemyModelStyle);
+        this.settings.enemyModelStyle =
+          styles[(curStyle + direction + styles.length) % styles.length];
+        break;
+      }
+      case 4:
         this.settings.diagnosticsEnabled = !this.settings.diagnosticsEnabled;
         break;
     }
@@ -195,7 +205,12 @@ export class SettingsUI {
     this.addOptionRow('Camera', this.formatCamera(this.settings.cameraMode), 0);
     this.addOptionRow('Controller', this.formatController(this.settings.controllerMode), 1);
     this.addOptionRow('Character', this.formatCharacterModel(this.settings.characterModel), 2);
-    this.addOptionRow('Diagnostics', this.settings.diagnosticsEnabled ? 'ON' : 'OFF', 3);
+    this.addOptionRow(
+      'Enemy Models',
+      this.settings.enemyModelStyle === 'simple' ? 'Simple' : 'Voxel Art',
+      3,
+    );
+    this.addOptionRow('Diagnostics', this.settings.diagnosticsEnabled ? 'ON' : 'OFF', 4);
 
     // Hint line
     this.hintEl = document.createElement('div');

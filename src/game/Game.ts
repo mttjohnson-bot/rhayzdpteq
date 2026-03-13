@@ -119,6 +119,7 @@ export class Game {
     controllerMode: 'auto',
     diagnosticsEnabled: false,
     characterModel: 'simple',
+    enemyModelStyle: 'simple',
   };
 
   // Menu tab cycling
@@ -860,6 +861,9 @@ export class Game {
     if (settings.characterModel !== this.player.getCharacterModelId()) {
       void this.player.setCharacterModel(settings.characterModel);
     }
+
+    // Enemy model style
+    this.combatSystem.setEnemyModelStyle(settings.enemyModelStyle);
 
     // Diagnostics overlay
     if (settings.diagnosticsEnabled) {
