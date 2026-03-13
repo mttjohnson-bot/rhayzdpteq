@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-13
 
-Scale up GLB character models, enemy voxel art models, settings toggle, asset library model sync, library model sizing fix, and CI deprecation fixes.
+Scale up GLB character models, enemy voxel art models, settings toggle, asset library model sync, library model sizing fix, CI deprecation fixes, and security fix.
+
+- **Fixed high-severity `flatted` vulnerability** — Updated `flatted` from 3.3.x to 3.4.1 to resolve an unbounded recursion DoS vulnerability in `parse()` (GHSA-25h7-pfq9-p65f). This was a transitive dependency via `flat-cache` (used by ESLint).
 
 - **Fixed Asset Library voxel models appearing smaller than in-game** — Enemy and boss GLB models in the Asset Library now apply the same `MODEL_SCALE_DEFAULT` (2x) multiplier used in dungeon floors. Previously the library omitted this multiplier, making voxel models appear at half their in-game size. Boss models were especially tiny due to an additional normalization factor compounding the issue.
 
