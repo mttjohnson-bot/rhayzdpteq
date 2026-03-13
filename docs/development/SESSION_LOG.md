@@ -82,6 +82,27 @@ Entries are listed in reverse chronological order (newest first).
 
 ---
 
+## 2026-03-13 — Scale Up GLB Character Models
+
+### Prompt
+> The GLB models are all the same size and when being rendered appear a bit small. I would like to see the player character owl model about 1.5x bigger and the owlbear model 2.5x bigger. Can we double the size of the GLB models (taking into account whatever is needed for make sure their hit box and such is properly calculated). I would also like change made in the library so that the models in the library appear the same size they would in the game. This means that you will probably need to resize the room (and anything else surrounding) for the enemy characters in the library to accommodate the additional space needed for these changes.
+
+### Plan
+1. Add per-model scale constants (`MODEL_SCALE_OWL=1.5`, `MODEL_SCALE_OWLBEAR=2.5`, `MODEL_SCALE_DEFAULT=2.0`) to `constants.ts`.
+2. Apply these multipliers in `Player.setCharacterModel()` on top of the base normalization scaling, and make the player collision radius dynamic to match.
+3. Apply 2x multiplier in `Enemy.setModelStyle()` and `Boss.setModelStyle()` for GLB models.
+4. Update `AssetLibrary.scaleModelForDisplay()` to accept a scale multiplier, and enlarge the Player Characters room (16×10) and Enemies room (26×22) with wider pedestal spacing.
+5. Update the standalone model gallery to apply the owl's 1.5x scale with a larger grid and camera distance.
+
+### Outcome
+All GLB models now render at their intended scale — owl at 1.5x, owlbear at 2.5x, and all enemies/bosses at 2x. Player collision radius is dynamic and matches the active model. Asset Library rooms are enlarged to prevent model overlap. Model gallery shows the owl at its in-game scale.
+
+### Notes
+- The collision radius change only affects movement collision (wall/mob blocking). Combat hit detection uses separate range constants and enemy/boss `collisionRadius` properties, which are unchanged.
+- The simple box fallback model retains its original size and collision radius.
+
+---
+
 ## 2026-03-13 — Fix Asset Library Voxel Model Display
 
 ### Prompt

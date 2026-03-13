@@ -33,6 +33,9 @@ import {
   CAPTAIN_HP_MULT,
   CAPTAIN_DMG_MULT,
   CAPTAIN_SCALE,
+  MODEL_SCALE_OWL,
+  MODEL_SCALE_OWLBEAR,
+  MODEL_SCALE_DEFAULT,
   type EnemyTypeId,
 } from '../utils/constants';
 import { TestDummy } from '../combat/TestDummy';
@@ -427,14 +430,15 @@ function buildSimplePlayerDisplayMesh(): THREE.Group {
 /**
  * Scale a loaded .glb model group to fit on a display pedestal.
  * Uses the same approach as Player.setCharacterModel for consistency.
+ * The modelMult parameter applies the same per-model scale multiplier used in-game.
  */
-function scaleModelForDisplay(group: THREE.Group): void {
+function scaleModelForDisplay(group: THREE.Group, modelMult: number = MODEL_SCALE_DEFAULT): void {
   const box = new THREE.Box3().setFromObject(group);
   const size = new THREE.Vector3();
   box.getSize(size);
   const maxDim = Math.max(size.x, size.y, size.z);
   const targetSize = Math.max(PLAYER_SIZE, PLAYER_HEIGHT);
-  const scale = targetSize / maxDim;
+  const scale = (targetSize / maxDim) * modelMult;
   group.scale.setScalar(scale);
 
   // Center horizontally, sit on ground
@@ -505,8 +509,8 @@ const ROOM_BRANCHES: RoomBranch[] = [
     connectorCX: 16.5,
     connectorWidth: 3,
     side: 'south',
-    roomWidth: 10,
-    roomDepth: 8,
+    roomWidth: 16,
+    roomDepth: 10,
   },
   {
     label: 'NPC CHARACTERS',
@@ -529,8 +533,8 @@ const ROOM_BRANCHES: RoomBranch[] = [
     connectorCX: 31,
     connectorWidth: 3,
     side: 'north',
-    roomWidth: 18,
-    roomDepth: 16,
+    roomWidth: 26,
+    roomDepth: 22,
   },
   {
     label: 'ITEMS',
@@ -1007,9 +1011,10 @@ export class AssetLibrary {
     ];
 
     // Place pedestals immediately with fallback meshes, then swap in .glb models async
+    // Wider spacing to accommodate scaled-up models
     for (let i = 0; i < models.length; i++) {
       const m = models[i];
-      const pos = { x: cx - 3 + i * 3, z: cz };
+      const pos = { x: cx - 5 + i * 5, z: cz };
       const displayMesh = m.fallback();
       this._addAsset(pos, {
         key: m.key,
@@ -1021,10 +1026,16 @@ export class AssetLibrary {
 
       // For non-simple models, load the real .glb and swap it in
       if (m.modelId !== 'simple') {
+        const modelMult =
+          m.modelId === 'owl'
+            ? MODEL_SCALE_OWL
+            : m.modelId === 'owlbear'
+              ? MODEL_SCALE_OWLBEAR
+              : MODEL_SCALE_DEFAULT;
         const asset = this.assets[this.assets.length - 1];
         loadCharacterModel(m.modelId).then((group) => {
           if (!group) return; // .glb not available — keep fallback
-          scaleModelForDisplay(group);
+          scaleModelForDisplay(group, modelMult);
           // Preserve current rotation and position from the fallback mesh
           group.position.copy(asset.displayMesh.position);
           group.rotation.y = asset.displayMesh.rotation.y;
@@ -1161,9 +1172,9 @@ export class AssetLibrary {
     // Sorted alphabetically by typeId — order never changes
     const sortedTypes = (Object.keys(ENEMY_TYPES) as EnemyTypeId[]).sort();
 
-    // Row 1: Regular mobs
+    // Row 1: Regular mobs (wider spacing for 2x scaled GLB models)
     sortedTypes.forEach((typeId, i) => {
-      const pos = { x: startX + i * 3.0, z: cz - 3 };
+      const pos = { x: startX + i * 4.5, z: cz - 5 };
       this._addAsset(pos, {
         key: `mob_${typeId}`,
         name: ENEMY_TYPES[typeId].name,
@@ -1176,7 +1187,7 @@ export class AssetLibrary {
     // Row 2: Captain variants
     sortedTypes.forEach((typeId, i) => {
       const type = ENEMY_TYPES[typeId];
-      const pos = { x: startX + i * 3.0, z: cz };
+      const pos = { x: startX + i * 4.5, z: cz };
       this._addAsset(pos, {
         key: `captain_${typeId}`,
         name: `${type.name} Captain`,
@@ -1189,7 +1200,7 @@ export class AssetLibrary {
     // Row 3: Bosses for floors 1-5
     for (let floor = 1; floor <= 5; floor++) {
       const config = getFloorConfig(floor).boss;
-      const pos = { x: startX - 1 + (floor - 1) * 3.0, z: cz + 3.5 };
+      const pos = { x: startX - 1 + (floor - 1) * 4.5, z: cz + 5 };
       this._addAsset(pos, {
         key: `boss_floor${floor}`,
         name: config.name,
@@ -1202,7 +1213,7 @@ export class AssetLibrary {
     // Row 4: Bosses for floors 6-10
     for (let floor = 6; floor <= 10; floor++) {
       const config = getFloorConfig(floor).boss;
-      const pos = { x: startX - 1 + (floor - 6) * 3.0, z: cz + 7 };
+      const pos = { x: startX - 1 + (floor - 6) * 4.5, z: cz + 10 };
       this._addAsset(pos, {
         key: `boss_floor${floor}`,
         name: config.name,

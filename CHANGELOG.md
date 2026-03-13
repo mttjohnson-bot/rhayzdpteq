@@ -4,7 +4,12 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-13
 
-Enemy voxel art models, settings toggle, asset library model sync, and CI deprecation fixes.
+Scale up GLB character models, enemy voxel art models, settings toggle, asset library model sync, and CI deprecation fixes.
+
+- **Scaled up GLB character models with per-model multipliers** — The owl player model now renders at 1.5x size and the owlbear at 2.5x size. All other GLB models (enemies, bosses) render at 2x their previous size. Models were previously normalized to fit within the base player dimensions, making them appear too small. Added `MODEL_SCALE_OWL`, `MODEL_SCALE_OWLBEAR`, and `MODEL_SCALE_DEFAULT` constants for easy tuning.
+- **Player collision radius now scales with active character model** — When switching to a larger GLB model, the player's collision radius increases proportionally so movement collision with walls and mobs matches the visual size. Switching back to the simple box model restores the default collision radius.
+- **Enlarged Asset Library rooms for scaled-up models** — The Player Characters room expanded from 10×8 to 16×10 tiles with wider pedestal spacing. The Enemies room expanded from 18×16 to 26×22 tiles with increased spacing between rows and columns to prevent model overlap.
+- **Model Gallery shows owl at game scale** — The standalone model gallery page now applies the same 1.5x scale multiplier used in-game, with an enlarged grid/ground plane and pulled-back camera to accommodate the larger model.
 
 - **Fixed Asset Library not reflecting enemy model style setting** — The Asset Library now responds to the "Enemy Models" setting toggle, switching enemy and boss display meshes between simple procedural geometry and custom voxel art models. Previously, changing the setting only affected enemies on dungeon floors — the library always showed simple geometry. The library also applies the current model style when first opened.
 

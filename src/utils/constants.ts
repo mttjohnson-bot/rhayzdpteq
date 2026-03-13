@@ -11,6 +11,12 @@ export const PLAYER_SPEED = 5; // tiles per second
 export const PLAYER_SIZE = 0.6;
 export const PLAYER_HEIGHT = 1.0;
 
+// Per-model scale multipliers applied on top of the base GLB normalization.
+// These make GLB models bigger (they default to fitting within PLAYER_SIZE/PLAYER_HEIGHT).
+export const MODEL_SCALE_OWL = 1.5;
+export const MODEL_SCALE_OWLBEAR = 2.5;
+export const MODEL_SCALE_DEFAULT = 2.0; // default for any GLB model not listed above
+
 // Camera
 export const CAMERA_DISTANCE = 14;
 export const CAMERA_ANGLE = Math.PI / 4; // 45° elevation
