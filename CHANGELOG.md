@@ -4,8 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-13
 
-Fix remaining Node.js 20 deprecation warnings in deploy workflow.
+Fix Node.js 20 deprecation warnings in deploy workflow.
 
+- **Eliminated upload-artifact Node.js 20 deprecation warning** — Replaced the `actions/upload-pages-artifact@v4` composite action (which internally uses `upload-artifact@v4.6.2` / Node.js 20) with inline tar archiving + `actions/upload-artifact@v7` (Node.js 24 native). The `deploy-pages@v4` warning remains because GitHub has not yet released a Node.js 24 version of that action.
 - **Fixed Node.js 20 deprecation warnings for deploy-pages and upload-pages-artifact** — Moved `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` from step-level env (which didn't propagate to composite action internals like `upload-artifact`) to job-level env on both the `build` and `deploy` jobs. This eliminates the remaining two Node.js 20 deprecation warnings from `actions/upload-pages-artifact@v4` and `actions/deploy-pages@v4`.
 
 ## 2026-03-12

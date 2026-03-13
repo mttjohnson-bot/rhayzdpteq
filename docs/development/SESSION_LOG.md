@@ -82,6 +82,23 @@ Entries are listed in reverse chronological order (newest first).
 
 ---
 
+## 2026-03-13 — Fix Remaining Node.js 20 Deprecation Warnings
+
+### Prompt
+> Even after merging the last fix which was supposed to fix the warnings in GitHub Actions, I'm still seeing some warnings on Deploy to GitHub Pages #105 — `actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02` (from upload-pages-artifact) and `actions/deploy-pages@v4`.
+
+### Plan
+Research revealed that `actions/upload-pages-artifact@v4` is a composite action that internally uses `upload-artifact@v4.6.2` (Node.js 20). The `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` env var forces the runtime but doesn't suppress the informational warning. Fix: inline the composite action's tar + upload logic using `upload-artifact@v7` (Node.js 24 native). The `deploy-pages@v4` warning cannot be fixed — GitHub has not released a Node.js 24 version of that action yet (latest is v4.0.5).
+
+### Outcome
+Replaced `upload-pages-artifact@v4` with inline tar archiving + `upload-artifact@v7`, eliminating one of the two warnings. The `deploy-pages@v4` warning remains until GitHub releases a Node 24-native version.
+
+### Notes
+- The previous fix (moving env var from step-level to job-level) was correct in ensuring Node 24 runtime, but the warnings are emitted by GitHub Actions infrastructure based on action metadata, not the actual runtime used.
+- Neither `upload-pages-artifact` nor `deploy-pages` have released Node 24-native versions as of March 2026. The June 2026 deadline should prompt releases.
+
+---
+
 ## 2026-03-12 — Fix Library Collision Issues
 
 ### Prompt
