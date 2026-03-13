@@ -638,3 +638,21 @@ Updated both artifact upload conditions in `quality.yml`. The warning will no lo
 
 ### Notes
 - This was a cosmetic issue — the warning didn't cause job failures — but it added noise to CI logs and could mask real upload issues.
+
+---
+
+## 2026-03-13 — Fix Remaining Node.js 20 Deprecation Warnings in Deploy Workflow
+
+### Prompt
+> "I'm seeing a couple other warnings from GitHub Actions... Node.js 20 actions are deprecated: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 [in build job] and actions/deploy-pages@v4 [in deploy job]."
+
+### Plan
+1. The previous fix added `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` at the step level for `upload-pages-artifact`, but it didn't propagate to its internal `upload-artifact` composite dependency.
+2. Move the env var from step-level to job-level for both `build` and `deploy` jobs, ensuring all actions (including transitive dependencies) run on Node.js 24.
+
+### Outcome
+Set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` at the job level for `build` and `deploy` jobs in `deploy.yml`. Removed the redundant step-level env from `upload-pages-artifact`.
+
+### Notes
+- Root cause: step-level `env` doesn't propagate to composite action internals. Job-level `env` does.
+- Both `upload-pages-artifact@v4` and `deploy-pages@v4` are at their latest major versions — no v5 exists yet for either.
