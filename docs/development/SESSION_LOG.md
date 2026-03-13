@@ -82,6 +82,25 @@ Entries are listed in reverse chronological order (newest first).
 
 ---
 
+## 2026-03-13 — Fix Asset Library Voxel Model Display
+
+### Prompt
+> I went into the library to see the new voxel models on all the enemy characters but it didn't change to use the voxel models there when I changed the setting. When I was on a level I did see the new models loaded on enemy characters so I think there is an issue that is not behaving the same in the library for the enemy characters. I would really like the library to render things the same as it would on a floor level since I'm using the library as a development and diagnostics tool at the moment.
+
+### Plan
+1. Add a `setEnemyModelStyle()` method to `AssetLibrary` that iterates enemy/boss assets and swaps display meshes between simple geometry and loaded voxel GLB models.
+2. Call the new method from `Game.ts` when the settings change (alongside the existing `CombatSystem.setEnemyModelStyle()` call).
+3. Apply the current model style when the library is first created, so it matches the setting from the start.
+
+### Outcome
+Asset Library now mirrors dungeon floor behavior: changing the "Enemy Models" setting immediately swaps all enemy and boss display meshes in the library. On first library visit, the current style is applied automatically. Voxel models are loaded asynchronously with the same scaling logic used by Enemy/Boss classes.
+
+### Notes
+- The library stores simple children and hides them (rather than removing) when voxel models are shown, allowing fast toggling back to simple mode.
+- Boss display meshes apply the same `1/config.scale` normalization as `buildBossDisplayMesh()` so voxel models display at consistent size on pedestals.
+
+---
+
 ## 2026-03-13 — Enemy Voxel Art Models & Settings Toggle
 
 ### Prompt
