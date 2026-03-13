@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-13
 
-Enemy voxel art models, settings toggle, and CI deprecation fixes.
+Enemy voxel art models, settings toggle, asset library model sync, and CI deprecation fixes.
+
+- **Fixed Asset Library not reflecting enemy model style setting** — The Asset Library now responds to the "Enemy Models" setting toggle, switching enemy and boss display meshes between simple procedural geometry and custom voxel art models. Previously, changing the setting only affected enemies on dungeon floors — the library always showed simple geometry. The library also applies the current model style when first opened.
 
 - **Converted all enemy and boss .vox files to optimized .glb models** — Ran the conversion pipeline for all 17 character models (5 enemy types: grunt, brute, archer, mage, assassin; 10 bosses: Crypt Guardian, Fungal Brute, Forge Titan, Frost Wyrm, Shadow Lord, Sewer Abomination, Inferno Demon, Crystal Golem, Blood Tyrant, Abyssal Overlord; plus 2 player characters). All .glb files verified present.
 - **Added GLB model loading for enemies and bosses** — Extended CharacterModelLoader with `loadEnemyModel()` and `loadBossModel()` functions that load and cache enemy/boss .glb models by type ID or boss name. Boss names are automatically mapped to filenames (e.g. "Crypt Guardian" → "cryptguardian.glb").

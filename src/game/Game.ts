@@ -864,6 +864,9 @@ export class Game {
 
     // Enemy model style
     this.combatSystem.setEnemyModelStyle(settings.enemyModelStyle);
+    if (this.assetLibrary) {
+      void this.assetLibrary.setEnemyModelStyle(settings.enemyModelStyle);
+    }
 
     // Diagnostics overlay
     if (settings.diagnosticsEnabled) {
@@ -968,6 +971,11 @@ export class Game {
     if (!this.assetLibrary) {
       this.assetLibrary = new AssetLibrary();
       this.sceneManager.addGroup(this.assetLibrary.group);
+      // Apply current enemy model style so library matches dungeon rendering
+      const currentStyle = this.settingsUI.getSettings().enemyModelStyle;
+      if (currentStyle !== 'simple') {
+        void this.assetLibrary.setEnemyModelStyle(currentStyle);
+      }
     } else {
       this.sceneManager.scene.add(this.assetLibrary.group);
     }

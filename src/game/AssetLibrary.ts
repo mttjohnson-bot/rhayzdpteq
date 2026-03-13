@@ -25,6 +25,8 @@ import {
   PLAYER_HEIGHT,
   COLORS,
   ENEMY_TYPES,
+  ENEMY_SIZE,
+  ENEMY_HEIGHT,
   ENEMY_HP,
   ENEMY_SPEED,
   ENEMY_ATTACK_DAMAGE,
@@ -34,12 +36,17 @@ import {
   type EnemyTypeId,
 } from '../utils/constants';
 import { TestDummy } from '../combat/TestDummy';
-import { getFloorConfig } from '../dungeon/FloorConfig';
+import { getFloorConfig, type BossConfig } from '../dungeon/FloorConfig';
 import { ObstacleType } from '../dungeon/DungeonGenerator';
-import { buildEnemyDisplayMesh } from '../combat/Enemy';
+import { buildEnemyDisplayMesh, type EnemyModelStyle } from '../combat/Enemy';
 import { buildBossDisplayMesh } from '../combat/Boss';
 import { type ItemRarity, type ConsumeEffect, rarityColor } from '../rpg/LootTable';
-import { loadCharacterModel, type CharacterModelId } from '../rendering/CharacterModelLoader';
+import {
+  loadCharacterModel,
+  loadEnemyModel,
+  loadBossModel,
+  type CharacterModelId,
+} from '../rendering/CharacterModelLoader';
 
 // ---------------------------------------------------------------------------
 // Interfaces
@@ -593,6 +600,32 @@ export class AssetLibrary {
     return this.wallAABBs;
   }
 
+  /**
+   * Switch enemy/boss display meshes between simple (procedural) and custom
+   * (voxel GLB) models, matching the behaviour of CombatSystem.setEnemyModelStyle.
+   */
+  async setEnemyModelStyle(style: EnemyModelStyle): Promise<void> {
+    const promises: Promise<void>[] = [];
+
+    for (const asset of this.assets) {
+      if (
+        asset.category !== 'enemy_mob' &&
+        asset.category !== 'enemy_captain' &&
+        asset.category !== 'enemy_boss'
+      ) {
+        continue;
+      }
+
+      if (style === 'custom') {
+        promises.push(this._loadVoxelDisplayMesh(asset));
+      } else {
+        this._restoreSimpleDisplayMesh(asset);
+      }
+    }
+
+    await Promise.all(promises);
+  }
+
   // -------------------------------------------------------------------------
   // Highlight algorithm
   // -------------------------------------------------------------------------
@@ -632,6 +665,96 @@ export class AssetLibrary {
         (best.pedestalMesh.material as THREE.MeshLambertMaterial).color.setHex(PEDESTAL_HIGHLIGHT);
       }
       this.highlightedAsset = best;
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Voxel model swap helpers
+  // -------------------------------------------------------------------------
+
+  /**
+   * Load a voxel GLB model for an enemy/boss asset and replace the simple
+   * geometry, preserving position and rotation.  Simple children are hidden
+   * (not removed) so they can be restored quickly.
+   */
+  private async _loadVoxelDisplayMesh(asset: LibraryAsset): Promise<void> {
+    // Skip if already showing a voxel model (tagged child present)
+    if (asset.displayMesh.children.some((c: THREE.Object3D) => c.userData.__libraryVoxel)) return;
+
+    let targetSize: number;
+    let targetHeight: number;
+    let group: THREE.Group | null;
+
+    if (asset.category === 'enemy_mob' || asset.category === 'enemy_captain') {
+      const typeId = asset.key.replace(/^(mob|captain)_/, '') as EnemyTypeId;
+      const type = ENEMY_TYPES[typeId];
+      const isCaptain = asset.category === 'enemy_captain';
+      const captainSizeMult = isCaptain ? CAPTAIN_SCALE : 1;
+      const bodyScale = type.bodyScale * captainSizeMult;
+      targetSize = ENEMY_SIZE * bodyScale;
+      targetHeight = ENEMY_HEIGHT * type.heightScale * captainSizeMult;
+      group = await loadEnemyModel(typeId);
+    } else {
+      // Boss — extract floor number from key `boss_floor${n}`
+      const floor = parseInt(asset.key.replace('boss_floor', ''), 10);
+      const config: BossConfig = getFloorConfig(floor).boss;
+      targetSize = config.scale * 0.7;
+      targetHeight = config.scale * 1.2;
+      group = await loadBossModel(config.name);
+    }
+
+    if (!group) return; // GLB not available — keep simple mesh
+
+    // Scale to match the entity dimensions (same logic as Enemy/Boss.setModelStyle)
+    const box = new THREE.Box3().setFromObject(group);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const targetDim = Math.max(targetSize, targetHeight);
+    const scale = targetDim / maxDim;
+    group.scale.setScalar(scale);
+
+    // Center vertically
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    group.position.set(-center.x * scale, -center.y * scale + targetHeight / 2, -center.z * scale);
+
+    // For bosses the display mesh has a normalizing scale applied — apply the
+    // same scale to the voxel model so it matches (buildBossDisplayMesh uses
+    // 1/config.scale).
+    if (asset.category === 'enemy_boss') {
+      const floor = parseInt(asset.key.replace('boss_floor', ''), 10);
+      const config: BossConfig = getFloorConfig(floor).boss;
+      group.scale.multiplyScalar(1.0 / config.scale);
+      group.position.multiplyScalar(1.0 / config.scale);
+    }
+
+    // Tag so we can identify and remove later
+    group.userData.__libraryVoxel = true;
+
+    // Hide simple children
+    for (const child of asset.displayMesh.children) {
+      child.visible = false;
+    }
+
+    asset.displayMesh.add(group);
+  }
+
+  /**
+   * Restore the simple procedural geometry by removing the voxel model and
+   * un-hiding the original children.
+   */
+  private _restoreSimpleDisplayMesh(asset: LibraryAsset): void {
+    const toRemove: THREE.Object3D[] = [];
+    for (const child of asset.displayMesh.children) {
+      if (child.userData.__libraryVoxel) {
+        toRemove.push(child);
+      } else {
+        child.visible = true;
+      }
+    }
+    for (const obj of toRemove) {
+      asset.displayMesh.remove(obj);
     }
   }
 
