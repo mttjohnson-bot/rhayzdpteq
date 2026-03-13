@@ -735,3 +735,22 @@ Set `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true` at the job level for `build` and 
 ### Notes
 - Root cause: step-level `env` doesn't propagate to composite action internals. Job-level `env` does.
 - Both `upload-pages-artifact@v4` and `deploy-pages@v4` are at their latest major versions — no v5 exists yet for either.
+
+---
+
+## 2026-03-13 — Fix Asset Library Enemy/Boss Model Sizing
+
+### Prompt
+> "The enemy models in the library do not appear to match the size of the enemy characters on the floor levels. The floor level models look good, and I would like to see the models presented in the library to look the same as the ones on the floor levels. For some reason when switching to the GLB models in the library the boss characters seem especially tiny."
+
+### Plan
+1. Compare model scaling logic between `AssetLibrary._loadVoxelDisplayMesh()` and `Enemy.setModelStyle()` / `Boss.setModelStyle()`.
+2. Identify that the library omits the `MODEL_SCALE_DEFAULT` multiplier applied in dungeon combat.
+3. Add the missing multiplier to match in-game appearance.
+
+### Outcome
+Added `* MODEL_SCALE_DEFAULT` to the scale calculation in `AssetLibrary._loadVoxelDisplayMesh()` (line 718), matching the scaling formula used by `Enemy.ts` and `Boss.ts` in dungeon floors.
+
+### Notes
+- Root cause: The library normalized voxel models to entity dimensions (`targetDim / maxDim`) but omitted the `MODEL_SCALE_DEFAULT` (2.0x) multiplier that both `Enemy.setModelStyle` and `Boss.setModelStyle` apply. This made all library voxel models half their in-game size.
+- Boss models appeared especially tiny because they had an additional `1/config.scale` normalization factor applied on top of the already-too-small base scale.
