@@ -279,6 +279,7 @@ The Settings tab includes:
 | Camera | Third-Person / First-Person | Switch between the default isometric view and a first-person perspective at eye level |
 | Controller | Auto-Detect / Keyboard / Gamepad | Choose automatic input detection or lock to a specific device |
 | Character | Simple / Owl (Voxel) / Owlbear (Voxel) | Switch between the default box model, the owl voxel model, or the owlbear voxel model |
+| Enemy Models | Simple / Voxel Art | Switch all enemies and bosses between procedural box geometry and custom voxel art models |
 | Diagnostics | OFF / ON | Show a real-time FPS counter and draw call count in the top-right corner |
 
 Use **Up/Down** (or D-pad) to navigate between options, **Left/Right** to change values.

@@ -13,8 +13,25 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import type { EnemyTypeId } from '../utils/constants';
 
 export type CharacterModelId = 'simple' | 'owl' | 'owlbear';
+
+/** Model IDs for enemy mobs — matches filenames in assets/characters/ */
+export type EnemyModelId = EnemyTypeId; // 'grunt' | 'brute' | 'archer' | 'mage' | 'assassin'
+
+/** Model IDs for bosses — derived from boss name by lowercasing and stripping spaces */
+export type BossModelId =
+  | 'cryptguardian'
+  | 'fungalbrute'
+  | 'forgetitan'
+  | 'frostwyrm'
+  | 'shadowlord'
+  | 'sewerabomination'
+  | 'infernodemon'
+  | 'crystalgolem'
+  | 'bloodtyrant'
+  | 'abyssaloverlord';
 
 /** Resolved base path for static assets (handles Vite base config). */
 function assetBase(): string {
@@ -90,5 +107,64 @@ export async function loadCharacterModel(id: CharacterModelId): Promise<THREE.Gr
   }
 
   cache.set(id, group);
+  return group.clone();
+}
+
+/**
+ * Derive a boss model ID from a BossConfig name.
+ * E.g. "Crypt Guardian" → "cryptguardian", "Abyssal Overlord" → "abyssaloverlord"
+ */
+export function bossNameToModelId(bossName: string): BossModelId {
+  return bossName.toLowerCase().replace(/\s+/g, '') as BossModelId;
+}
+
+/**
+ * Load an enemy mob GLB model by type ID.
+ * Returns a clone of the cached scene graph, or null on failure.
+ */
+export async function loadEnemyModel(typeId: EnemyModelId): Promise<THREE.Group | null> {
+  const cacheKey = `enemy_${typeId}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return cached.clone();
+
+  const base = assetBase();
+  const url = `${base}assets/characters/${typeId}.glb`;
+  const group = await loadGlb(url);
+
+  if (!group) {
+    console.error(
+      `[CharacterModelLoader] Enemy model "${typeId}" not found at ${url}.`,
+      `Run: ./scripts/convert-models.mjs`,
+    );
+    return null;
+  }
+
+  cache.set(cacheKey, group);
+  return group.clone();
+}
+
+/**
+ * Load a boss GLB model by boss name or model ID.
+ * Returns a clone of the cached scene graph, or null on failure.
+ */
+export async function loadBossModel(bossName: string): Promise<THREE.Group | null> {
+  const modelId = bossNameToModelId(bossName);
+  const cacheKey = `boss_${modelId}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return cached.clone();
+
+  const base = assetBase();
+  const url = `${base}assets/characters/${modelId}.glb`;
+  const group = await loadGlb(url);
+
+  if (!group) {
+    console.error(
+      `[CharacterModelLoader] Boss model "${modelId}" not found at ${url}.`,
+      `Run: ./scripts/convert-models.mjs`,
+    );
+    return null;
+  }
+
+  cache.set(cacheKey, group);
   return group.clone();
 }

@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Enemy } from './Enemy';
+import { Enemy, type EnemyModelStyle } from './Enemy';
 import { Boss } from './Boss';
 import { Player } from '../game/Player';
 import {
@@ -22,6 +22,7 @@ export class CombatSystem {
   private player: Player;
   private computedStats: ComputedStats | null = null;
   private currentDungeon: DungeonData | null = null;
+  private enemyModelStyle: EnemyModelStyle = 'simple';
 
   constructor(scene: THREE.Scene, player: Player) {
     this.scene = scene;
@@ -57,6 +58,9 @@ export class CombatSystem {
         const bossZ = room.centerZ + offsetZ + 0.5;
         const boss = new Boss(bossX, bossZ, floor, config.boss);
         boss.setDungeonCollision(dungeon);
+        if (this.enemyModelStyle === 'custom') {
+          void boss.setModelStyle('custom');
+        }
         this.bosses.push(boss);
         this.scene.add(boss.mesh);
         continue;
@@ -78,6 +82,9 @@ export class CombatSystem {
 
         const enemy = new Enemy(wx, wz, floor, diff, typeId, isCaptain);
         enemy.setDungeonCollision(dungeon);
+        if (this.enemyModelStyle === 'custom') {
+          void enemy.setModelStyle('custom');
+        }
         this.enemies.push(enemy);
         this.scene.add(enemy.mesh);
       }
@@ -144,6 +151,21 @@ export class CombatSystem {
       const trapDmg = obstacleSystem.checkTrap(boss.position.x, boss.position.z);
       if (trapDmg > 0) {
         boss.takeDamage(trapDmg);
+      }
+    }
+  }
+
+  /** Switch all current and future enemies/bosses between simple and custom models. */
+  setEnemyModelStyle(style: EnemyModelStyle): void {
+    this.enemyModelStyle = style;
+    for (const enemy of this.enemies) {
+      if (enemy.alive) {
+        void enemy.setModelStyle(style);
+      }
+    }
+    for (const boss of this.bosses) {
+      if (boss.alive) {
+        void boss.setModelStyle(style);
       }
     }
   }
@@ -309,6 +331,9 @@ export class CombatSystem {
         ];
       const enemy = new Enemy(sx, sz, floor, config.difficulty, typeId);
       enemy.setDungeonCollision(this.currentDungeon);
+      if (this.enemyModelStyle === 'custom') {
+        void enemy.setModelStyle('custom');
+      }
       this.enemies.push(enemy);
       this.scene.add(enemy.mesh);
     }

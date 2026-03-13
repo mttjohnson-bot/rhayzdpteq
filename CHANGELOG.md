@@ -4,6 +4,13 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-13
 
+Enemy voxel art models, settings toggle, and CI deprecation fixes.
+
+- **Converted all enemy and boss .vox files to optimized .glb models** — Ran the conversion pipeline for all 17 character models (5 enemy types: grunt, brute, archer, mage, assassin; 10 bosses: Crypt Guardian, Fungal Brute, Forge Titan, Frost Wyrm, Shadow Lord, Sewer Abomination, Inferno Demon, Crystal Golem, Blood Tyrant, Abyssal Overlord; plus 2 player characters). All .glb files verified present.
+- **Added GLB model loading for enemies and bosses** — Extended CharacterModelLoader with `loadEnemyModel()` and `loadBossModel()` functions that load and cache enemy/boss .glb models by type ID or boss name. Boss names are automatically mapped to filenames (e.g. "Crypt Guardian" → "cryptguardian.glb").
+- **Enemies and bosses can now display custom voxel art models** — Added `setModelStyle('simple' | 'custom')` to both Enemy and Boss classes. When set to 'custom', the procedural box geometry is hidden and replaced with the loaded GLB voxel model, auto-scaled to match the enemy's dimensions. Health bars remain visible on top of custom models.
+- **Added "Enemy Models" toggle in Settings** — New settings option lets players switch all enemies between "Simple" (procedural boxes) and "Voxel Art" (custom .glb models). The setting applies immediately to all active enemies and persists for newly spawned enemies. Accessible via the pause menu Settings panel.
+
 Fix Node.js 20 deprecation warnings in deploy workflow.
 
 - **Eliminated upload-artifact Node.js 20 deprecation warning** — Replaced the `actions/upload-pages-artifact@v4` composite action (which internally uses `upload-artifact@v4.6.2` / Node.js 20) with inline tar archiving + `actions/upload-artifact@v7` (Node.js 24 native). The `deploy-pages@v4` warning remains because GitHub has not yet released a Node.js 24 version of that action.

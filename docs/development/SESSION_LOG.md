@@ -82,6 +82,28 @@ Entries are listed in reverse chronological order (newest first).
 
 ---
 
+## 2026-03-13 — Enemy Voxel Art Models & Settings Toggle
+
+### Prompt
+> I have uploaded several assets/characters directory of the repo and there should be one for each of the enemy characters (mob, captain, boss) with a filename that closely matches the enemy name. Can you make sure all the vox files are converted to optimized glb models and update all the enemy models to also support the use of the glb models. I would like to have a toggle in the settings to switch all enemies between the simple models and the custom asset models.
+
+### Plan
+1. Run the vox-to-glb conversion pipeline for all 17 character .vox files (5 enemy types + 10 bosses + 2 player characters).
+2. Expand CharacterModelLoader with `loadEnemyModel()` and `loadBossModel()` functions, mapping enemy type IDs and boss names to .glb filenames.
+3. Add `setModelStyle('simple' | 'custom')` to both Enemy and Boss classes that toggles between procedural box geometry and loaded GLB models.
+4. Add an "Enemy Models" setting (Simple / Voxel Art) to the Settings UI and GameSettings interface.
+5. Wire the setting through Game.ts → CombatSystem so it applies to all active enemies and newly spawned ones.
+
+### Outcome
+All 17 .vox files converted to optimized .glb models. Enemy and Boss classes now support model switching. A new "Enemy Models" toggle in Settings lets players switch between simple procedural geometry and custom voxel art models. The setting applies immediately to all active enemies and persists for new spawns.
+
+### Notes
+- Boss name → filename mapping uses simple lowercase + strip spaces (e.g. "Crypt Guardian" → "cryptguardian.glb"), which matches all 10 boss .vox filenames.
+- Health bars remain visible when custom models are active.
+- Model loading is async with graceful fallback to simple geometry if GLB loading fails.
+
+---
+
 ## 2026-03-13 — Fix Remaining Node.js 20 Deprecation Warnings
 
 ### Prompt

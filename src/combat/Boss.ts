@@ -4,6 +4,9 @@ import { events } from '../utils/EventBus';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { BossConfig, BossAbility } from '../dungeon/FloorConfig';
 import { createOcclusionSilhouette } from '../rendering/OcclusionOutline';
+import { loadBossModel } from '../rendering/CharacterModelLoader';
+
+export type BossModelStyle = 'simple' | 'custom';
 
 export class Boss {
   readonly mesh: THREE.Group;
@@ -58,6 +61,11 @@ export class Boss {
   private dungeonOffsetX = 0;
   private dungeonOffsetZ = 0;
   readonly collisionRadius: number;
+
+  // Model switching
+  private modelStyle: BossModelStyle = 'simple';
+  private simpleChildren: THREE.Object3D[] = [];
+  private loadedModelGroup: THREE.Group | null = null;
 
   // Obstacle effects
   private obstacleSpeedMult = 1;
@@ -145,10 +153,70 @@ export class Boss {
     this.mesh.position.set(x, 0, z);
     this.position = this.mesh.position;
 
+    // Snapshot simple children for model style toggling
+    this.simpleChildren = [...this.mesh.children];
+
     // Initialize cooldowns
     for (const ability of config.abilities) {
       this.abilityCooldowns.set(ability, 2); // initial delay
     }
+  }
+
+  /**
+   * Switch between simple (procedural box) and custom (GLB voxel) model.
+   */
+  async setModelStyle(style: BossModelStyle): Promise<void> {
+    if (style === this.modelStyle) return;
+    this.modelStyle = style;
+
+    const size = this.config.scale;
+    const height = size * 1.2;
+
+    if (style === 'custom') {
+      for (const child of this.simpleChildren) {
+        child.visible = false;
+      }
+
+      const group = await loadBossModel(this.config.name);
+      if (!group || this.modelStyle !== 'custom') {
+        for (const child of this.simpleChildren) {
+          child.visible = true;
+        }
+        this.modelStyle = 'simple';
+        return;
+      }
+
+      // Scale GLB to match boss dimensions
+      const box = new THREE.Box3().setFromObject(group);
+      const modelSize = new THREE.Vector3();
+      box.getSize(modelSize);
+      const maxDim = Math.max(modelSize.x, modelSize.y, modelSize.z);
+      const targetDim = Math.max(size * 0.7, height);
+      const scale = targetDim / maxDim;
+      group.scale.setScalar(scale);
+
+      const center = new THREE.Vector3();
+      box.getCenter(center);
+      group.position.set(-center.x * scale, -center.y * scale + height / 2, -center.z * scale);
+
+      this.mesh.add(group);
+      this.loadedModelGroup = group;
+
+      // Re-show health bar
+      this.healthBarFg.visible = true;
+    } else {
+      if (this.loadedModelGroup) {
+        this.mesh.remove(this.loadedModelGroup);
+        this.loadedModelGroup = null;
+      }
+      for (const child of this.simpleChildren) {
+        child.visible = true;
+      }
+    }
+  }
+
+  getModelStyle(): BossModelStyle {
+    return this.modelStyle;
   }
 
   setDungeonCollision(dungeon: DungeonData): void {
