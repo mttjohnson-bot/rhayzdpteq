@@ -715,7 +715,7 @@ export class AssetLibrary {
     box.getSize(size);
     const maxDim = Math.max(size.x, size.y, size.z);
     const targetDim = Math.max(targetSize, targetHeight);
-    const scale = targetDim / maxDim;
+    const scale = (targetDim / maxDim) * MODEL_SCALE_DEFAULT;
     group.scale.setScalar(scale);
 
     // Center vertically
