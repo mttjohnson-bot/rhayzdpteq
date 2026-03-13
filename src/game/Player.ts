@@ -8,6 +8,9 @@ import {
   PLAYER_MAX_HP,
   PLAYER_ATTACK_COOLDOWN,
   PLAYER_INVINCIBILITY_TIME,
+  MODEL_SCALE_OWL,
+  MODEL_SCALE_OWLBEAR,
+  MODEL_SCALE_DEFAULT,
 } from '../utils/constants';
 import { clamp } from '../utils/math';
 import { ActionManager } from './ActionManager';
@@ -79,6 +82,9 @@ export class Player {
   private loadedModelGroup: THREE.Group | null = null;
   private simpleGeometry: THREE.BufferGeometry;
   private simpleSilhouette: THREE.Mesh;
+
+  /** Collision radius — scales with the active character model. */
+  collisionRadius: number = PLAYER_SIZE / 2;
 
   constructor() {
     const geometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_HEIGHT, PLAYER_SIZE);
@@ -300,7 +306,7 @@ export class Player {
   }
 
   private applyMovement(moveX: number, moveZ: number): void {
-    const half = PLAYER_SIZE / 2;
+    const half = this.collisionRadius;
     const newX = this.position.x + moveX;
     const newZ = this.position.z + moveZ;
 
@@ -353,7 +359,7 @@ export class Player {
   private isBlockedByMob(worldX: number, worldZ: number): boolean {
     if (!this.getMobColliders) return false;
     const colliders = this.getMobColliders();
-    const playerRadius = PLAYER_SIZE / 2;
+    const playerRadius = this.collisionRadius;
     for (const mob of colliders) {
       if (!mob.alive) continue;
       const minDist = playerRadius + mob.collisionRadius;
@@ -374,7 +380,7 @@ export class Player {
   private isWalkable(worldX: number, worldZ: number): boolean {
     if (!this.dungeonData) return true;
 
-    const half = PLAYER_SIZE / 2;
+    const half = this.collisionRadius;
     const corners = [
       [worldX - half, worldZ - half],
       [worldX + half, worldZ - half],
@@ -499,6 +505,7 @@ export class Player {
       this.mesh.material = this.baseMaterial;
       this.simpleSilhouette.visible = true;
       this.activeModelId = 'simple';
+      this.collisionRadius = PLAYER_SIZE / 2;
       return;
     }
 
@@ -517,13 +524,17 @@ export class Player {
     this.mesh.material = new THREE.MeshBasicMaterial({ visible: false });
     this.simpleSilhouette.visible = false;
 
-    // Scale the loaded model to roughly match player dimensions
+    // Per-model scale multiplier
+    const modelMult =
+      id === 'owl' ? MODEL_SCALE_OWL : id === 'owlbear' ? MODEL_SCALE_OWLBEAR : MODEL_SCALE_DEFAULT;
+
+    // Scale the loaded model to roughly match player dimensions, then apply multiplier
     const box = new THREE.Box3().setFromObject(group);
     const size = new THREE.Vector3();
     box.getSize(size);
     const maxDim = Math.max(size.x, size.y, size.z);
     const targetSize = Math.max(PLAYER_SIZE, PLAYER_HEIGHT);
-    const scale = targetSize / maxDim;
+    const scale = (targetSize / maxDim) * modelMult;
     group.scale.setScalar(scale);
 
     // Center the model vertically within the player mesh
@@ -534,5 +545,6 @@ export class Player {
     this.mesh.add(group);
     this.loadedModelGroup = group;
     this.activeModelId = id;
+    this.collisionRadius = (PLAYER_SIZE / 2) * modelMult;
   }
 }

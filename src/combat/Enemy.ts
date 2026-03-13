@@ -15,6 +15,7 @@ import {
   CAPTAIN_SCALE,
   CAPTAIN_HP_MULT,
   CAPTAIN_DMG_MULT,
+  MODEL_SCALE_DEFAULT,
 } from '../utils/constants';
 import { events } from '../utils/EventBus';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
@@ -251,13 +252,13 @@ export class Enemy {
         return;
       }
 
-      // Scale GLB to match enemy dimensions
+      // Scale GLB to match enemy dimensions with model scale multiplier
       const box = new THREE.Box3().setFromObject(group);
       const size = new THREE.Vector3();
       box.getSize(size);
       const maxDim = Math.max(size.x, size.y, size.z);
       const targetDim = Math.max(this.targetSize, this.targetHeight);
-      const scale = targetDim / maxDim;
+      const scale = (targetDim / maxDim) * MODEL_SCALE_DEFAULT;
       group.scale.setScalar(scale);
 
       // Center vertically

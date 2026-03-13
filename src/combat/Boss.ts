@@ -1,5 +1,11 @@
 import * as THREE from 'three';
-import { ENEMY_HP, ENEMY_ATTACK_DAMAGE, COLORS, TILE_SIZE } from '../utils/constants';
+import {
+  ENEMY_HP,
+  ENEMY_ATTACK_DAMAGE,
+  COLORS,
+  TILE_SIZE,
+  MODEL_SCALE_DEFAULT,
+} from '../utils/constants';
 import { events } from '../utils/EventBus';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { BossConfig, BossAbility } from '../dungeon/FloorConfig';
@@ -186,13 +192,13 @@ export class Boss {
         return;
       }
 
-      // Scale GLB to match boss dimensions
+      // Scale GLB to match boss dimensions with model scale multiplier
       const box = new THREE.Box3().setFromObject(group);
       const modelSize = new THREE.Vector3();
       box.getSize(modelSize);
       const maxDim = Math.max(modelSize.x, modelSize.y, modelSize.z);
       const targetDim = Math.max(size * 0.7, height);
-      const scale = targetDim / maxDim;
+      const scale = (targetDim / maxDim) * MODEL_SCALE_DEFAULT;
       group.scale.setScalar(scale);
 
       const center = new THREE.Vector3();

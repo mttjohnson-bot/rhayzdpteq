@@ -4,7 +4,7 @@
  */
 
 import * as THREE from 'three';
-import { PLAYER_SIZE, PLAYER_HEIGHT } from './utils/constants';
+import { PLAYER_SIZE, PLAYER_HEIGHT, MODEL_SCALE_OWL } from './utils/constants';
 
 // ── Scene setup ──
 
@@ -32,13 +32,13 @@ function createScene(): THREE.Scene {
   dir.castShadow = true;
   scene.add(dir);
 
-  // Grid floor
-  const grid = new THREE.GridHelper(4, 8, 0x444466, 0x333355);
+  // Grid floor (sized to accommodate scaled-up models)
+  const grid = new THREE.GridHelper(6, 12, 0x444466, 0x333355);
   scene.add(grid);
 
   // Ground plane to receive shadows
   const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(4, 4),
+    new THREE.PlaneGeometry(6, 6),
     new THREE.ShadowMaterial({ opacity: 0.3 }),
   );
   ground.rotation.x = -Math.PI / 2;
@@ -51,8 +51,8 @@ function createScene(): THREE.Scene {
 
 function createCamera(): THREE.PerspectiveCamera {
   const cam = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
-  cam.position.set(2, 2.5, 3);
-  cam.lookAt(0, 0.5, 0);
+  cam.position.set(3, 3.5, 4);
+  cam.lookAt(0, 0.7, 0);
   return cam;
 }
 
@@ -110,13 +110,13 @@ async function loadOwl(): Promise<void> {
     const group = gltf.scene;
     console.log(`[ModelGallery] Loaded owl from .glb (optimized format)`);
 
-    // Scale to match player dimensions
+    // Scale to match player dimensions with in-game model scale multiplier
     const box = new THREE.Box3().setFromObject(group);
     const size = new THREE.Vector3();
     box.getSize(size);
     const maxDim = Math.max(size.x, size.y, size.z);
     const targetSize = Math.max(PLAYER_SIZE, PLAYER_HEIGHT);
-    const scale = targetSize / maxDim;
+    const scale = (targetSize / maxDim) * MODEL_SCALE_OWL;
     group.scale.setScalar(scale);
 
     // Re-center after scaling
@@ -158,7 +158,7 @@ interface OrbitState {
 const orbitLeft: OrbitState = {
   azimuth: 0.8,
   elevation: 0.6,
-  distance: 4,
+  distance: 5.5,
   dragging: false,
   lastX: 0,
   lastY: 0,
@@ -169,8 +169,8 @@ function updateCamera(cam: THREE.PerspectiveCamera, orbit: OrbitState): void {
   const x = orbit.distance * Math.sin(orbit.azimuth) * Math.cos(orbit.elevation);
   const y = orbit.distance * Math.sin(orbit.elevation);
   const z = orbit.distance * Math.cos(orbit.azimuth) * Math.cos(orbit.elevation);
-  cam.position.set(x, y + 0.5, z);
-  cam.lookAt(0, 0.5, 0);
+  cam.position.set(x, y + 0.7, z);
+  cam.lookAt(0, 0.7, 0);
 }
 
 function getOrbitForX(x: number): { orbit: OrbitState; cam: THREE.PerspectiveCamera } | null {
