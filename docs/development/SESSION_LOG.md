@@ -791,3 +791,22 @@ Removed the `group.scale.setScalar(1.0 / size)` normalization from `buildBossDis
 ### Notes
 - The normalization was originally added to make all bosses "display at a consistent size" but this defeated the purpose — bosses should visually dominate regular enemies.
 - A previous session (2026-03-13) partially addressed this by adding `MODEL_SCALE_DEFAULT` to GLB models, but the procedural geometry normalization remained.
+
+---
+
+## Session – 2026-03-14 (Auto-PR and Auto-Merge Workflow)
+
+### Prompt
+> "Is it possible to have a claude code session open a PR automatically when work in a session is done so that I don't have to initiate it myself and then wait for the CI operations on GitHub to run through before being able to again initiate a merge once checks have passed. I would like to be able to review both the description of what was done in a claude code session and know that all checks have passed correctly all at the same time."
+
+### Plan
+1. Add a "Session Completion" section to CLAUDE.md with standing instructions for every session to create a PR and enable auto-merge.
+2. Document the required PR format, auto-merge command (`gh pr merge --auto --squash`), and rules.
+
+### Outcome
+Added a comprehensive "Session Completion" section to CLAUDE.md between "Git Workflow" and "CI/CD". The section includes step-by-step instructions, a standard PR body template, and rules ensuring every session ends with a PR and auto-merge armed.
+
+### Notes
+- The user's core pain point was a two-step review process: (1) discover PR exists, (2) wait for CI, (3) come back to merge. Auto-merge eliminates step 3.
+- This is a process/instruction change only — no code changes required. The enforcement is via CLAUDE.md standing instructions, not a hook or automation script.
+- GitHub repo settings must have "Allow auto-merge" enabled for the `gh pr merge --auto` command to work. This is a one-time admin setting.
