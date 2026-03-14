@@ -315,7 +315,7 @@ Use **Up/Down** to scroll (or D-pad on gamepad).
 | Floor indicator | Top-center | Current floor name and number |
 | Minimap | Top-right | Explored dungeon layout |
 | Boss health bar | Top-center (in boss room) | Boss remaining HP |
-| Instructions panel | Top-right | Context-sensitive control hints |
+| Menu button | Top-right | Opens the menu (hamburger icon + "Menu" label) |
 | Active device indicator | Bottom-right | Shows current input device (fades after 3s) |
 
 ---
