@@ -19,6 +19,8 @@ Fix Asset Library room overlaps; skip CI checks for documentation-only PRs; swit
 
 - **Added session completion workflow to CLAUDE.md** — Claude Code sessions that produce code changes are now required to open a pull request and enable auto-merge (`gh pr merge --auto --squash`) before the session ends. This eliminates the two-step review process where a human had to wait for CI checks to complete before merging, allowing PR description review and CI results to be available at the same time.
 
+- **Fixed enemy and boss voxel models facing away from the player** — GLB voxel models have their front facing +Z, but the procedural enemy models face -Z. The facing-angle formula was tuned for -Z, causing voxel enemies to face backwards when chasing or attacking the player. Added a 180° rotation offset when loading GLB models so they correctly face the player.
+
 - **Fixed boss enemies appearing tiny in Asset Library** — Boss display meshes in the library were being normalized to unit size (`1.0 / scale`), making them appear the same size as or smaller than regular enemies. Removed the normalization so bosses now display at their actual dungeon scale (2.2–3.0), correctly appearing as the largest enemy type.
 
 - **Fixed `@vitest/coverage-v8` peer dependency conflict** — Bumped `@vitest/coverage-v8` from `^4.0.18` to `^4.1.0` to match the vitest 4.1.0 upgrade (PR #104). The strict peer dependency on the exact vitest version caused `npm ci` to fail in CI.

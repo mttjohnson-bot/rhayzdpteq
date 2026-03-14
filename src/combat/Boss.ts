@@ -205,6 +205,10 @@ export class Boss {
       box.getCenter(center);
       group.position.set(-center.x * scale, -center.y * scale + height / 2, -center.z * scale);
 
+      // Rotate GLB model 180° so its front (+Z) aligns with the
+      // procedural model's front (-Z) used by the facing-angle formula.
+      group.rotation.y = Math.PI;
+
       this.mesh.add(group);
       this.loadedModelGroup = group;
 

@@ -911,3 +911,22 @@ Analyze the `ROOM_BRANCHES` layout in `AssetLibrary.ts` to calculate actual room
 ### Notes
 - The `roomCX` field was already supported by the `RoomBranch` interface but unused — this was the intended mechanism for offset rooms.
 - No asset placement code needed changes since `_getRoomCenter()` already uses `roomCX ?? connectorCX`.
+
+---
+
+## Session: 2026-03-14 — Fix enemy voxel model facing direction
+
+### Prompt
+> "When switching to the Voxel Art for enemy models I am noticing on the floor levels that enemy characters are actually facing the opposite direction when coming towards the player character."
+
+### Plan
+Investigate the enemy facing rotation formula and how it interacts with GLB voxel models vs. procedural box geometry. Fix the model orientation so voxel enemies face the player correctly.
+
+### Outcome
+1. Root cause: procedural enemy models have their front at -Z (eyes at `z = -size/2`), and the facing formula `Math.atan2(-dx, -dz)` is correct for that convention. GLB voxel models exported from MagicaVoxel have their front at +Z, causing them to face 180° away from the player.
+2. Fixed by adding `group.rotation.y = Math.PI` to the loaded GLB model group in both `Enemy.ts` and `Boss.ts`, aligning the voxel model's +Z front with the procedural model's -Z front.
+3. No changes to the facing-angle formula itself — the fix is isolated to model loading.
+
+### Notes
+- The player model doesn't have this issue because `Player.ts` uses a different rotation formula (`Math.PI / 2 - facingAngle`) that already accounts for the model orientation.
+- The fix applies to the loaded model group (child of `this.mesh`), not to `this.mesh` itself, so it doesn't interfere with the per-frame rotation updates.
