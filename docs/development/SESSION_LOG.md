@@ -810,3 +810,23 @@ Added a comprehensive "Session Completion" section to CLAUDE.md between "Git Wor
 - The user's core pain point was a two-step review process: (1) discover PR exists, (2) wait for CI, (3) come back to merge. Auto-merge eliminates step 3.
 - This is a process/instruction change only — no code changes required. The enforcement is via CLAUDE.md standing instructions, not a hook or automation script.
 - GitHub repo settings must have "Allow auto-merge" enabled for the `gh pr merge --auto` command to work. This is a one-time admin setting.
+
+---
+
+## Session – 2026-03-14 (Switch Voxel Art Default)
+
+### Prompt
+> "I would like to switch to using the voxel art by default now in the game instead of the simple models."
+
+### Plan
+1. Change the default `characterModel` from `'simple'` to `'owl'` and `enemyModelStyle` from `'simple'` to `'custom'` in all three places where defaults are defined: `Game.ts`, `SettingsUI.ts`, and `CombatSystem.ts`.
+2. Add startup initialization in the Game constructor to apply the voxel model settings immediately, since `applySettings()` was previously only called when the user changed settings via the UI.
+
+### Outcome
+Changed defaults in three files (`Game.ts`, `SettingsUI.ts`, `CombatSystem.ts`) and added two initialization calls in the Game constructor (`player.setCharacterModel()` and `combatSystem.setEnemyModelStyle()`) so the voxel art models load from the first frame. Players can still switch back to simple models via the Settings menu.
+
+### Notes
+- The `applySettings()` method was only triggered by the Settings UI callback, meaning the game would start with simple models regardless of the default values in `gameSettings`. Adding explicit init calls in `enterHub()` ensures the defaults are applied when gameplay starts.
+- Model init was placed in `enterHub()` rather than the constructor to avoid triggering console errors during the menu screen, which would fail the E2E "no console errors during load" test.
+- The CI quality workflow's E2E jobs were missing the `.vox` → `.glb` conversion pipeline step (present in deploy.yml but not quality.yml), causing missing model files in the test environment.
+- The owl model was chosen as the default player character since it's the first voxel option in the character model cycle.

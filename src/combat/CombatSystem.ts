@@ -22,7 +22,7 @@ export class CombatSystem {
   private player: Player;
   private computedStats: ComputedStats | null = null;
   private currentDungeon: DungeonData | null = null;
-  private enemyModelStyle: EnemyModelStyle = 'simple';
+  private enemyModelStyle: EnemyModelStyle = 'custom';
 
   constructor(scene: THREE.Scene, player: Player) {
     this.scene = scene;
