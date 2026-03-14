@@ -270,6 +270,10 @@ export class Enemy {
         -center.z * scale,
       );
 
+      // Rotate GLB model 180° so its front (+Z) aligns with the
+      // procedural model's front (-Z) used by the facing-angle formula.
+      group.rotation.y = Math.PI;
+
       this.mesh.add(group);
       this.loadedModelGroup = group;
 
