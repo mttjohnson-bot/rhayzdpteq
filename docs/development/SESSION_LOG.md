@@ -754,3 +754,22 @@ Added `* MODEL_SCALE_DEFAULT` to the scale calculation in `AssetLibrary._loadVox
 ### Notes
 - Root cause: The library normalized voxel models to entity dimensions (`targetDim / maxDim`) but omitted the `MODEL_SCALE_DEFAULT` (2.0x) multiplier that both `Enemy.setModelStyle` and `Boss.setModelStyle` apply. This made all library voxel models half their in-game size.
 - Boss models appeared especially tiny because they had an additional `1/config.scale` normalization factor applied on top of the already-too-small base scale.
+
+---
+
+## 2026-03-14 — Fix undici Security Vulnerability (Issue #118)
+
+### Prompt
+> "When merging in the previous session's PR and GitHub Actions ran it hit another error on Security #118 [...undici 7.0.0 - 7.23.0, Severity: high...] Why wasn't this caught during checks at the PR... I don't like it passing checks before the merge, and then breaking AFTER it merged."
+
+### Plan
+1. Explain the root cause: `npm audit` queries a live advisory database — new CVEs published between the PR check and the merge run cause this discrepancy.
+2. Run `npm audit fix` to update undici from 7.22.0 to a patched version.
+3. Verify all quality gates pass.
+
+### Outcome
+Updated undici from 7.22.0 to 7.24.1 via `npm audit fix`, resolving all 6 high-severity advisories. All quality gates (lint, typecheck, build, tests) pass.
+
+### Notes
+- Root cause of the CI discrepancy: `npm audit` is non-deterministic across time — it queries npm's live advisory database. The undici CVEs were published after the PR's CI run passed but before the post-merge run on main.
+- This is inherent to how `npm audit` works and cannot be fully prevented. The weekly scheduled security scan in `security.yml` provides a safety net for vulnerabilities disclosed between PRs.

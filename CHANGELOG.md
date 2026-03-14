@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-03-14
+
+Fix high-severity undici security vulnerability.
+
+- **Fixed 6 high-severity `undici` vulnerabilities** — Updated `undici` from 7.22.0 to 7.24.1 to resolve WebSocket parser crash, HTTP request/response smuggling, unbounded memory consumption, unhandled exception, CRLF injection, and DoS via response buffering (GHSA-f269-vfmq-vjvj, GHSA-2mjp-6q6p-2qxm, GHSA-vrm6-8vpv-qv8q, GHSA-v9p9-hfj2-hcw8, GHSA-4992-7rv2-5pvq, GHSA-phc3-fgpg-7m6h). This is a transitive dependency via `jsdom`.
+
 ## 2026-03-13
 
 Scale up GLB character models, enemy voxel art models, settings toggle, asset library model sync, library model sizing fix, CI deprecation fixes, and security fix.
