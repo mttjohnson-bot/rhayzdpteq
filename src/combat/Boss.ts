@@ -643,8 +643,5 @@ export function buildBossDisplayMesh(config: BossConfig): THREE.Group {
   rightEye.position.set(size * 0.15, height * 0.75, -size * 0.35 - 0.01);
   group.add(rightEye);
 
-  // Normalize scale so all bosses display at a consistent size in the library
-  group.scale.setScalar(1.0 / size);
-
   return group;
 }
