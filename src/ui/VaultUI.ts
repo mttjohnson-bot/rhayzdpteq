@@ -32,9 +32,9 @@ export class VaultUI {
     this.container = document.createElement('div');
     Object.assign(this.container.style, {
       position: 'absolute',
-      top: '50%',
+      top: '60px',
       left: '50%',
-      transform: 'translate(-50%, -50%)',
+      transform: 'translateX(-50%)',
       background: 'rgba(10, 10, 20, 0.95)',
       border: '2px solid rgba(68, 170, 255, 0.6)',
       borderRadius: '8px',

@@ -28,8 +28,9 @@ export class LibraryAssetDialog {
       height: '100%',
       background: 'rgba(0, 0, 0, 0.55)',
       display: 'none',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'center',
+      paddingTop: '60px',
       zIndex: '250',
     });
 

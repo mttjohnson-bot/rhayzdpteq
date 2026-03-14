@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-14
 
-Switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge.
+Switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge; reposition modals to top of window.
+
+- **Repositioned all modals and dialogs to the top of the window** — Modals (Inventory, Skills, Map, Settings, Diagnostics, Vault, Floor Select) and overlay dialogs (Confirm, Item Action, Library Asset) now appear at a fixed position near the top of the viewport instead of being vertically centered. This reserves space for the MenuTabBar at the top and keeps modal content consistently positioned regardless of content height.
 
 - **Switched voxel art models to the default** — The game now defaults to the owl voxel model for the player character and voxel art for all enemies/bosses, instead of simple procedural geometry. Players can still switch back to simple models via the Settings menu. The voxel defaults are applied when entering the hub so the first game session uses the full art style.
 - **Added model conversion to E2E CI workflow** — The quality workflow's E2E test jobs now run the `.vox` → `.glb` model conversion pipeline and asset verification before building, matching the deploy workflow. This prevents false console errors from missing model files when the game defaults to voxel art.
