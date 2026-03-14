@@ -26,8 +26,9 @@ export class ConfirmDialog {
       height: '100%',
       background: 'rgba(0, 0, 0, 0.6)',
       display: 'none',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'center',
+      paddingTop: '60px',
       zIndex: '300',
     });
 

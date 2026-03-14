@@ -30,8 +30,9 @@ export class ItemActionDialog {
       height: '100%',
       background: 'rgba(0, 0, 0, 0.65)',
       display: 'none',
-      alignItems: 'center',
+      alignItems: 'flex-start',
       justifyContent: 'center',
+      paddingTop: '60px',
       zIndex: '400',
     });
 

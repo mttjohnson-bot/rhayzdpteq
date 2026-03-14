@@ -82,6 +82,24 @@ Entries are listed in reverse chronological order (newest first).
 
 ---
 
+## 2026-03-14 — Reposition Modals to Top of Window
+
+### Prompt
+> For the dialogs or modals that pop up, I would like the top of them to appear at a fixed height toward the top of the window rather than being centered vertically. There should still be some margin at the top to have the menu tab bar to switch between dialogs/modals, so have them all start at the top with that space reserved.
+
+### Plan
+1. Change all 7 tab-bar modals (Inventory, SkillTree, Settings, Vault, Map, DiagnosticsInfo, FloorSelect) from `top: 50%` + `translate(-50%, -50%)` to `top: 60px` + `translateX(-50%)` to position them below the MenuTabBar.
+2. Change all 3 overlay dialogs (ConfirmDialog, ItemActionDialog, LibraryAssetDialog) from `alignItems: center` to `alignItems: flex-start` with `paddingTop: 60px`.
+
+### Outcome
+All modals and dialogs now appear at a fixed position near the top of the viewport (60px from the top), reserving space for the MenuTabBar. The change is consistent across all 10 UI components.
+
+### Notes
+- The MenuTabBar is positioned at `top: 8px` and occupies roughly 50px of vertical space, so `60px` provides adequate clearance.
+- No changes needed to MenuTabBar itself — it was already top-positioned.
+
+---
+
 ## 2026-03-13 — Scale Up GLB Character Models
 
 ### Prompt
