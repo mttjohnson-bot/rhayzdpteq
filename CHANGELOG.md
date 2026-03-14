@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-14
 
-Fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge.
+Switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge.
+
+- **Switched voxel art models to the default** — The game now defaults to the owl voxel model for the player character and voxel art for all enemies/bosses, instead of simple procedural geometry. Players can still switch back to simple models via the Settings menu. The voxel defaults are applied on startup so the first game session uses the full art style.
 
 - **Added session completion workflow to CLAUDE.md** — Claude Code sessions that produce code changes are now required to open a pull request and enable auto-merge (`gh pr merge --auto --squash`) before the session ends. This eliminates the two-step review process where a human had to wait for CI checks to complete before merging, allowing PR description review and CI results to be available at the same time.
 

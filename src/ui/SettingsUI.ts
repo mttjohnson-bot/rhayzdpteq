@@ -33,8 +33,8 @@ export class SettingsUI {
     cameraMode: 'third-person',
     controllerMode: 'auto',
     diagnosticsEnabled: false,
-    characterModel: 'simple',
-    enemyModelStyle: 'simple',
+    characterModel: 'owl',
+    enemyModelStyle: 'custom',
   };
 
   // Navigation state for keyboard/gamepad

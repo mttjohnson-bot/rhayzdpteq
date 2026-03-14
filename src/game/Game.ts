@@ -118,8 +118,8 @@ export class Game {
     cameraMode: 'third-person',
     controllerMode: 'auto',
     diagnosticsEnabled: false,
-    characterModel: 'simple',
-    enemyModelStyle: 'simple',
+    characterModel: 'owl',
+    enemyModelStyle: 'custom',
   };
 
   // Menu tab cycling
@@ -211,6 +211,10 @@ export class Game {
     window.addEventListener('resize', () => {
       this.camera.resize(window.innerWidth / window.innerHeight);
     });
+
+    // Apply default voxel art settings on startup
+    void this.player.setCharacterModel(this.gameSettings.characterModel);
+    this.combatSystem.setEnemyModelStyle(this.gameSettings.enemyModelStyle);
   }
 
   start(): void {
