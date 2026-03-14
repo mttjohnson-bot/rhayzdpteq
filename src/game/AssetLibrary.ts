@@ -474,7 +474,7 @@ const CORRIDOR_HALF_WIDTH = 2.5;
 const CORRIDOR_START_X = 11.5;
 
 /** X-coordinate where the main corridor ends */
-const CORRIDOR_END_X = 63;
+const CORRIDOR_END_X = 74;
 
 /** Room branch definitions — each room branches off the corridor */
 interface RoomBranch {
@@ -527,6 +527,7 @@ const ROOM_BRANCHES: RoomBranch[] = [
     side: 'south',
     roomWidth: 12,
     roomDepth: 10,
+    roomCX: 33,
   },
   {
     label: 'ENEMIES',
@@ -534,7 +535,8 @@ const ROOM_BRANCHES: RoomBranch[] = [
     connectorWidth: 3,
     side: 'north',
     roomWidth: 26,
-    roomDepth: 22,
+    roomDepth: 26,
+    roomCX: 37,
   },
   {
     label: 'ITEMS',
@@ -551,6 +553,7 @@ const ROOM_BRANCHES: RoomBranch[] = [
     side: 'north',
     roomWidth: 20,
     roomDepth: 26,
+    roomCX: 62,
   },
 ];
 

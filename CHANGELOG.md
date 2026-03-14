@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-14
 
-Skip CI checks for documentation-only PRs; switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge; reposition modals to top of window; add web session environment guidance to prevent wasted effort.
+Fix Asset Library room overlaps; skip CI checks for documentation-only PRs; switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge; reposition modals to top of window; add web session environment guidance to prevent wasted effort.
+
+- **Fixed Asset Library room overlaps** — The Enemy and Structure rooms on the north side of the corridor overlapped with adjacent rooms (NPC and each other) because the large room widths exceeded the spacing between connector positions. Added `roomCX` offsets to shift room centers away from their connectors, extended the main corridor from X=63 to X=74 to accommodate the shifted rooms, increased the Enemy room depth from 22 to 26 for better wall clearance on the boss rows, and shifted the Training room slightly east to maintain a 2.5-unit gap from the Player Characters room. All rooms now have at least 2 units of gap between them, and models near walls have adequate clearance to be fully visible.
 
 - **Skip CI checks for documentation-only PRs** — Added `paths-ignore` filters to the Quality and Security workflows so that PRs changing only Markdown files, docs, or LICENSE no longer trigger lint, type check, unit tests, bundle size, E2E, visual regression, npm audit, or CodeQL checks. This avoids wasting CI minutes on PRs with no code changes.
 

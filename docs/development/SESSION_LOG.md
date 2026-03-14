@@ -890,3 +890,24 @@ Add `paths-ignore` filters to the Quality and Security CI workflows so they don'
 ### Notes
 - PRs that change both code and docs will still run all checks — `paths-ignore` only skips when *all* changed files match the ignored patterns.
 - If branch protection requires specific check names to pass, those checks may need to be configured as "Required when present" rather than always required, so docs-only PRs aren't blocked by missing checks.
+
+---
+
+## Session: 2026-03-14 — Fix Asset Library room overlaps
+
+### Prompt
+> "I am seeing some issues in the library where the rooms are overlapping with other ones, specifically the room with all the enemy characters. There should not be any overlap of rooms, and likely should be a small margin between rooms. There should also be some amount of margin around the edge of rooms in the library so that all models on display in each room can be easily seen and not obscured by the walls."
+
+### Plan
+Analyze the `ROOM_BRANCHES` layout in `AssetLibrary.ts` to calculate actual room extents (X ranges) for rooms on the same side of the corridor. Fix overlaps by adding `roomCX` offsets to shift large rooms away from their connectors, extend the main corridor to accommodate shifted rooms, and increase room depth where assets were too close to walls.
+
+### Outcome
+1. Identified overlaps on the north side: Enemy room (26 wide, cx=31) overlapped NPC room (10 wide, cx=16.5) by 3.5 units, and overlapped Structure room (20 wide, cx=51) by 3 units. South side had Training room only 0.5 units from Player Characters room.
+2. Added `roomCX` offsets: Enemies shifted to cx=37, Structures to cx=62, Training to cx=33. Asset placement automatically follows via `_getRoomCenter()`.
+3. Extended main corridor from X=63 to X=74 to cover the shifted Structure room.
+4. Increased Enemy room depth from 22 to 26 so the boss rows near the entry wall have 3+ units of clearance instead of 1.
+5. All rooms now have at least 2 units gap between adjacent same-side rooms.
+
+### Notes
+- The `roomCX` field was already supported by the `RoomBranch` interface but unused — this was the intended mechanism for offset rooms.
+- No asset placement code needed changes since `_getRoomCenter()` already uses `roomCX ?? connectorCX`.
