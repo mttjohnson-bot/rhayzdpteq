@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-14
 
-Fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability.
+Fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge.
+
+- **Added session completion workflow to CLAUDE.md** — Claude Code sessions that produce code changes are now required to open a pull request and enable auto-merge (`gh pr merge --auto --squash`) before the session ends. This eliminates the two-step review process where a human had to wait for CI checks to complete before merging, allowing PR description review and CI results to be available at the same time.
 
 - **Fixed boss enemies appearing tiny in Asset Library** — Boss display meshes in the library were being normalized to unit size (`1.0 / scale`), making them appear the same size as or smaller than regular enemies. Removed the normalization so bosses now display at their actual dungeon scale (2.2–3.0), correctly appearing as the largest enemy type.
 

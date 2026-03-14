@@ -309,6 +309,52 @@ When designing a new feature that needs significant upfront planning:
 - Keep commits atomic and focused on a single change
 - Feature branches for major milestones
 
+## Session Completion
+
+**IMPORTANT: Every session that produces code changes MUST end by opening a pull request and enabling auto-merge.** Do not wait to be asked — this is a standing requirement, just like the changelog.
+
+### Steps
+
+At the end of every session where you have committed changes to a feature branch:
+
+1. **Push your branch** to the remote.
+2. **Create a pull request** using `gh pr create`. The PR description must include:
+   - A clear summary of what was done in the session (features added, bugs fixed, refactors made).
+   - A list of quality gates that were verified locally (lint, format, typecheck, build, tests).
+   - Any follow-up items or known limitations.
+3. **Enable auto-merge** immediately after creating the PR:
+   ```
+   gh pr merge --auto --squash <pr-number>
+   ```
+   This arms the PR to merge automatically once all required CI checks pass and the PR is approved.
+
+### Why
+
+This ensures the reviewer can see the PR description and CI results at the same time, rather than having to wait for CI after discovering the PR. By the time a human reviews, checks are already running (or already green), and auto-merge eliminates the need for a second interaction to click "merge."
+
+### Rules
+
+1. **Always create the PR before the session ends.** Do not leave changes pushed to a branch without a corresponding PR.
+2. **Always enable auto-merge.** Use `--squash` as the default merge strategy unless the PR description or branch name indicates otherwise.
+3. **Do not merge manually.** Let auto-merge handle it after CI passes and the PR is approved. This avoids merging before checks complete.
+4. **If PR creation fails** (e.g., no commits ahead of base, or network issues), report the error clearly so it can be resolved.
+5. **The PR title** should be concise (under 70 characters) and describe the change, not the session.
+6. **The PR body** should follow the standard format:
+   ```
+   ## Summary
+   - <bullet points describing changes>
+
+   ## Quality Gates Verified
+   - [ ] Lint (`npm run lint`)
+   - [ ] Format (`npm run format`)
+   - [ ] Type check (`npx tsc --noEmit`)
+   - [ ] Build (`npm run build`)
+   - [ ] Unit tests (`npm test`) — if applicable
+
+   ## Follow-up
+   - <any known issues or next steps, or "None">
+   ```
+
 ## CI/CD
 
 GitHub Pages deployment from the production build output. Pipeline to be configured once the project is scaffolded.
