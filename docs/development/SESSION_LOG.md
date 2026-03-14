@@ -848,3 +848,28 @@ Changed defaults in three files (`Game.ts`, `SettingsUI.ts`, `CombatSystem.ts`) 
 - Model init was placed in `enterHub()` rather than the constructor to avoid triggering console errors during the menu screen, which would fail the E2E "no console errors during load" test.
 - The CI quality workflow's E2E jobs were missing the `.vox` → `.glb` conversion pipeline step (present in deploy.yml but not quality.yml), causing missing model files in the test environment.
 - The owl model was chosen as the default player character since it's the first voxel option in the character model cycle.
+
+---
+
+## Session – 2026-03-14 (Web Session Environment Guidance)
+
+### Prompt
+> "I am noticing repeating issues in claude code sessions and would like a plan for what to improve to prevent a claude code session from wasting effort trying to repeatedly perform actions across multiple sessions that are known not to work."
+>
+> User provided examples of sessions: (1) trying to use `gh` CLI, failing, attempting to install it, failing to authenticate, trying curl workarounds; (2) running build/lint before `npm install` and getting hundreds of "Cannot find module" errors; (3) attempting E2E tests without a browser.
+>
+> "Would it help future sessions to know that claude code is running in a web session and provide preemptive guidance for things that are not possible from the limitations of the web sessions?"
+
+### Plan
+Add a "Claude Code Web Session Environment" section to CLAUDE.md documenting hard constraints, and update three existing sections (Session Completion, Quality Gates, E2E Testing) to account for web session limitations. See [plans/session-planning-improvements.md](plans/session-planning-improvements.md).
+
+### Outcome
+1. Added new "Claude Code Web Session Environment" section after Development Setup — documents what doesn't work (`gh`, missing deps, E2E, interactive terminal), what does work, and a session startup checklist.
+2. Updated Session Completion to gracefully handle missing `gh` CLI — push branch and report to user instead of attempting workarounds.
+3. Added `npm install` as step 0 in the Quality Gates pre-commit checklist.
+4. Rewrote E2E test guidance to lead with "cannot run in web sessions" instead of burying it.
+
+### Notes
+- The root cause was that CLAUDE.md was written assuming a fully-equipped local dev environment. All development actually happens in Claude Code web sessions with specific constraints.
+- Three distinct failure patterns were identified from session logs: `gh` CLI loops, missing `node_modules` diagnosis, and E2E test attempts.
+- The fix is preemptive documentation rather than code changes — giving the AI agent the right context upfront prevents wasted effort.

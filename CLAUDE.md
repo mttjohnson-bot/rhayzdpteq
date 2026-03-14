@@ -99,6 +99,35 @@ Once the project is scaffolded:
 - **Build for production:** `npm run build`
 - **Preview production build:** `npm run preview`
 
+## Claude Code Web Session Environment
+
+**All development on this project is done from Claude Code web sessions.** These sessions have specific limitations that differ from a local dev environment. Do not waste effort working around these — they are hard constraints.
+
+### What does NOT work in web sessions
+
+1. **`gh` CLI is not available.** Do not attempt to install it (the npm `gh` package is not the GitHub CLI), authenticate it, or use `curl` workarounds against the GitHub API. Git operations (push, fetch, pull) work via the configured proxy remote, but `gh pr create`, `gh pr merge`, `gh pr view`, and other GitHub API commands cannot run.
+
+2. **Dependencies are not pre-installed.** Web sessions start with a clean environment — `node_modules/` does not exist. **Always run `npm install` before any quality gate** (lint, format, typecheck, build, test). Without this, you will see hundreds of "Cannot find module 'three'" and "Cannot find module 'vitest'" errors. These are not real issues — they are just missing dependencies.
+
+3. **E2E tests cannot run.** Playwright requires a Chrome/Chromium binary. Web sessions do not have one, and Playwright's CDN download is blocked. Skip E2E tests entirely — they run in CI after the branch is pushed. Unit tests (`npm test`) work fine after `npm install`.
+
+4. **No interactive terminal input.** Commands requiring interactive input (e.g., `gh auth login`, `git rebase -i`, `git add -i`) will hang or fail. Use non-interactive alternatives.
+
+### What DOES work
+
+- `git push`, `git fetch`, `git pull` — via the configured proxy remote
+- `npm install`, `npm run lint`, `npm run format`, `npm run build`, `npm test`
+- `npx tsc --noEmit` — type checking
+- All file reading, writing, and editing
+- Standard Unix tools (ls, find, etc.)
+
+### Session startup checklist
+
+Run these at the start of every session before doing any other work:
+
+1. `npm install` — populate dependencies
+2. `npm run build` — verify the project builds cleanly before making changes
+
 ## Common Commands
 
 | Task | Command |
@@ -128,9 +157,11 @@ The project uses Playwright for end-to-end browser testing. Tests live in `tests
 
 ### Running E2E tests locally
 
-E2E tests require a browser. In environments where Playwright's CDN is blocked (like Claude Code web sessions), set the `PLAYWRIGHT_CHROMIUM_PATH` environment variable to a local Chrome/Chromium executable path before running tests. In most development environments, run `npx playwright install chromium` first.
+**In Claude Code web sessions, E2E tests cannot run at all** — no browser binary is available and Playwright's CDN is blocked. Skip E2E tests entirely in web sessions; they will be validated by CI after the branch is pushed.
 
-**You do not need to run E2E tests every session.** They are primarily a CI concern. Run them locally only when your changes affect:
+In local development environments with a browser available, run `npx playwright install chromium` first, or set `PLAYWRIGHT_CHROMIUM_PATH` to a local Chrome/Chromium path.
+
+**You do not need to run E2E tests every session.** They are primarily a CI concern. Even in local environments, only run them when your changes affect:
 - Game state transitions (menu → hub → dungeon)
 - UI overlay code (HUD, menus, inventory, skill tree)
 - Save/load logic
@@ -186,6 +217,7 @@ A Husky pre-commit hook runs `npx lint-staged` on every `git commit`. It automat
 
 ### Before committing, always run:
 
+0. `npm install` — ensure dependencies are installed (required in web sessions where `node_modules/` starts empty)
 1. `npm run lint` — check for lint errors across the entire project (not just staged files)
 2. `npm run format` — format all source files with Prettier
 3. `npx tsc --noEmit` — verify the project type-checks cleanly
@@ -311,18 +343,15 @@ When designing a new feature that needs significant upfront planning:
 
 ## Session Completion
 
-**IMPORTANT: Every session that produces code changes MUST end by opening a pull request and enabling auto-merge.** Do not wait to be asked — this is a standing requirement, just like the changelog.
+**IMPORTANT: Every session that produces code changes MUST end by pushing the branch and opening a pull request.** Do not wait to be asked — this is a standing requirement, just like the changelog.
 
 ### Steps
 
 At the end of every session where you have committed changes to a feature branch:
 
 1. **Push your branch** to the remote.
-2. **Create a pull request** using `gh pr create`. The PR description must include:
-   - A clear summary of what was done in the session (features added, bugs fixed, refactors made).
-   - A list of quality gates that were verified locally (lint, format, typecheck, build, tests).
-   - Any follow-up items or known limitations.
-3. **Enable auto-merge** immediately after creating the PR:
+2. **Create a pull request.** If `gh` CLI is available, use `gh pr create`. If `gh` is not available (as in Claude Code web sessions — see "Claude Code Web Session Environment" above), **do not attempt to install it or use curl workarounds**. Instead, report to the user that the branch has been pushed and provide the branch name so they can create the PR manually from GitHub.
+3. **Enable auto-merge** (when `gh` is available) immediately after creating the PR:
    ```
    gh pr merge --auto --squash <pr-number>
    ```
@@ -334,12 +363,13 @@ This ensures the reviewer can see the PR description and CI results at the same 
 
 ### Rules
 
-1. **Always create the PR before the session ends.** Do not leave changes pushed to a branch without a corresponding PR.
-2. **Always enable auto-merge.** Use `--squash` as the default merge strategy unless the PR description or branch name indicates otherwise.
-3. **Do not merge manually.** Let auto-merge handle it after CI passes and the PR is approved. This avoids merging before checks complete.
-4. **If PR creation fails** (e.g., no commits ahead of base, or network issues), report the error clearly so it can be resolved.
-5. **The PR title** should be concise (under 70 characters) and describe the change, not the session.
-6. **The PR body** should follow the standard format:
+1. **Always push the branch before the session ends.** Do not leave committed changes unpushed.
+2. **Create the PR if `gh` is available.** If not, clearly tell the user the branch name and suggest they create the PR.
+3. **Always enable auto-merge when creating a PR via `gh`.** Use `--squash` as the default merge strategy unless the PR description or branch name indicates otherwise.
+4. **Do not merge manually.** Let auto-merge handle it after CI passes and the PR is approved. This avoids merging before checks complete.
+5. **If PR creation fails** (e.g., no commits ahead of base, or network issues), report the error clearly so it can be resolved.
+6. **The PR title** should be concise (under 70 characters) and describe the change, not the session.
+7. **The PR body** should follow the standard format (use this as a template when reporting to the user in web sessions):
    ```
    ## Summary
    - <bullet points describing changes>
