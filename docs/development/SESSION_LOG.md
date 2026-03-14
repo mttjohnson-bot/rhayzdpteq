@@ -873,3 +873,20 @@ Add a "Claude Code Web Session Environment" section to CLAUDE.md documenting har
 - The root cause was that CLAUDE.md was written assuming a fully-equipped local dev environment. All development actually happens in Claude Code web sessions with specific constraints.
 - Three distinct failure patterns were identified from session logs: `gh` CLI loops, missing `node_modules` diagnosis, and E2E test attempts.
 - The fix is preemptive documentation rather than code changes — giving the AI agent the right context upfront prevents wasted effort.
+
+## 2026-03-14 — Skip CI checks for docs-only PRs
+
+### Prompt
+> "I'm noticing that on PRs where only Markdown files were changed, the PR is running through a bunch of checks for code file linting, type checks, code quality, unit tests, end to end, and visual regression checks... Can this be improved so that we aren't running tests for things that haven't changed."
+
+### Plan
+Add `paths-ignore` filters to the Quality and Security CI workflows so they don't trigger on changes to Markdown files, `docs/`, or `LICENSE`.
+
+### Outcome
+1. Added `paths-ignore` for `*.md`, `docs/**`, and `LICENSE` to both `push` and `pull_request` triggers in `.github/workflows/quality.yml`.
+2. Added the same `paths-ignore` filters to `.github/workflows/security.yml` (schedule trigger unaffected — weekly audit still runs regardless).
+3. Deploy workflow was already scoped to `push` on `main` only, so no changes needed there.
+
+### Notes
+- PRs that change both code and docs will still run all checks — `paths-ignore` only skips when *all* changed files match the ignored patterns.
+- If branch protection requires specific check names to pass, those checks may need to be configured as "Required when present" rather than always required, so docs-only PRs aren't blocked by missing checks.
