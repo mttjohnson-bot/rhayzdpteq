@@ -341,6 +341,17 @@ When designing a new feature that needs significant upfront planning:
 - Keep commits atomic and focused on a single change
 - Feature branches for major milestones
 
+### Concurrent Sessions and Rebase Before Push
+
+**Multiple Claude Code sessions may be active simultaneously on different branches.** This means shared append-only files — especially `CHANGELOG.md` and `docs/development/SESSION_LOG.md` — are likely to conflict when branches are merged.
+
+To minimize merge pain:
+
+1. **Always fetch and rebase onto `origin/main` before pushing.** Run `git fetch origin main && git rebase origin/main` before your final push. This picks up changes merged from other concurrent sessions and surfaces conflicts early — while you still have full context to resolve them.
+2. **When resolving conflicts in append-only files, keep all entries from both sides.** These files are logs — every session's contribution is valid. The correct resolution is always to include both the incoming (main) and local entries, in chronological order.
+3. **Do not drop, overwrite, or deduplicate entries** unless they are truly identical (same session, same content). Two sessions on the same date will have different entries — both belong in the file.
+4. **If the rebase introduces conflicts you cannot confidently resolve**, abort the rebase (`git rebase --abort`) and report the situation to the user rather than guessing.
+
 ## Session Completion
 
 **IMPORTANT: Every session that produces code changes MUST end by pushing the branch and opening a pull request.** Do not wait to be asked — this is a standing requirement, just like the changelog.
@@ -349,9 +360,10 @@ When designing a new feature that needs significant upfront planning:
 
 At the end of every session where you have committed changes to a feature branch:
 
-1. **Push your branch** to the remote.
-2. **Report the branch to the user for PR creation.** Since all sessions run in Claude Code web environments where `gh` CLI is not available (see "Claude Code Web Session Environment" above), **do not attempt to use `gh`, install it, or use curl workarounds**. Instead, tell the user the branch has been pushed and provide the branch name so they can create the PR from GitHub. Include the PR body template (below) so they can paste it into the PR description.
-3. **If `gh` ever becomes available in the environment**, use `gh pr create` and then enable auto-merge with `gh pr merge --auto --squash <pr-number>`.
+1. **Rebase onto the latest `main`** before pushing: `git fetch origin main && git rebase origin/main`. Resolve any conflicts (see "Concurrent Sessions and Rebase Before Push" above).
+2. **Push your branch** to the remote.
+3. **Report the branch to the user for PR creation.** Since all sessions run in Claude Code web environments where `gh` CLI is not available (see "Claude Code Web Session Environment" above), **do not attempt to use `gh`, install it, or use curl workarounds**. Instead, tell the user the branch has been pushed and provide the branch name so they can create the PR from GitHub. Include the PR body template (below) so they can paste it into the PR description.
+4. **If `gh` ever becomes available in the environment**, use `gh pr create` and then enable auto-merge with `gh pr merge --auto --squash <pr-number>`.
 
 ### Why
 

@@ -930,3 +930,4 @@ Investigate the enemy facing rotation formula and how it interacts with GLB voxe
 ### Notes
 - The player model doesn't have this issue because `Player.ts` uses a different rotation formula (`Math.PI / 2 - facingAngle`) that already accounts for the model orientation.
 - The fix applies to the loaded model group (child of `this.mesh`), not to `this.mesh` itself, so it doesn't interfere with the per-frame rotation updates.
+- A concurrent session (Asset Library room overlaps) was active at the same time, causing a merge conflict in SESSION_LOG.md. Resolved by rebasing and keeping both entries. Added a "Concurrent Sessions and Rebase Before Push" section to CLAUDE.md to prevent this in future sessions.

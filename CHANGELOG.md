@@ -4,7 +4,11 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-14
 
-Fix Asset Library room overlaps; skip CI checks for documentation-only PRs; switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge; reposition modals to top of window; add web session environment guidance to prevent wasted effort.
+Fix enemy voxel model facing direction; add concurrent session rebase-before-push rule; fix Asset Library room overlaps; skip CI checks for documentation-only PRs; switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge; reposition modals to top of window; add web session environment guidance to prevent wasted effort.
+
+- **Fixed enemy and boss voxel models facing away from the player** — GLB voxel models have their front facing +Z, but the procedural enemy models face -Z. The facing-angle formula was tuned for -Z, causing voxel enemies to face backwards when chasing or attacking the player. Added a 180° rotation offset when loading GLB models so they correctly face the player.
+
+- **Added concurrent session rebase-before-push rule to CLAUDE.md** — Multiple Claude Code sessions running simultaneously can produce conflicts in append-only files (CHANGELOG.md, SESSION_LOG.md). Added instructions requiring sessions to rebase onto `origin/main` before pushing and to resolve conflicts by keeping all entries from both sides.
 
 - **Fixed Asset Library room overlaps** — The Enemy and Structure rooms on the north side of the corridor overlapped with adjacent rooms (NPC and each other) because the large room widths exceeded the spacing between connector positions. Added `roomCX` offsets to shift room centers away from their connectors, extended the main corridor from X=63 to X=74 to accommodate the shifted rooms, increased the Enemy room depth from 22 to 26 for better wall clearance on the boss rows, and shifted the Training room slightly east to maintain a 2.5-unit gap from the Player Characters room. All rooms now have at least 2 units of gap between them, and models near walls have adequate clearance to be fully visible.
 
