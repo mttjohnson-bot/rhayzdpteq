@@ -173,5 +173,6 @@ Detailed design documents for completed and in-progress features live in the `pl
 | [quality-roadmap.md](plans/quality-roadmap.md) | Completed | 6-phase testing and quality infrastructure plan |
 | [quest-2-webxr.md](plans/quest-2-webxr.md) | Planning | Meta Quest 2 WebXR VR support — 5-phase plan |
 | [optimized-model-pipeline.md](plans/optimized-model-pipeline.md) | Ready to Build | gltfpack + greedy meshing for optimized GLB output |
+| [session-planning-improvements.md](plans/session-planning-improvements.md) | Completed | Web session environment guidance to prevent wasted effort |
 
 When a "Needs Planning" item above is ready for design, create a new plan document in `plans/` and link it here.

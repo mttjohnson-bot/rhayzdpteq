@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-14
 
-Switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge; reposition modals to top of window.
+Switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge; reposition modals to top of window; add web session environment guidance to prevent wasted effort.
+
+- **Added Claude Code web session environment guidance to CLAUDE.md** — New section documents hard constraints of web sessions: `gh` CLI unavailable (do not attempt to install or use workarounds), dependencies not pre-installed (always run `npm install` first), E2E tests cannot run (no browser binary), and no interactive terminal. Updated Session Completion, Quality Gates, and E2E Testing sections to account for these limitations. This prevents sessions from wasting effort on repeated failed attempts to use `gh`, diagnose missing `node_modules`, or run Playwright tests.
 
 - **Repositioned all modals and dialogs to the top of the window** — Modals (Inventory, Skills, Map, Settings, Diagnostics, Vault, Floor Select) and overlay dialogs (Confirm, Item Action, Library Asset) now appear at a fixed position near the top of the viewport instead of being vertically centered. This reserves space for the MenuTabBar at the top and keeps modal content consistently positioned regardless of content height.
 
