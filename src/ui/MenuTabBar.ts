@@ -7,12 +7,13 @@
 
 import type { InputDevice } from '../game/ActionManager';
 
-export type MenuTab = 'inventory' | 'skills' | 'map' | 'settings' | 'diagnostics';
+export type MenuTab = 'inventory' | 'skills' | 'map' | 'controls' | 'settings' | 'diagnostics';
 
 const TAB_LABELS: Record<MenuTab, string> = {
   inventory: 'Inventory',
   skills: 'Skills',
   map: 'Map',
+  controls: 'Controls',
   settings: 'Settings',
   diagnostics: 'Diagnostics',
 };
@@ -27,7 +28,14 @@ export class MenuTabBar {
   private inputDevice: InputDevice = 'keyboard';
   private onTabSelect: ((tab: MenuTab) => void) | null = null;
 
-  private readonly allTabs: MenuTab[] = ['inventory', 'skills', 'map', 'settings', 'diagnostics'];
+  private readonly allTabs: MenuTab[] = [
+    'inventory',
+    'skills',
+    'map',
+    'controls',
+    'settings',
+    'diagnostics',
+  ];
 
   constructor() {
     this.container = document.createElement('div');

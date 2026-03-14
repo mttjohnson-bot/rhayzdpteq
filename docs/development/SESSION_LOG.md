@@ -931,3 +931,25 @@ Investigate the enemy facing rotation formula and how it interacts with GLB voxe
 - The player model doesn't have this issue because `Player.ts` uses a different rotation formula (`Math.PI / 2 - facingAngle`) that already accounts for the model orientation.
 - The fix applies to the loaded model group (child of `this.mesh`), not to `this.mesh` itself, so it doesn't interfere with the per-frame rotation updates.
 - A concurrent session (Asset Library room overlaps) was active at the same time, causing a merge conflict in SESSION_LOG.md. Resolved by rebasing and keeping both entries. Added a "Concurrent Sessions and Rebase Before Push" section to CLAUDE.md to prevent this in future sessions.
+
+---
+
+## 2026-03-14 — Move Controls & Objective to Menu Tab
+
+### Prompt
+> "Can we move the Controls and Objective information dialog to the main menu in its own tab, and replace it with a button in the upper right corner. The new button should contain the text 'menu' along with a hamburger menu icon of three stacked horizontal lines."
+
+### Plan
+1. Add `'controls'` to the `MenuTab` type and tab bar arrays.
+2. Create a `ControlsUI` panel that displays the same controls list and objective content inside the menu panel style.
+3. Replace `InstructionsPanel` (previously the always-visible controls/objective panel) with a compact hamburger menu button that opens the menu tab system.
+4. Wire the new tab and button into `Game.ts` state management.
+
+### Outcome
+1. Created `src/ui/ControlsUI.ts` — new menu panel showing controls and objective info, device-aware.
+2. Rewrote `src/ui/InstructionsPanel.ts` — now renders a "Menu" button with a three-line hamburger icon in the top-right. Clicking it opens/closes the menu tab system.
+3. Updated `MenuTabBar.ts` — added `'controls'` tab between Map and Settings.
+4. Updated `Game.ts` — added `controlsOpen` state, `controlsUI` instance, wired into `openMenuTab`, `closeAllMenuTabs`, `routeUIActions`, `handleUIToggle`, and all movement-blocking conditions.
+
+### Notes
+- The `InstructionsPanel` class name was retained to minimize import churn across the codebase, even though its role changed from information panel to menu button.

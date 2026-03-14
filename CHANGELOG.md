@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-14
 
-Fix enemy voxel model facing direction; add concurrent session rebase-before-push rule; fix Asset Library room overlaps; skip CI checks for documentation-only PRs; switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge; reposition modals to top of window; add web session environment guidance to prevent wasted effort.
+Move Controls & Objective panel to menu tab system; fix enemy voxel model facing direction; add concurrent session rebase-before-push rule; fix Asset Library room overlaps; skip CI checks for documentation-only PRs; switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge; reposition modals to top of window; add web session environment guidance to prevent wasted effort.
+
+- **Moved Controls & Objective to menu tab system** — The Controls and Objective information panel that was always visible in the top-right corner has been moved into the menu tab bar as a new "Controls" tab, accessible alongside Inventory, Skills, Map, Settings, and Diagnostics. The former panel location now shows a compact "Menu" button with a hamburger icon (three horizontal lines) that opens the menu when clicked.
 
 - **Fixed enemy and boss voxel models facing away from the player** — GLB voxel models have their front facing +Z, but the procedural enemy models face -Z. The facing-angle formula was tuned for -Z, causing voxel enemies to face backwards when chasing or attacking the player. Added a 180° rotation offset when loading GLB models so they correctly face the player.
 

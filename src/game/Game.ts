@@ -23,6 +23,7 @@ import { SettingsUI, GameSettings } from '../ui/SettingsUI';
 import { DiagnosticsOverlay } from '../ui/DiagnosticsOverlay';
 import { DiagnosticsInfoUI } from '../ui/DiagnosticsInfoUI';
 import { MapUI } from '../ui/MapUI';
+import { ControlsUI } from '../ui/ControlsUI';
 import { MenuTabBar } from '../ui/MenuTabBar';
 import type { MenuTab } from '../ui/MenuTabBar';
 import { BossHealthBar } from '../ui/BossHealthBar';
@@ -69,6 +70,7 @@ export class Game {
   private diagnosticsOverlay: DiagnosticsOverlay;
   private diagnosticsInfoUI: DiagnosticsInfoUI;
   private mapUI: MapUI;
+  private controlsUI: ControlsUI;
   private menuTabBar: MenuTabBar;
   private bossHealthBar: BossHealthBar;
   private combatSystem: CombatSystem;
@@ -111,6 +113,7 @@ export class Game {
   private vaultOpen = false;
   private settingsOpen = false;
   private diagnosticsInfoOpen = false;
+  private controlsOpen = false;
   private mapOpen = false;
 
   // Persisted settings
@@ -123,7 +126,14 @@ export class Game {
   };
 
   // Menu tab cycling
-  private readonly menuTabs: MenuTab[] = ['inventory', 'skills', 'map', 'settings', 'diagnostics'];
+  private readonly menuTabs: MenuTab[] = [
+    'inventory',
+    'skills',
+    'map',
+    'controls',
+    'settings',
+    'diagnostics',
+  ];
   private activeMenuTab: MenuTab | null = null;
 
   // Death/respawn state
@@ -174,6 +184,7 @@ export class Game {
     this.diagnosticsOverlay = new DiagnosticsOverlay();
     this.diagnosticsInfoUI = new DiagnosticsInfoUI();
     this.mapUI = new MapUI();
+    this.controlsUI = new ControlsUI();
     this.menuTabBar = new MenuTabBar();
     this.bossHealthBar = new BossHealthBar();
     this.libraryDialog = new LibraryAssetDialog();
@@ -207,6 +218,23 @@ export class Game {
     events.on('equipmentChanged', this.onEquipmentChanged);
     events.on('bossKilled', this.onBossKilled);
     events.on('bossEnrage', this.onBossEnrage);
+
+    // Wire the hamburger menu button to open the menu tab system
+    this.instructions.setOnMenuOpen(() => {
+      if (this.state === 'menu') return;
+      if (
+        this.inventoryOpen ||
+        this.skillTreeOpen ||
+        this.settingsOpen ||
+        this.diagnosticsInfoOpen ||
+        this.controlsOpen ||
+        this.mapOpen
+      ) {
+        this.closeAllMenuTabs();
+      } else {
+        this.openMenuTab('inventory');
+      }
+    });
 
     window.addEventListener('resize', () => {
       this.camera.resize(window.innerWidth / window.innerHeight);
@@ -307,6 +335,7 @@ export class Game {
     this.vaultOpen = false;
     this.settingsOpen = false;
     this.diagnosticsInfoOpen = false;
+    this.controlsOpen = false;
     this.mapOpen = false;
     this.activeMenuTab = null;
     this.hideDeathScreen();
@@ -492,11 +521,11 @@ export class Game {
     if (device !== this.currentInputDevice) {
       this.currentInputDevice = device;
       this.hud.setActiveDevice(device);
-      this.instructions.setActiveDevice(device);
       this.inventoryUI.setInputDevice(device);
       this.vaultUI.setInputDevice(device);
       this.settingsUI.setInputDevice(device);
       this.diagnosticsInfoUI.setInputDevice(device);
+      this.controlsUI.setInputDevice(device);
       this.mapUI.setInputDevice(device);
     }
   }
@@ -516,7 +545,8 @@ export class Game {
           !this.skillTreeOpen &&
           !this.vaultOpen &&
           !this.settingsOpen &&
-          !this.diagnosticsInfoOpen
+          !this.diagnosticsInfoOpen &&
+          !this.controlsOpen
         ) {
           this.player.update(dt, this.actions);
           this.camera.follow(this.player.position, dt, this.player.facingAngle);
@@ -540,6 +570,7 @@ export class Game {
           !this.skillTreeOpen &&
           !this.settingsOpen &&
           !this.diagnosticsInfoOpen &&
+          !this.controlsOpen &&
           !this.mapOpen
         ) {
           this.player.update(dt, this.actions);
@@ -564,7 +595,8 @@ export class Game {
           !this.inventoryOpen &&
           !this.skillTreeOpen &&
           !this.settingsOpen &&
-          !this.diagnosticsInfoOpen
+          !this.diagnosticsInfoOpen &&
+          !this.controlsOpen
         ) {
           this.player.update(dt, this.actions);
           this.camera.follow(this.player.position, dt, this.player.facingAngle);
@@ -583,6 +615,10 @@ export class Game {
 
     if (this.mapOpen) {
       this.mapUI.handleActions(this.actions);
+      return;
+    }
+    if (this.controlsOpen) {
+      this.controlsUI.handleActions(this.actions);
       return;
     }
     if (this.diagnosticsInfoOpen) {
@@ -628,6 +664,7 @@ export class Game {
         this.inventoryOpen ||
         this.skillTreeOpen ||
         this.diagnosticsInfoOpen ||
+        this.controlsOpen ||
         this.mapOpen
       ) {
         this.closeAllMenuTabs();
@@ -706,6 +743,10 @@ export class Game {
       this.diagnosticsInfoUI.hide();
       this.diagnosticsInfoOpen = false;
     }
+    if (this.controlsOpen) {
+      this.controlsUI.hide();
+      this.controlsOpen = false;
+    }
     if (this.mapOpen) {
       this.mapUI.hide();
       this.mapOpen = false;
@@ -766,6 +807,15 @@ export class Game {
           },
         );
         break;
+      case 'controls':
+        this.controlsOpen = true;
+        this.controlsUI.setInputDevice(this.currentInputDevice);
+        this.controlsUI.show(() => {
+          this.controlsOpen = false;
+          this.activeMenuTab = null;
+          this.menuTabBar.hide();
+        });
+        break;
       case 'map':
         if (this.state === 'dungeon' && this.dungeonData) {
           this.mapOpen = true;
@@ -810,6 +860,10 @@ export class Game {
     if (this.diagnosticsInfoOpen) {
       this.diagnosticsInfoUI.hide();
       this.diagnosticsInfoOpen = false;
+    }
+    if (this.controlsOpen) {
+      this.controlsUI.hide();
+      this.controlsOpen = false;
     }
     if (this.mapOpen) {
       this.mapUI.hide();
@@ -856,11 +910,11 @@ export class Game {
     if (settings.controllerMode !== 'auto') {
       this.currentInputDevice = settings.controllerMode;
       this.hud.setActiveDevice(settings.controllerMode);
-      this.instructions.setActiveDevice(settings.controllerMode);
       this.inventoryUI.setInputDevice(settings.controllerMode);
       this.vaultUI.setInputDevice(settings.controllerMode);
       this.settingsUI.setInputDevice(settings.controllerMode);
       this.diagnosticsInfoUI.setInputDevice(settings.controllerMode);
+      this.controlsUI.setInputDevice(settings.controllerMode);
       this.mapUI.setInputDevice(settings.controllerMode);
     }
 
