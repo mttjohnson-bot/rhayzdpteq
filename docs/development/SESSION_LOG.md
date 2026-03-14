@@ -826,5 +826,7 @@ Added a comprehensive "Session Completion" section to CLAUDE.md between "Git Wor
 Changed defaults in three files (`Game.ts`, `SettingsUI.ts`, `CombatSystem.ts`) and added two initialization calls in the Game constructor (`player.setCharacterModel()` and `combatSystem.setEnemyModelStyle()`) so the voxel art models load from the first frame. Players can still switch back to simple models via the Settings menu.
 
 ### Notes
-- The `applySettings()` method was only triggered by the Settings UI callback, meaning the game would start with simple models regardless of the default values in `gameSettings`. Adding explicit init calls in the constructor ensures the defaults are actually applied on startup.
+- The `applySettings()` method was only triggered by the Settings UI callback, meaning the game would start with simple models regardless of the default values in `gameSettings`. Adding explicit init calls in `enterHub()` ensures the defaults are applied when gameplay starts.
+- Model init was placed in `enterHub()` rather than the constructor to avoid triggering console errors during the menu screen, which would fail the E2E "no console errors during load" test.
+- The CI quality workflow's E2E jobs were missing the `.vox` → `.glb` conversion pipeline step (present in deploy.yml but not quality.yml), causing missing model files in the test environment.
 - The owl model was chosen as the default player character since it's the first voxel option in the character model cycle.

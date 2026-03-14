@@ -211,10 +211,6 @@ export class Game {
     window.addEventListener('resize', () => {
       this.camera.resize(window.innerWidth / window.innerHeight);
     });
-
-    // Apply default voxel art settings on startup
-    void this.player.setCharacterModel(this.gameSettings.characterModel);
-    this.combatSystem.setEnemyModelStyle(this.gameSettings.enemyModelStyle);
   }
 
   start(): void {
@@ -364,6 +360,13 @@ export class Game {
 
     // Add player to scene
     this.sceneManager.scene.add(this.player.mesh);
+
+    // Apply voxel art model settings (deferred from constructor so models
+    // only load once gameplay starts, avoiding console errors on the menu)
+    if (this.gameSettings.characterModel !== this.player.getCharacterModelId()) {
+      void this.player.setCharacterModel(this.gameSettings.characterModel);
+    }
+    this.combatSystem.setEnemyModelStyle(this.gameSettings.enemyModelStyle);
 
     // Place player at specified position or center of hub
     this.player.teleportTo(spawnX ?? 0, spawnZ ?? 0);
