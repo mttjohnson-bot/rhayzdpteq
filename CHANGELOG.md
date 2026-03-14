@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-14
 
-Switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge; reposition modals to top of window; add web session environment guidance to prevent wasted effort.
+Skip CI checks for documentation-only PRs; switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge; reposition modals to top of window; add web session environment guidance to prevent wasted effort.
+
+- **Skip CI checks for documentation-only PRs** — Added `paths-ignore` filters to the Quality and Security workflows so that PRs changing only Markdown files, docs, or LICENSE no longer trigger lint, type check, unit tests, bundle size, E2E, visual regression, npm audit, or CodeQL checks. This avoids wasting CI minutes on PRs with no code changes.
 
 - **Added Claude Code web session environment guidance to CLAUDE.md** — New section documents hard constraints of web sessions: `gh` CLI unavailable (do not attempt to install or use workarounds), dependencies not pre-installed (always run `npm install` first), E2E tests cannot run (no browser binary), and no interactive terminal. Updated Session Completion, Quality Gates, and E2E Testing sections to account for these limitations. This prevents sessions from wasting effort on repeated failed attempts to use `gh`, diagnose missing `node_modules`, or run Playwright tests.
 
