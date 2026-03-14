@@ -773,3 +773,21 @@ Updated undici from 7.22.0 to 7.24.1 via `npm audit fix`, resolving all 6 high-s
 ### Notes
 - Root cause of the CI discrepancy: `npm audit` is non-deterministic across time — it queries npm's live advisory database. The undici CVEs were published after the PR's CI run passed but before the post-merge run on main.
 - This is inherent to how `npm audit` works and cannot be fully prevented. The weekly scheduled security scan in `security.yml` provides a safety net for vulnerabilities disclosed between PRs.
+
+---
+
+## Session – 2026-03-14 (Boss Enemy Size Fix in Asset Library)
+
+### Prompt
+> "In the library I'm still seeing issues with the boss enemy characters being rendered very small and tiny in comparison to the other enemy characters. The boss enemy characters are intended to be the largest of enemy characters so this representation of the boss characters in the library not being the actual size they appear in the floor levels is an issue and bug I would like corrected."
+
+### Plan
+1. Investigate `buildBossDisplayMesh()` in `Boss.ts` — found line 647 normalizes boss scale to unit size with `group.scale.setScalar(1.0 / size)`.
+2. Remove the normalization so bosses display at their actual dungeon scale (2.2–3.0), which is significantly larger than regular enemies (ENEMY_SIZE=0.5).
+
+### Outcome
+Removed the `group.scale.setScalar(1.0 / size)` normalization from `buildBossDisplayMesh()`. Boss enemies in the Asset Library now render at their full dungeon scale, correctly appearing as the largest enemy type.
+
+### Notes
+- The normalization was originally added to make all bosses "display at a consistent size" but this defeated the purpose — bosses should visually dominate regular enemies.
+- A previous session (2026-03-13) partially addressed this by adding `MODEL_SCALE_DEFAULT` to GLB models, but the procedural geometry normalization remained.

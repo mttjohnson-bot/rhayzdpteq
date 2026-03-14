@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-14
 
-Fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability.
+Fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability.
+
+- **Fixed boss enemies appearing tiny in Asset Library** — Boss display meshes in the library were being normalized to unit size (`1.0 / scale`), making them appear the same size as or smaller than regular enemies. Removed the normalization so bosses now display at their actual dungeon scale (2.2–3.0), correctly appearing as the largest enemy type.
 
 - **Fixed `@vitest/coverage-v8` peer dependency conflict** — Bumped `@vitest/coverage-v8` from `^4.0.18` to `^4.1.0` to match the vitest 4.1.0 upgrade (PR #104). The strict peer dependency on the exact vitest version caused `npm ci` to fail in CI.
 
