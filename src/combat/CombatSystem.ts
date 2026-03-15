@@ -42,6 +42,7 @@ export class CombatSystem {
     floor: number,
     offsetX: number,
     offsetZ: number,
+    bossOnly: boolean = false,
   ): void {
     this.clearEnemies();
     this.currentDungeon = dungeon;
@@ -65,6 +66,9 @@ export class CombatSystem {
         this.scene.add(boss.mesh);
         continue;
       }
+
+      // In boss-only mode, skip spawning regular enemies
+      if (bossOnly) continue;
 
       const count = diff.enemyCountMin + Math.floor(Math.random() * (diff.enemyCountExtra + 1));
 

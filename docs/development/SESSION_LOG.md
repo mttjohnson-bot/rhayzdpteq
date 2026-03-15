@@ -953,3 +953,22 @@ Investigate the enemy facing rotation formula and how it interacts with GLB voxe
 
 ### Notes
 - The `InstructionsPanel` class name was retained to minimize import churn across the codebase, even though its role changed from information panel to menu button.
+
+---
+
+## 2026-03-14 — Boss Challenge Mode
+
+### Prompt
+> "I would like a new option presented on the level menu from the hub. For levels that have been completed I would like an option to retry fighting the boss character for a level without having to navigate through the entire level just to fight the boss again. I would like an option to enter the level at the exit point where the boss is as an optional entry point for a level that has already been cleared."
+
+### Plan
+1. Modify `FloorSelectUI` to detect completed floors (floor < maxUnlockedFloor) and show a sub-menu with "Full Floor" vs "Boss Challenge" entry options.
+2. Add `bossOnly` parameter to `Game.enterDungeon()` — when true, spawn the player at the boss room edge instead of the entrance.
+3. Add `bossOnly` parameter to `CombatSystem.spawnEnemiesForDungeon()` — when true, skip spawning regular enemies and only spawn the boss.
+4. Mark completed floors with ★ in the floor list to hint at boss challenge availability.
+
+### Outcome
+1. `FloorSelectUI` — Added `FloorSelectResult` interface with `{ floor, bossOnly }`. Completed floors show ★ and trigger a sub-menu with "Full Floor" and "Boss Challenge" options. Full keyboard/gamepad/mouse support for the sub-menu. Frontier (current highest) floors skip the sub-menu.
+2. `Game.enterDungeon()` — Accepts `bossOnly` flag. When true, computes spawn at boss room edge (corner of exit room) instead of entrance center.
+3. `CombatSystem.spawnEnemiesForDungeon()` — Accepts `bossOnly` flag. When true, skips the regular enemy spawn loop while still spawning the boss.
+4. Updated CHANGELOG, Player Guide (hub section + new Boss Challenge section), and this session log.

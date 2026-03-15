@@ -34,7 +34,7 @@ The Hub is your home base between dungeon runs. It is a fixed, hand-built area w
 
 - **Manage inventory** — Open your inventory (I key / X button) to equip, use, or drop items.
 - **Spend skill points** — Open the skill tree (K key / Y button) to allocate points earned from leveling up.
-- **Select a dungeon floor** — Walk to the glowing purple portal and interact (E key / B button) to choose which floor to enter.
+- **Select a dungeon floor** — Walk to the glowing purple portal and interact (E key / B button) to choose which floor to enter. Completed floors (marked with ★) offer a **Boss Challenge** option that lets you skip directly to the boss room.
 - **Visit the Asset Library** — Walk through the east door to enter a long corridor with rooms branching off each side: Player Characters, NPC Characters, Training, Enemies, Items, and Dungeon Structures. Each room has assets on display pedestals you can inspect.
 
 The Hub persists — your position resets to the spawn point each time you return, but your character data carries over.
@@ -111,6 +111,15 @@ There are **10 dungeon floors** with increasing difficulty:
 | 6–10 | Escalating variants | Higher enemy counts, captains, harder bosses |
 
 Defeating a floor's boss **unlocks the next floor** in the Hub's floor selection portal.
+
+### Boss Challenge
+
+Once you have cleared a floor, selecting it in the floor menu shows two entry options:
+
+- **Full Floor** — Enter from the beginning with all enemies, as usual.
+- **Boss Challenge** — Skip directly to the boss room. Only the boss spawns; regular enemies are skipped. You start at the edge of the boss room, ready to fight.
+
+Boss Challenge is great for practicing boss fights, farming boss loot, or testing new builds without replaying the entire floor. Completed floors are marked with ★ in the floor selection menu.
 
 ### Environmental Obstacles
 

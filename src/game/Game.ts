@@ -415,7 +415,7 @@ export class Game {
     this.saveGame();
   }
 
-  private enterDungeon(floor: number): void {
+  private enterDungeon(floor: number, bossOnly: boolean = false): void {
     this.state = 'dungeon';
     this.currentFloor = floor;
     this.hud.hidePrompt();
@@ -452,10 +452,20 @@ export class Game {
 
     // Set up player collision and position
     this.player.setDungeonCollision(this.dungeonData);
-    this.player.teleportTo(
-      this.dungeonMeshData.entranceWorldPos.x,
-      this.dungeonMeshData.entranceWorldPos.z,
-    );
+    if (bossOnly) {
+      // Spawn at boss room edge (offset from center so player isn't on top of boss)
+      const exitRoom = this.dungeonData.exitRoom;
+      const offsetX = -(this.dungeonData.width * TILE_SIZE) / 2;
+      const offsetZ = -(this.dungeonData.height * TILE_SIZE) / 2;
+      const edgeX = (exitRoom.x + 1.5) * TILE_SIZE + offsetX;
+      const edgeZ = (exitRoom.z + 1.5) * TILE_SIZE + offsetZ;
+      this.player.teleportTo(edgeX, edgeZ);
+    } else {
+      this.player.teleportTo(
+        this.dungeonMeshData.entranceWorldPos.x,
+        this.dungeonMeshData.entranceWorldPos.z,
+      );
+    }
     this.player.setBounds(
       this.dungeonMeshData.bounds.minX,
       this.dungeonMeshData.bounds.maxX,
@@ -474,7 +484,7 @@ export class Game {
     // Spawn enemies and bosses
     const offsetX = -(this.dungeonData.width * TILE_SIZE) / 2;
     const offsetZ = -(this.dungeonData.height * TILE_SIZE) / 2;
-    this.combatSystem.spawnEnemiesForDungeon(this.dungeonData, floor, offsetX, offsetZ);
+    this.combatSystem.spawnEnemiesForDungeon(this.dungeonData, floor, offsetX, offsetZ, bossOnly);
 
     // Set up minimap
     this.minimap.setDungeon(this.dungeonData);
@@ -999,9 +1009,9 @@ export class Game {
         this.hud.hidePrompt();
         this.floorSelectUI.show(
           this.maxUnlockedFloor,
-          (floor: number) => {
+          (result) => {
             this.floorSelectOpen = false;
-            this.enterDungeon(floor);
+            this.enterDungeon(result.floor, result.bossOnly);
           },
           () => {
             this.floorSelectOpen = false;
