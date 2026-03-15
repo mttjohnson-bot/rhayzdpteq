@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-03-15
+
+Fix blocked entrance to Dungeon Structures room in Asset Library; add room layout validation.
+
+- **Fixed blocked entrance to Dungeon Structures room** — The previous room overlap fix (d02c2ee) shifted the Structures room center east (`roomCX: 62`) but left its connector at `connectorCX: 51`. This caused two problems: (1) the Enemy room's east wall (at x≈50.5) physically blocked the connector corridor (x=49.5–52.5), and (2) the connector gap barely overlapped the room entrance (only 0.5 units), leaving the entrance wall nearly solid. Fixed by moving `connectorCX` to 62 to match the room center, placing the connector well inside the room and clear of the Enemy room wall.
+
+- **Added room layout validation to Asset Library** — New `validateRoomBranches()` function runs at module load and checks that (1) every connector gap falls fully within its room bounds, and (2) no room wall overlaps another room's connector corridor. Violations are logged as console errors. This prevents future room resizing or repositioning from silently blocking entrances.
+
 ## 2026-03-14
 
 Boss Challenge mode; move Controls & Objective panel to menu tab system; fix enemy voxel model facing direction; add concurrent session rebase-before-push rule; fix Asset Library room overlaps; skip CI checks for documentation-only PRs; switch voxel art models to the default for player character and enemies; fix boss enemy display size in Asset Library; fix vitest upgrade peer dependency conflict and high-severity undici security vulnerability; add session completion workflow requiring auto-PR and auto-merge; reposition modals to top of window; add web session environment guidance to prevent wasted effort.
