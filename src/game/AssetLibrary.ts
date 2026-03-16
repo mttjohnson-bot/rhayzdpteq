@@ -548,14 +548,66 @@ const ROOM_BRANCHES: RoomBranch[] = [
   },
   {
     label: 'DUNGEON STRUCTURES',
-    connectorCX: 51,
+    connectorCX: 62,
     connectorWidth: 3,
     side: 'north',
     roomWidth: 20,
     roomDepth: 26,
-    roomCX: 62,
   },
 ];
+
+/**
+ * Validate room branch layout at startup.  Catches two classes of errors:
+ *   1. Connector gap not fully inside the room it leads to.
+ *   2. A room's walls overlapping an adjacent room's connector corridor.
+ */
+function validateRoomBranches(branches: RoomBranch[]): void {
+  for (const b of branches) {
+    const roomCX = b.roomCX ?? b.connectorCX;
+    const halfRoom = b.roomWidth / 2;
+    const roomMinX = roomCX - halfRoom;
+    const roomMaxX = roomCX + halfRoom;
+    const halfConn = b.connectorWidth / 2;
+    const gapMinX = b.connectorCX - halfConn;
+    const gapMaxX = b.connectorCX + halfConn;
+
+    // Check 1: connector gap must be fully inside the room
+    if (gapMinX < roomMinX - 0.01 || gapMaxX > roomMaxX + 0.01) {
+      console.error(
+        `[AssetLibrary] Room "${b.label}" connector gap [${gapMinX}, ${gapMaxX}] ` +
+          `is outside room bounds [${roomMinX}, ${roomMaxX}]. ` +
+          `Move connectorCX (${b.connectorCX}) closer to roomCX (${roomCX}) ` +
+          `or widen the room.`,
+      );
+    }
+  }
+
+  // Check 2: no room wall should overlap another room's connector corridor
+  for (let i = 0; i < branches.length; i++) {
+    const a = branches[i];
+    const aCX = a.roomCX ?? a.connectorCX;
+    const aMinX = aCX - a.roomWidth / 2 - 1; // include wall thickness
+    const aMaxX = aCX + a.roomWidth / 2 + 1;
+
+    for (let j = 0; j < branches.length; j++) {
+      if (i === j || a.side !== branches[j].side) continue;
+      const bConn = branches[j];
+      const bConnMin = bConn.connectorCX - bConn.connectorWidth / 2 - 1;
+      const bConnMax = bConn.connectorCX + bConn.connectorWidth / 2 + 1;
+
+      if (aMaxX > bConnMin && aMinX < bConnMax) {
+        console.error(
+          `[AssetLibrary] Room "${a.label}" (x=[${aMinX}, ${aMaxX}]) ` +
+            `overlaps connector corridor of "${bConn.label}" ` +
+            `(x=[${bConnMin}, ${bConnMax}]). Adjust room sizes or positions.`,
+        );
+      }
+    }
+  }
+}
+
+// Run validation on module load so layout errors are caught immediately
+validateRoomBranches(ROOM_BRANCHES);
 
 /** Axis-aligned wall bounding box in the XZ plane */
 export interface WallAABB {

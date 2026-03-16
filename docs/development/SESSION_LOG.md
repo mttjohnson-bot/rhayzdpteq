@@ -972,3 +972,29 @@ Investigate the enemy facing rotation formula and how it interacts with GLB voxe
 2. `Game.enterDungeon()` — Accepts `bossOnly` flag. When true, computes spawn at boss room edge (corner of exit room) instead of entrance center.
 3. `CombatSystem.spawnEnemiesForDungeon()` — Accepts `bossOnly` flag. When true, skips the regular enemy spawn loop while still spawning the boss.
 4. Updated CHANGELOG, Player Guide (hub section + new Boss Challenge section), and this session log.
+
+---
+
+## 2026-03-15 — Fix blocked entrance to Dungeon Structures room
+
+### Prompt
+> "I noticed in the library that it is not possible to enter the room for all the structure models because the entrance is now blocked by the expanded enemy room (that claude code performed recently). I would like this corrected and some thought put into why this happened in the first place and how to prevent this issue from occurring again (by claude code) in the future."
+
+### Plan
+1. Trace the geometry of the ENEMIES room wall and STRUCTURES connector corridor to identify exactly how the entrance is blocked.
+2. Fix the root cause by realigning the STRUCTURES connector with its room center.
+3. Add a validation function that catches connector/room misalignment and wall/connector overlap at startup.
+
+### Root Cause Analysis
+The previous session (d02c2ee "Fix Asset Library room overlaps") added `roomCX` offsets to shift room centers away from connector positions, preventing room-to-room overlaps. However, it did **not** move the `connectorCX` for the Structures room along with its `roomCX`. This created two problems:
+1. **Enemy room wall blocked the connector** — The Enemy room (x=[24, 50]) has its east wall at x≈50.5. The Structures connector (centered at x=51, width 3) runs through x=[49.5, 52.5], directly colliding with that wall.
+2. **Connector gap misaligned with room entrance** — The Structures room (centered at x=62, width 20) spans x=[52, 72], but the connector gap was at x=[49.5, 52.5]. Only 0.5 units of the gap overlapped the room, leaving the entrance wall nearly solid.
+
+**Why it wasn't caught**: No validation existed to verify that connector gaps fell within room bounds or that room walls didn't overlap connector corridors. The overlap fix was tested visually for room-to-room overlap but not for entrance accessibility.
+
+**Prevention**: Added `validateRoomBranches()` which runs at module load and logs console errors for (1) connector gaps outside room bounds and (2) room walls overlapping adjacent connector corridors. Future changes to room sizes or positions will trigger immediate warnings.
+
+### Outcome
+1. Moved STRUCTURES `connectorCX` from 51 to 62 to match the room center — connector is now fully inside the room and well clear of the Enemy room wall (12 units of separation).
+2. Added `validateRoomBranches()` validation that catches both classes of layout errors at startup.
+3. Updated CHANGELOG and this session log.
