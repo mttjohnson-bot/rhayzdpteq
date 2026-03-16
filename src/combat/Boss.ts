@@ -72,6 +72,7 @@ export class Boss {
   private modelStyle: BossModelStyle = 'simple';
   private simpleChildren: THREE.Object3D[] = [];
   private loadedModelGroup: THREE.Group | null = null;
+  private loadedModelSilhouette: THREE.Mesh | null = null;
 
   // Obstacle effects
   private obstacleSpeedMult = 1;
@@ -212,12 +213,32 @@ export class Boss {
       this.mesh.add(group);
       this.loadedModelGroup = group;
 
+      // Create occlusion silhouette sized to the loaded GLB model
+      const silBox = new THREE.Box3().setFromObject(group);
+      const silSize = new THREE.Vector3();
+      silBox.getSize(silSize);
+      const silCenter = new THREE.Vector3();
+      silBox.getCenter(silCenter);
+      const silhouette = createOcclusionSilhouette(
+        silSize.x,
+        silSize.y,
+        silSize.z,
+        0xff4444,
+        silCenter.y,
+      );
+      this.mesh.add(silhouette);
+      this.loadedModelSilhouette = silhouette;
+
       // Re-show health bar
       this.healthBarFg.visible = true;
     } else {
       if (this.loadedModelGroup) {
         this.mesh.remove(this.loadedModelGroup);
         this.loadedModelGroup = null;
+      }
+      if (this.loadedModelSilhouette) {
+        this.mesh.remove(this.loadedModelSilhouette);
+        this.loadedModelSilhouette = null;
       }
       for (const child of this.simpleChildren) {
         child.visible = true;

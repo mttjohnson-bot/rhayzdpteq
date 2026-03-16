@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-03-16
+
+Add occlusion outlines for GLB (voxel art) character models.
+
+- **Fixed missing occlusion outlines on voxel art models** — When characters (player, enemies, bosses) switched to GLB/voxel art models, their wall-occlusion silhouettes disappeared because the silhouette was part of the simple model's children and got hidden during the model swap. Now a new silhouette is dynamically created from the GLB model's bounding box when switching to custom models, using the same depth-tested outline technique (cyan for player, orange for enemies, red for bosses). Switching back to simple models restores the original silhouette.
+
 ## 2026-03-15
 
 Fix blocked entrance to Dungeon Structures room in Asset Library; add room layout validation.
