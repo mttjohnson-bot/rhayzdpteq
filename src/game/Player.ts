@@ -80,6 +80,7 @@ export class Player {
   // Character model switching
   private activeModelId: CharacterModelId = 'simple';
   private loadedModelGroup: THREE.Group | null = null;
+  private loadedModelSilhouette: THREE.Mesh | null = null;
   private simpleGeometry: THREE.BufferGeometry;
   private simpleSilhouette: THREE.Mesh;
 
@@ -493,10 +494,14 @@ export class Player {
   async setCharacterModel(id: CharacterModelId): Promise<void> {
     if (id === this.activeModelId) return;
 
-    // Remove any previously loaded model group
+    // Remove any previously loaded model group and its silhouette
     if (this.loadedModelGroup) {
       this.mesh.remove(this.loadedModelGroup);
       this.loadedModelGroup = null;
+    }
+    if (this.loadedModelSilhouette) {
+      this.mesh.remove(this.loadedModelSilhouette);
+      this.loadedModelSilhouette = null;
     }
 
     if (id === 'simple') {
@@ -546,5 +551,21 @@ export class Player {
     this.loadedModelGroup = group;
     this.activeModelId = id;
     this.collisionRadius = (PLAYER_SIZE / 2) * modelMult;
+
+    // Create occlusion silhouette sized to the loaded GLB model
+    const silBox = new THREE.Box3().setFromObject(group);
+    const silSize = new THREE.Vector3();
+    silBox.getSize(silSize);
+    const silCenter = new THREE.Vector3();
+    silBox.getCenter(silCenter);
+    const silhouette = createOcclusionSilhouette(
+      silSize.x,
+      silSize.y,
+      silSize.z,
+      0x66ccff,
+      silCenter.y,
+    );
+    this.mesh.add(silhouette);
+    this.loadedModelSilhouette = silhouette;
   }
 }

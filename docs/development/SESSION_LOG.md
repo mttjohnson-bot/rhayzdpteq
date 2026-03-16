@@ -998,3 +998,25 @@ The previous session (d02c2ee "Fix Asset Library room overlaps") added `roomCX` 
 1. Moved STRUCTURES `connectorCX` from 51 to 62 to match the room center — connector is now fully inside the room and well clear of the Enemy room wall (12 units of separation).
 2. Added `validateRoomBranches()` validation that catches both classes of layout errors at startup.
 3. Updated CHANGELOG and this session log.
+
+---
+
+## 2026-03-16 — Add occlusion outlines for voxel art models
+
+### Prompt
+> "When on a floor level I am not seeing any kind of outline from characters that are hidden behind a wall when switching over to Voxel Art for enemy characters. I also noticed the player character also does not have an outline or something to represent where the player character is when hidden or obstructed by some structural aspect of the level."
+
+### Plan
+1. Identify why the existing `OcclusionOutline` system doesn't work with GLB models.
+2. Fix all three character types (player, enemy, boss) to create new silhouettes when switching to GLB models.
+
+### Root Cause Analysis
+The `createOcclusionSilhouette()` system already works correctly for the simple (box) model style. However, when switching to custom (GLB/voxel art) models:
+- **Enemy/Boss**: All `simpleChildren` are hidden (`child.visible = false`), which includes the silhouette mesh since it was added in the constructor and snapshotted into `simpleChildren`. No replacement silhouette was created for the GLB model.
+- **Player**: `this.simpleSilhouette.visible = false` is explicitly set when switching to a GLB model, and again no replacement was created.
+
+### Outcome
+1. Added `loadedModelSilhouette` field to Player, Enemy, and Boss classes to track silhouettes created for GLB models.
+2. After loading a GLB model, a new silhouette is computed from the model's bounding box using `createOcclusionSilhouette()` with the correct color (cyan for player, orange for enemies, red for bosses).
+3. When switching back to simple models, the GLB silhouette is removed and the original simple silhouette is restored.
+4. Updated CHANGELOG and this session log.
