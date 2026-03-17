@@ -144,6 +144,17 @@ These obstacles affect enemies too — use them to your advantage.
 - Movement speed is reduced while attacking, so position yourself before committing.
 - Enemies have **solid collision** — you cannot walk through them.
 
+### Resting Health Regeneration
+
+If you stop moving and stay out of combat for **15 seconds**, your character enters a **resting** state. While resting, you passively regenerate **4 HP per second**. A green "Resting" label appears above the health bar to indicate when resting regen is active.
+
+Resting is interrupted immediately if you:
+- **Move** (any directional input)
+- **Attack** (any attack input)
+- **Take damage** (hit by an enemy)
+
+After being interrupted, both the idle timer and combat cooldown timer must reach 15 seconds again before resting resumes.
+
 ### Enemy Types
 
 | Type | Behavior |

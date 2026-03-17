@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-17
 
-Improve occlusion outlines to match the actual shape of GLB voxel models; fix CI permissions.
+Improve occlusion outlines to match the actual shape of GLB voxel models; fix CI permissions; add resting health regeneration.
+
+- **Resting health regeneration** — The player now passively regenerates 4 HP/second when resting: idle (no movement) for 15 seconds and out of combat (no attacks or damage taken) for 15 seconds. A "Resting" label fades in above the health bar when active. Moving, attacking, or taking damage interrupts resting and resets both timers. This gives players a way to recover between encounters without potions.
 
 - **Shape-matching occlusion silhouettes for voxel models** — Occlusion outlines behind walls now match the actual shape of the character's GLB model instead of showing a generic box. The new `createOcclusionSilhouetteFromModel()` function traverses the loaded model's meshes, merges their geometries with world transforms, and creates a slightly scaled-up silhouette. This applies to the player, enemies, and bosses. Falls back to the bounding-box approach if geometry merging fails.
 
