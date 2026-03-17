@@ -23,6 +23,8 @@ import { FloorDifficulty } from '../dungeon/FloorConfig';
 import {
   createOcclusionSilhouette,
   createOcclusionSilhouetteFromModel,
+  enableStencilWrite,
+  enableStencilWriteOnGroup,
 } from '../rendering/OcclusionOutline';
 import { loadEnemyModel } from '../rendering/CharacterModelLoader';
 
@@ -124,6 +126,7 @@ export class Enemy {
     // Body
     const bodyGeo = new THREE.BoxGeometry(size, height, size);
     this.bodyMaterial = new THREE.MeshLambertMaterial({ color: type.color });
+    enableStencilWrite(this.bodyMaterial);
     const body = new THREE.Mesh(bodyGeo, this.bodyMaterial);
     body.castShadow = true;
     body.position.y = height / 2;
@@ -277,6 +280,8 @@ export class Enemy {
       // Rotate GLB model 180° so its front (+Z) aligns with the
       // procedural model's front (-Z) used by the facing-angle formula.
       group.rotation.y = Math.PI;
+
+      enableStencilWriteOnGroup(group);
 
       this.mesh.add(group);
       this.loadedModelGroup = group;
