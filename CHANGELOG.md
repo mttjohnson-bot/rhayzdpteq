@@ -4,11 +4,13 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-17
 
-Improve occlusion outlines to match the actual shape of GLB voxel models; fix CI permissions; add resting health regeneration.
+Improve occlusion outlines to match the actual shape of GLB voxel models; fix CI permissions; add resting health regeneration; fix Update Visual Snapshots workflow.
 
 - **Resting health regeneration** — The player now passively regenerates 4 HP/second when resting: idle (no movement) for 15 seconds and out of combat (no attacks or damage taken) for 15 seconds. A "Resting" label fades in above the health bar when active. Moving, attacking, or taking damage interrupts resting and resets both timers. This gives players a way to recover between encounters without potions.
 
 - **Shape-matching occlusion silhouettes for voxel models** — Occlusion outlines behind walls now match the actual shape of the character's GLB model instead of showing a generic box. The new `createOcclusionSilhouetteFromModel()` function traverses the loaded model's meshes, merges their geometries with world transforms, and creates a slightly scaled-up silhouette. This applies to the player, enemies, and bosses. Falls back to the bounding-box approach if geometry merging fails.
+
+- **Fixed Update Visual Snapshots workflow missing model conversion** — The "Update Visual Snapshots" workflow was not converting `.vox` → `.glb` character models before regenerating baselines, unlike the quality workflow which does. This meant screenshots were generated without character models loaded, producing baselines that didn't match what the visual regression job sees. Added the `convert-models.mjs` and `verify-assets.mjs` steps to match the quality workflow's environment.
 
 - **Fixed Visual Regression CI permissions error** — The quality workflow's visual regression job failed with "Resource not accessible by integration" when trying to post a PR comment. Added `pull-requests: write` permission to the workflow so the `GITHUB_TOKEN` can create comments on PRs.
 
