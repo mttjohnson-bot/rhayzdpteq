@@ -71,6 +71,7 @@ export class HealthBar {
 
     events.on('playerDamaged', this.onPlayerDamaged);
     events.on('playerRestingChanged', this.onRestingChanged);
+    events.on('playerDeepRestingChanged', this.onDeepRestingChanged);
   }
 
   show(): void {
@@ -111,11 +112,27 @@ export class HealthBar {
 
   private onRestingChanged = (resting: unknown): void => {
     this.restingLabel.style.opacity = resting ? '1' : '0';
+    if (!resting) {
+      this.restingLabel.textContent = 'Resting';
+    }
+  };
+
+  private onDeepRestingChanged = (deepResting: unknown): void => {
+    if (deepResting) {
+      this.restingLabel.textContent = 'Deep Rest';
+      this.restingLabel.style.color = '#aaffaa';
+      this.restingLabel.style.textShadow = '0 0 6px #66cc66';
+    } else {
+      this.restingLabel.textContent = 'Resting';
+      this.restingLabel.style.color = '#88ff88';
+      this.restingLabel.style.textShadow = '0 0 4px #44aa44';
+    }
   };
 
   dispose(): void {
     events.off('playerDamaged', this.onPlayerDamaged);
     events.off('playerRestingChanged', this.onRestingChanged);
+    events.off('playerDeepRestingChanged', this.onDeepRestingChanged);
     this.hide();
   }
 }

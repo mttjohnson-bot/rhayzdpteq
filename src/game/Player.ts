@@ -14,6 +14,9 @@ import {
   RESTING_IDLE_TIME,
   RESTING_COMBAT_COOLDOWN,
   RESTING_REGEN_RATE,
+  DEEP_REST_IDLE_TIME,
+  DEEP_REST_COMBAT_COOLDOWN,
+  DEEP_REST_REGEN_RATE,
 } from '../utils/constants';
 import { clamp } from '../utils/math';
 import { ActionManager } from './ActionManager';
@@ -68,6 +71,10 @@ export class Player {
   private outOfCombatTimer = 0;
   private restingRegenAccumulator = 0;
   private _isResting = false;
+
+  // Deep rest health regeneration (tier 2)
+  private deepRestRegenAccumulator = 0;
+  private _isDeepResting = false;
 
   // Knockback
   private knockbackVelX = 0;
@@ -215,6 +222,8 @@ export class Player {
     this.outOfCombatTimer = 0;
     this.restingRegenAccumulator = 0;
     this._isResting = false;
+    this.deepRestRegenAccumulator = 0;
+    this._isDeepResting = false;
     this.knockbackVelX = 0;
     this.knockbackVelZ = 0;
     this.knockbackTimer = 0;
@@ -224,6 +233,11 @@ export class Player {
   /** Whether the player is currently resting (idle + out of combat long enough). */
   get isResting(): boolean {
     return this._isResting;
+  }
+
+  /** Whether the player is in deep rest (extended idle + out of combat). */
+  get isDeepResting(): boolean {
+    return this._isDeepResting;
   }
 
   takeDamage(amount: number): void {
@@ -368,6 +382,24 @@ export class Player {
     }
     if (this._isResting !== wasResting) {
       events.emit('playerRestingChanged', this._isResting);
+    }
+
+    // Deep rest health regeneration (tier 2) — additional regen after extended rest
+    const wasDeepResting = this._isDeepResting;
+    this._isDeepResting =
+      this.idleTimer >= DEEP_REST_IDLE_TIME && this.outOfCombatTimer >= DEEP_REST_COMBAT_COOLDOWN;
+    if (this._isDeepResting && this.hp < this.maxHp) {
+      this.deepRestRegenAccumulator += DEEP_REST_REGEN_RATE * dt;
+      if (this.deepRestRegenAccumulator >= 1) {
+        const healAmount = Math.floor(this.deepRestRegenAccumulator);
+        this.deepRestRegenAccumulator -= healAmount;
+        this.heal(healAmount);
+      }
+    } else {
+      this.deepRestRegenAccumulator = 0;
+    }
+    if (this._isDeepResting !== wasDeepResting) {
+      events.emit('playerDeepRestingChanged', this._isDeepResting);
     }
 
     // Rotate player mesh to face the current movement/attack direction.

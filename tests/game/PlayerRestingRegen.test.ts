@@ -92,6 +92,9 @@ import {
   RESTING_IDLE_TIME,
   RESTING_COMBAT_COOLDOWN,
   RESTING_REGEN_RATE,
+  DEEP_REST_IDLE_TIME,
+  DEEP_REST_COMBAT_COOLDOWN,
+  DEEP_REST_REGEN_RATE,
   PLAYER_MAX_HP,
 } from '../../src/utils/constants';
 import { events } from '../../src/utils/EventBus';
@@ -243,5 +246,115 @@ describe('Player Resting Health Regeneration', () => {
     }
     // The update exits early when not alive, so resting never activates
     expect(player.isResting).toBe(false);
+  });
+
+  describe('Deep Rest (Tier 2)', () => {
+    it('should have correct deep rest constants', () => {
+      expect(DEEP_REST_IDLE_TIME).toBe(30);
+      expect(DEEP_REST_COMBAT_COOLDOWN).toBe(30);
+      expect(DEEP_REST_REGEN_RATE).toBe(4);
+    });
+
+    it('should not be deep resting initially', () => {
+      expect(player.isDeepResting).toBe(false);
+    });
+
+    it('should enter deep rest after 30 seconds idle and out of combat', () => {
+      const actions = createMockActions();
+      for (let i = 0; i < 30; i++) {
+        player.update(1, actions);
+      }
+      expect(player.isResting).toBe(true);
+      expect(player.isDeepResting).toBe(true);
+    });
+
+    it('should be resting but not deep resting between 15 and 30 seconds', () => {
+      const actions = createMockActions();
+      for (let i = 0; i < 20; i++) {
+        player.update(1, actions);
+      }
+      expect(player.isResting).toBe(true);
+      expect(player.isDeepResting).toBe(false);
+    });
+
+    it('should regenerate at combined 8 HP/second during deep rest', () => {
+      const actions = createMockActions();
+      // Set HP low enough that resting regen won't cap before deep rest activates
+      player.maxHp = 200;
+      player.hp = 10;
+      // Enter deep rest (30 seconds) — resting regen applies from second 15
+      for (let i = 0; i < 30; i++) {
+        player.update(1, actions);
+      }
+      expect(player.isDeepResting).toBe(true);
+      const hpBeforeDeepRest = player.hp;
+      // Simulate 5 more seconds of deep rest
+      for (let i = 0; i < 5; i++) {
+        player.update(1, actions);
+      }
+      const hpGained = player.hp - hpBeforeDeepRest;
+      // Should gain ~8 HP/s × 5s = ~40 HP (combined resting + deep rest)
+      expect(hpGained).toBeGreaterThanOrEqual(35);
+      expect(hpGained).toBeLessThanOrEqual(45);
+    });
+
+    it('should exit deep rest when movement occurs', () => {
+      const actions = createMockActions();
+      for (let i = 0; i < 30; i++) {
+        player.update(1, actions);
+      }
+      expect(player.isDeepResting).toBe(true);
+      // Move
+      const movingActions = createMockActions({ x: 1, z: 0 });
+      player.update(1, movingActions);
+      expect(player.isDeepResting).toBe(false);
+      expect(player.isResting).toBe(false);
+    });
+
+    it('should exit deep rest when taking damage', () => {
+      const actions = createMockActions();
+      for (let i = 0; i < 30; i++) {
+        player.update(1, actions);
+      }
+      expect(player.isDeepResting).toBe(true);
+      player.takeDamage(5);
+      player.update(0.016, actions);
+      expect(player.isDeepResting).toBe(false);
+    });
+
+    it('should emit playerDeepRestingChanged event', () => {
+      const actions = createMockActions();
+      const deepRestChanges: boolean[] = [];
+      events.on('playerDeepRestingChanged', (resting: unknown) => {
+        deepRestChanges.push(resting as boolean);
+      });
+      for (let i = 0; i < 30; i++) {
+        player.update(1, actions);
+      }
+      expect(deepRestChanges).toContain(true);
+      // Take damage to exit
+      player.takeDamage(5);
+      player.update(0.016, actions);
+      expect(deepRestChanges).toContain(false);
+    });
+
+    it('should reset deep rest state on resetHealth', () => {
+      const actions = createMockActions();
+      for (let i = 0; i < 30; i++) {
+        player.update(1, actions);
+      }
+      expect(player.isDeepResting).toBe(true);
+      player.resetHealth();
+      expect(player.isDeepResting).toBe(false);
+    });
+
+    it('should not exceed max HP during deep rest', () => {
+      const actions = createMockActions();
+      player.hp = PLAYER_MAX_HP - 2;
+      for (let i = 0; i < 35; i++) {
+        player.update(1, actions);
+      }
+      expect(player.hp).toBe(PLAYER_MAX_HP);
+    });
   });
 });

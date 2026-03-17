@@ -1170,3 +1170,29 @@ The `createOcclusionSilhouette()` system already works correctly for the simple 
 ### Notes
 - The XP curve is quadratic (`50*level + 20*level²`), so reaching level 100 requires ~200k XP for the final level alone. This provides a meaningful long-term progression goal.
 - No changes needed to the skill tree or other systems — they already work with arbitrary level values.
+
+## Session — 2026-03-17 (Deep Rest Health Regeneration Tier)
+
+### Prompt
+> "I would like to add an additional tier of resting health regen so that at 30 seconds of rest for no movement or combat that the health regen rate increases again another 4/health/second."
+
+### Plan
+1. Add `DEEP_REST_IDLE_TIME` (30s), `DEEP_REST_COMBAT_COOLDOWN` (30s), and `DEEP_REST_REGEN_RATE` (4 HP/s) constants.
+2. Add deep rest state tracking (`_isDeepResting`, `deepRestRegenAccumulator`) to `Player.ts`.
+3. Add deep rest regen logic that runs alongside (not replacing) the existing resting regen.
+4. Emit `playerDeepRestingChanged` event for UI updates.
+5. Update HealthBar to show "Deep Rest" label with brighter styling when deep rest is active.
+6. Add unit tests for the deep rest tier.
+7. Update changelog, player guide, and session log.
+
+### Outcome
+1. Added three new constants in `src/utils/constants.ts` for the deep rest tier.
+2. Added `_isDeepResting` flag, `deepRestRegenAccumulator`, and `isDeepResting` getter to `Player.ts`.
+3. Deep rest regen logic applies an additional 4 HP/s when both idle and out-of-combat timers reach 30s, stacking with the base 4 HP/s resting regen for 8 HP/s total.
+4. `playerDeepRestingChanged` event emitted on state transitions; HealthBar updates label text and glow styling.
+5. Added 8 new unit tests covering deep rest activation, regen rate, interruption, event emission, reset, and max HP cap.
+6. Updated `PLAYER_GUIDE.md`, `CHANGELOG.md`, and this session log.
+
+### Notes
+- Deep rest stacks with base resting regen (4 + 4 = 8 HP/s) rather than replacing it, matching how the user described it as "increases again another 4."
+- Both tiers are interrupted by the same actions (movement, attack, damage) and use the same idle/combat timers.

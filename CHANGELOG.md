@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-17
 
-Extend player level cap from 20 to 100; improve occlusion outlines to match the actual shape of GLB voxel models; fix false-positive occlusion in open areas; fix GLB occlusion sizing bug; fix CI permissions; add resting health regeneration; fix Update Visual Snapshots workflow; add raycast-based occlusion gating; disable occlusion by default with settings toggle.
+Extend player level cap from 20 to 100; improve occlusion outlines to match the actual shape of GLB voxel models; fix false-positive occlusion in open areas; fix GLB occlusion sizing bug; fix CI permissions; add resting health regeneration with deep rest tier; fix Update Visual Snapshots workflow; add raycast-based occlusion gating; disable occlusion by default with settings toggle.
+
+- **Deep rest health regeneration (tier 2)** — After 30 seconds of continuous rest (no movement or combat), the player enters "deep rest" which adds an additional 4 HP/second on top of the existing 4 HP/second resting regen, for a total of 8 HP/second. The health bar label changes from "Resting" to "Deep Rest" with a brighter glow. Moving, attacking, or taking damage resets both tiers.
 
 - **Player level cap raised to 100** — The maximum player level has been increased from 20 to 100, allowing continued character progression through higher dungeon floors. The XP curve remains quadratic, so higher levels require significantly more XP.
 
