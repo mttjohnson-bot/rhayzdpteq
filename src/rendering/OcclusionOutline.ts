@@ -75,9 +75,14 @@ export function createOcclusionSilhouetteFromModel(
   // Clean up cloned geometries
   for (const g of geometries) g.dispose();
 
-  // Undo the model group's own world transform so the merged geometry
-  // sits at the group's local origin
-  const inverseParent = new THREE.Matrix4().copy(modelGroup.matrixWorld).invert();
+  // Undo the parent's world transform so the merged geometry sits in
+  // the parent's local space (where the silhouette mesh will be added).
+  // This preserves the model group's own local transforms (scale,
+  // position, rotation) so the silhouette matches the rendered model.
+  const referenceMatrix = modelGroup.parent
+    ? modelGroup.parent.matrixWorld
+    : modelGroup.matrixWorld;
+  const inverseParent = new THREE.Matrix4().copy(referenceMatrix).invert();
   merged.applyMatrix4(inverseParent);
 
   // Scale outward from center for the outline effect

@@ -1077,3 +1077,19 @@ The `createOcclusionSilhouette()` system already works correctly for the simple 
 4. Created `tests/game/PlayerRestingRegen.test.ts` with 10 tests covering: constants, initial state, entering resting, movement interruption, damage interruption, regen rate, max HP cap, event emission, reset, and dead player.
 5. All quality gates pass (lint, format, typecheck, build, 486 unit tests).
 6. Updated CHANGELOG, player guide, and this session log.
+
+## Session – 2026-03-17 (Fix GLB Occlusion Outline Sizing)
+
+### Prompt
+> User reported that GLB occlusion outlines are rendering many times larger than the actual character models, creating huge blue (player) and red (enemy) shapes that dominate the screen. Provided a screenshot showing the issue on Floor 6 - Toxic Sewers.
+
+### Plan
+1. Investigate `createOcclusionSilhouetteFromModel()` in `OcclusionOutline.ts` and how it's used in Player/Enemy/Boss.
+2. Identify the coordinate space mismatch causing oversized silhouettes.
+3. Fix the transform math so silhouettes match the rendered model size.
+
+### Outcome
+1. Root cause: `createOcclusionSilhouetteFromModel()` was inverting the model group's world matrix, transforming merged geometry into the group's local space (raw model coordinates). But the silhouette mesh was added to the parent container (`this.mesh`), which doesn't apply the model group's scale/position/rotation. Since GLB models have large raw coordinates that get scaled down by the group transform, the silhouette appeared massively oversized.
+2. Fix: Changed the inverse transform to use `modelGroup.parent.matrixWorld` instead of `modelGroup.matrixWorld`. This preserves the group's local transforms (scale, position, rotation) in the baked geometry, so the silhouette correctly matches the rendered model size.
+3. One-line change in `src/rendering/OcclusionOutline.ts` — all quality gates pass (lint, format, typecheck, build, 486 unit tests).
+4. Updated CHANGELOG and this session log.
