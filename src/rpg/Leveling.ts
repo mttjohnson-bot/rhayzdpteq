@@ -18,7 +18,7 @@ export function enemyXP(floor: number): number {
   return 15 + floor * 10;
 }
 
-export const MAX_LEVEL = 20;
+export const MAX_LEVEL = 100;
 
 export class LevelSystem {
   level = 1;

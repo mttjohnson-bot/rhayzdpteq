@@ -99,7 +99,7 @@ describe('LevelSystem', () => {
     it('does not exceed MAX_LEVEL', () => {
       levelSys.level = MAX_LEVEL - 1;
       levelSys.xp = 0;
-      levelSys.addXP(100000);
+      levelSys.addXP(999999);
       expect(levelSys.level).toBe(MAX_LEVEL);
       expect(levelSys.xp).toBe(0);
     });
@@ -176,8 +176,8 @@ describe('LevelSystem', () => {
   });
 
   describe('MAX_LEVEL', () => {
-    it('is 20', () => {
-      expect(MAX_LEVEL).toBe(20);
+    it('is 100', () => {
+      expect(MAX_LEVEL).toBe(100);
     });
   });
 });
