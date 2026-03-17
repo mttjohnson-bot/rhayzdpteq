@@ -4,6 +4,7 @@ export class HealthBar {
   private container: HTMLDivElement;
   private barFill: HTMLDivElement;
   private hpText: HTMLDivElement;
+  private restingLabel: HTMLDivElement;
   private currentHp: number = 100;
   private maxHp: number = 100;
 
@@ -49,7 +50,27 @@ export class HealthBar {
     });
     this.container.appendChild(this.hpText);
 
+    this.restingLabel = document.createElement('div');
+    Object.assign(this.restingLabel.style, {
+      position: 'absolute',
+      bottom: '100%',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      marginBottom: '4px',
+      fontSize: '0.6rem',
+      fontFamily: "'Segoe UI', system-ui, sans-serif",
+      color: '#88ff88',
+      textShadow: '0 0 4px #44aa44',
+      whiteSpace: 'nowrap',
+      pointerEvents: 'none',
+      opacity: '0',
+      transition: 'opacity 0.5s ease-in-out',
+    });
+    this.restingLabel.textContent = 'Resting';
+    this.container.appendChild(this.restingLabel);
+
     events.on('playerDamaged', this.onPlayerDamaged);
+    events.on('playerRestingChanged', this.onRestingChanged);
   }
 
   show(): void {
@@ -88,8 +109,13 @@ export class HealthBar {
     this.setHealth(_hp as number, _maxHp as number);
   };
 
+  private onRestingChanged = (resting: unknown): void => {
+    this.restingLabel.style.opacity = resting ? '1' : '0';
+  };
+
   dispose(): void {
     events.off('playerDamaged', this.onPlayerDamaged);
+    events.off('playerRestingChanged', this.onRestingChanged);
     this.hide();
   }
 }

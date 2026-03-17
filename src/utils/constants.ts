@@ -32,6 +32,11 @@ export const PLAYER_INVINCIBILITY_TIME = 0.5; // seconds of i-frames after hit
 export const KNOCKBACK_FORCE = 2.0;
 export const KNOCKBACK_CHANCE = 0.35;
 
+// Resting health regeneration
+export const RESTING_IDLE_TIME = 15; // seconds without movement to start resting
+export const RESTING_COMBAT_COOLDOWN = 15; // seconds out of combat to start resting
+export const RESTING_REGEN_RATE = 4; // HP per second while resting
+
 export const ENEMY_HP = 80;
 export const ENEMY_SPEED = 2.0;
 export const ENEMY_ATTACK_DAMAGE = 20;

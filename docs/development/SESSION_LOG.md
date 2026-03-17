@@ -1037,3 +1037,25 @@ The `createOcclusionSilhouette()` system already works correctly for the simple 
 2. Updated Player.ts, Enemy.ts, and Boss.ts to prefer the shape-matching silhouette with a bounding-box fallback.
 3. All quality gates pass (lint, format, typecheck, build, 476 unit tests).
 4. Updated CHANGELOG and this session log.
+
+---
+
+## Session – 2026-03-17 (Resting Health Regeneration)
+
+### Prompt
+> "I would like to have a passive health regeneration to activate when the player character is resting, meaning they have not been moving for 15 seconds, and have been out of combat for 15 seconds. I would like this passive (resting health regen) rate to be about 4/health/second."
+
+### Plan
+1. Add constants: `RESTING_IDLE_TIME` (15s), `RESTING_COMBAT_COOLDOWN` (15s), `RESTING_REGEN_RATE` (4 HP/s).
+2. Track idle time and out-of-combat time in `Player.ts` — reset idle timer on movement input, reset combat timer on damage taken or attack performed.
+3. When both timers exceed their thresholds, apply resting regen at 4 HP/s using an accumulator (same pattern as the existing `hpRegen`).
+4. Emit `playerRestingChanged` event for UI feedback; show "Resting" label above health bar.
+5. Add unit tests with Three.js mocking.
+
+### Outcome
+1. Added three constants to `constants.ts` and corresponding logic in `Player.ts` — `idleTimer`, `outOfCombatTimer`, `restingRegenAccumulator`, and `_isResting` state with a public getter.
+2. `takeDamage()` and attack input both reset `outOfCombatTimer`; movement input resets `idleTimer`; `resetHealth()` clears all resting state.
+3. Added "Resting" label to `HealthBar.ts` that fades in/out via the `playerRestingChanged` event.
+4. Created `tests/game/PlayerRestingRegen.test.ts` with 10 tests covering: constants, initial state, entering resting, movement interruption, damage interruption, regen rate, max HP cap, event emission, reset, and dead player.
+5. All quality gates pass (lint, format, typecheck, build, 486 unit tests).
+6. Updated CHANGELOG, player guide, and this session log.

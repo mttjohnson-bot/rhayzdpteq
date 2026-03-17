@@ -11,6 +11,9 @@ import {
   MODEL_SCALE_OWL,
   MODEL_SCALE_OWLBEAR,
   MODEL_SCALE_DEFAULT,
+  RESTING_IDLE_TIME,
+  RESTING_COMBAT_COOLDOWN,
+  RESTING_REGEN_RATE,
 } from '../utils/constants';
 import { clamp } from '../utils/math';
 import { ActionManager } from './ActionManager';
@@ -57,6 +60,12 @@ export class Player {
   private attackSpeedMultiplier = 1;
   private hpRegen = 0;
   private regenAccumulator = 0;
+
+  // Resting health regeneration
+  private idleTimer = 0;
+  private outOfCombatTimer = 0;
+  private restingRegenAccumulator = 0;
+  private _isResting = false;
 
   // Knockback
   private knockbackVelX = 0;
@@ -179,14 +188,24 @@ export class Player {
     this.invincibleTimer = 0;
     this.hitFlashTimer = 0;
     this.regenAccumulator = 0;
+    this.idleTimer = 0;
+    this.outOfCombatTimer = 0;
+    this.restingRegenAccumulator = 0;
+    this._isResting = false;
     this.knockbackVelX = 0;
     this.knockbackVelZ = 0;
     this.knockbackTimer = 0;
     this.baseMaterial.color.setHex(COLORS.player);
   }
 
+  /** Whether the player is currently resting (idle + out of combat long enough). */
+  get isResting(): boolean {
+    return this._isResting;
+  }
+
   takeDamage(amount: number): void {
     if (!this.alive || this.invincibleTimer > 0) return;
+    this.outOfCombatTimer = 0;
     this.hp = Math.max(0, this.hp - amount);
     this.invincibleTimer = PLAYER_INVINCIBILITY_TIME;
     this.hitFlashTimer = 0.15;
@@ -261,9 +280,13 @@ export class Player {
       }
     }
 
+    // Resting health regeneration — track idle and out-of-combat timers
+    this.outOfCombatTimer += dt;
+
     // Movement
     const move = actions.getMovement();
     if (move.x !== 0 || move.z !== 0) {
+      this.idleTimer = 0;
       const angle = -Math.PI / 4;
       const cos = Math.cos(angle);
       const sin = Math.sin(angle);
@@ -277,6 +300,8 @@ export class Player {
       const speed =
         PLAYER_SPEED * this.moveSpeedMultiplier * this.obstacleSpeedMult * attackSpeedFactor;
       this.applyMovement(worldX * speed * dt, worldZ * speed * dt);
+    } else {
+      this.idleTimer += dt;
     }
 
     // Attack input
@@ -294,6 +319,7 @@ export class Player {
           this.facingAngle = Math.atan2(dz, dx);
         }
       }
+      this.outOfCombatTimer = 0;
       this.startAttack(adjustedCooldown);
     }
 
@@ -301,6 +327,24 @@ export class Player {
       this.attackIndicator.position.x = this.position.x;
       this.attackIndicator.position.z = this.position.z;
       this.attackIndicator.rotation.y = -this.facingAngle + Math.PI / 4;
+    }
+
+    // Resting health regeneration — activates when idle and out of combat
+    const wasResting = this._isResting;
+    this._isResting =
+      this.idleTimer >= RESTING_IDLE_TIME && this.outOfCombatTimer >= RESTING_COMBAT_COOLDOWN;
+    if (this._isResting && this.hp < this.maxHp) {
+      this.restingRegenAccumulator += RESTING_REGEN_RATE * dt;
+      if (this.restingRegenAccumulator >= 1) {
+        const healAmount = Math.floor(this.restingRegenAccumulator);
+        this.restingRegenAccumulator -= healAmount;
+        this.heal(healAmount);
+      }
+    } else {
+      this.restingRegenAccumulator = 0;
+    }
+    if (this._isResting !== wasResting) {
+      events.emit('playerRestingChanged', this._isResting);
     }
 
     // Rotate player mesh to face the current movement/attack direction.
