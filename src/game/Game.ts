@@ -123,6 +123,7 @@ export class Game {
     diagnosticsEnabled: false,
     characterModel: 'owl',
     enemyModelStyle: 'custom',
+    occlusionEnabled: false,
   };
 
   // Menu tab cycling
@@ -1621,6 +1622,20 @@ export class Game {
    * is toggled — the GreaterDepth material handles the actual rendering.
    */
   private updateOcclusion(): void {
+    if (!this.gameSettings.occlusionEnabled) {
+      // Ensure all silhouettes are hidden when occlusion is disabled
+      this.player.setOccluded(false);
+      if (this.state === 'dungeon') {
+        for (const enemy of this.combatSystem.getAliveEnemies()) {
+          enemy.setOccluded(false);
+        }
+        for (const boss of this.combatSystem.getAliveBosses()) {
+          boss.setOccluded(false);
+        }
+      }
+      return;
+    }
+
     this.occlusionFrameCounter++;
     if (this.occlusionFrameCounter < this.OCCLUSION_CHECK_INTERVAL) return;
     this.occlusionFrameCounter = 0;
