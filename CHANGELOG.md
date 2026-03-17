@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-17
 
-Improve occlusion outlines to match the actual shape of GLB voxel models; fix false-positive occlusion in open areas; fix GLB occlusion sizing bug; fix CI permissions; add resting health regeneration; fix Update Visual Snapshots workflow; add raycast-based occlusion gating; disable occlusion by default with settings toggle.
+Extend player level cap from 20 to 100; improve occlusion outlines to match the actual shape of GLB voxel models; fix false-positive occlusion in open areas; fix GLB occlusion sizing bug; fix CI permissions; add resting health regeneration; fix Update Visual Snapshots workflow; add raycast-based occlusion gating; disable occlusion by default with settings toggle.
+
+- **Player level cap raised to 100** — The maximum player level has been increased from 20 to 100, allowing continued character progression through higher dungeon floors. The XP curve remains quadratic, so higher levels require significantly more XP.
 
 - **Occlusion outlines disabled by default** — The occlusion silhouette system (which shows colored outlines through walls) is now off by default to avoid performance issues from per-frame raycasting. A new "Occlusion" toggle in the Settings menu lets players enable it for testing. When disabled, all raycasting and silhouette visibility updates are skipped entirely.
 

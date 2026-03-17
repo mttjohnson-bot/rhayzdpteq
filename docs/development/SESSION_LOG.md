@@ -1151,3 +1151,22 @@ The `createOcclusionSilhouette()` system already works correctly for the simple 
 3. `updateOcclusion()` now early-returns when `occlusionEnabled` is `false`, clearing all entity silhouettes and skipping raycasting entirely.
 4. Updated `CHANGELOG.md`, `docs/player/PLAYER_GUIDE.md` settings table, and this session log.
 5. All quality gates pass.
+
+## 2026-03-17 — Extend Player Level Cap to 100
+
+### Prompt
+> "It seems like the player character level stops at 20 and I think it should extend to level 100 instead allow a player to continue growing beyond 20."
+
+### Plan
+1. Change `MAX_LEVEL` constant from 20 to 100 in `src/rpg/Leveling.ts`.
+2. Update unit tests in `tests/rpg/Leveling.test.ts` to reflect the new cap.
+3. Update changelog and session log.
+
+### Outcome
+1. Changed `MAX_LEVEL` from 20 to 100 in `src/rpg/Leveling.ts`.
+2. Updated test assertion from `toBe(20)` to `toBe(100)` and increased XP in the max-level boundary test to ensure it still reaches the cap with the quadratic curve.
+3. All quality gates pass (lint, format, typecheck, build, 486 tests).
+
+### Notes
+- The XP curve is quadratic (`50*level + 20*level²`), so reaching level 100 requires ~200k XP for the final level alone. This provides a meaningful long-term progression goal.
+- No changes needed to the skill tree or other systems — they already work with arbitrary level values.
