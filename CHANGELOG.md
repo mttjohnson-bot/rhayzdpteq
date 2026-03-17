@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-17
 
-Improve occlusion outlines to match the actual shape of GLB voxel models; fix false-positive occlusion in open areas; fix GLB occlusion sizing bug; fix CI permissions; add resting health regeneration; fix Update Visual Snapshots workflow.
+Improve occlusion outlines to match the actual shape of GLB voxel models; fix false-positive occlusion in open areas; fix GLB occlusion sizing bug; fix CI permissions; add resting health regeneration; fix Update Visual Snapshots workflow; add raycast-based occlusion gating.
+
+- **Raycast-based occlusion gating** — Occlusion silhouettes now only appear when a wall or opaque structure actually blocks the camera's line-of-sight to the character. Previously, the `GreaterDepth` depth test caused silhouettes to show at the edges where the floor was closer to the camera than the scaled-up silhouette mesh, producing a visible cyan/orange/red aura even in open areas. A raycaster now periodically checks (every 5 frames) whether any opaque scene geometry intersects the camera-to-entity line. The silhouette is hidden when the entity is in clear view and shown when occluded, at which point the `GreaterDepth` material correctly renders through the wall.
 
 - **Resting health regeneration** — The player now passively regenerates 4 HP/second when resting: idle (no movement) for 15 seconds and out of combat (no attacks or damage taken) for 15 seconds. A "Resting" label fades in above the health bar when active. Moving, attacking, or taking damage interrupts resting and resets both timers. This gives players a way to recover between encounters without potions.
 

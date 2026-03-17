@@ -1112,3 +1112,22 @@ The `createOcclusionSilhouette()` system already works correctly for the simple 
 3. Added `enableStencilWrite()` and `enableStencilWriteOnGroup()` helpers in `OcclusionOutline.ts`. Applied to Player (simple box + GLB models), Enemy (body + GLB), and Boss (body, horns, eyes, GLB).
 4. Fixed test mock in `PlayerRestingRegen.test.ts` to include the new exports.
 5. All quality gates pass (lint, format, typecheck, build, 486 unit tests).
+
+---
+
+## Session — 2026-03-17 (Raycast-based occlusion gating)
+
+### Prompt
+> "The glb occlusion is still visible when a character is not obscured by a wall or structure. We want the occlusion to show when the player is being covered from view by some wall or structure, but the occlusion should not be visible when the player is visible." (with updated visual snapshots showing the cyan ghost effect on the player in an open hub area)
+
+### Plan
+1. Diagnose why the stencil-based fix alone isn't sufficient — the 1.15× scaled silhouette extends beyond the character's own pixels, and where it overlaps the floor (which is closer to the camera in an isometric view), the `GreaterDepth` test passes.
+2. Add a raycast-based occlusion check: cast a ray from the camera to each entity and check if any opaque scene geometry blocks the line-of-sight.
+3. Toggle silhouette visibility based on the raycast result — hidden when in clear view, shown when actually behind a wall.
+
+### Outcome
+1. Root cause: The stencil buffer only masks the character's own pixels. The silhouette is scaled 1.15× outward, so at edge pixels (where the silhouette extends beyond the character), the depth buffer contains the floor's depth — which is closer to the camera in an isometric view. The `GreaterDepth` test passes for those pixels, producing a visible aura/ghost effect around the character even in open areas.
+2. Fix: Added `setOccluded(boolean)` methods to Player, Enemy, and Boss. In `Game.ts`, a `THREE.Raycaster` periodically (every 5 frames) checks camera→entity line-of-sight against all scene objects. Transparent objects and the entity's own mesh hierarchy are excluded. If any opaque mesh blocks the ray, the silhouette is shown; otherwise it's hidden.
+3. Added `getAliveEnemies()` and `getAliveBosses()` getters to `CombatSystem` to enable occlusion checks for combat entities.
+4. Silhouettes now start as `visible = false` and are only enabled when the raycast confirms occlusion. Model style switching (`setCharacterModel`, `setModelStyle`) respects the `_occluded` state.
+5. All quality gates pass (lint, format, typecheck, build, 486 unit tests).

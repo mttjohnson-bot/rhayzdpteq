@@ -61,8 +61,12 @@ export class Enemy {
   private simpleChildren: THREE.Object3D[] = [];
   private loadedModelGroup: THREE.Group | null = null;
   private loadedModelSilhouette: THREE.Mesh | null = null;
+  private simpleSilhouette: THREE.Mesh | null = null;
   private targetHeight: number = 0;
   private targetSize: number = 0;
+
+  /** Whether this enemy is occluded from the camera by a wall/structure. */
+  private _occluded = false;
 
   // Health bar
   private healthBarFg: THREE.Mesh;
@@ -132,9 +136,11 @@ export class Enemy {
     body.position.y = height / 2;
     this.mesh.add(body);
 
-    // Occlusion silhouette: visible through walls
+    // Occlusion silhouette: visible through walls (starts hidden; toggled by setOccluded)
     const silhouette = createOcclusionSilhouette(size, height, size, 0xff6644, height / 2);
+    silhouette.visible = false;
     this.mesh.add(silhouette);
+    this.simpleSilhouette = silhouette;
 
     // Type-specific decorations
     this.addTypeDecorations(type, size, height);
@@ -188,6 +194,17 @@ export class Enemy {
     this.patrolOrigin = new THREE.Vector3(x, 0, z);
     this.patrolTarget = new THREE.Vector3(x, 0, z);
     this.pickNewPatrolTarget();
+  }
+
+  /** Toggle the occlusion silhouette based on camera visibility. */
+  setOccluded(occluded: boolean): void {
+    this._occluded = occluded;
+    if (this.modelStyle === 'simple') {
+      if (this.simpleSilhouette) this.simpleSilhouette.visible = occluded;
+    } else {
+      if (this.simpleSilhouette) this.simpleSilhouette.visible = false;
+      if (this.loadedModelSilhouette) this.loadedModelSilhouette.visible = occluded;
+    }
   }
 
   private addTypeDecorations(type: EnemyTypeConfig, size: number, height: number): void {
@@ -289,6 +306,7 @@ export class Enemy {
       // Create occlusion silhouette matching the GLB model's actual shape
       const shapedSilhouette = createOcclusionSilhouetteFromModel(group, 0xff6644);
       if (shapedSilhouette) {
+        shapedSilhouette.visible = this._occluded;
         this.mesh.add(shapedSilhouette);
         this.loadedModelSilhouette = shapedSilhouette;
       } else {
@@ -305,6 +323,7 @@ export class Enemy {
           0xff6644,
           silCenter.y,
         );
+        silhouette.visible = this._occluded;
         this.mesh.add(silhouette);
         this.loadedModelSilhouette = silhouette;
       }
