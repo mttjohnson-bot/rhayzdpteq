@@ -23,6 +23,8 @@ import { ComputedStats } from '../rpg/Stats';
 import {
   createOcclusionSilhouette,
   createOcclusionSilhouetteFromModel,
+  enableStencilWrite,
+  enableStencilWriteOnGroup,
 } from '../rendering/OcclusionOutline';
 import { ItemRarity } from '../rpg/LootTable';
 import { RARITY_HEX, type WallAABB } from './AssetLibrary';
@@ -103,6 +105,7 @@ export class Player {
     const geometry = new THREE.BoxGeometry(PLAYER_SIZE, PLAYER_HEIGHT, PLAYER_SIZE);
     this.simpleGeometry = geometry;
     this.baseMaterial = new THREE.MeshLambertMaterial({ color: COLORS.player });
+    enableStencilWrite(this.baseMaterial);
     this.mesh = new THREE.Mesh(geometry, this.baseMaterial);
     this.mesh.castShadow = true;
     this.mesh.position.y = PLAYER_HEIGHT / 2;
@@ -593,6 +596,9 @@ export class Player {
     const center = new THREE.Vector3();
     box.getCenter(center);
     group.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
+
+    // Mark all model meshes for stencil so they don't trigger their own silhouette
+    enableStencilWriteOnGroup(group);
 
     this.mesh.add(group);
     this.loadedModelGroup = group;

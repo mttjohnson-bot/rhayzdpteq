@@ -1093,3 +1093,22 @@ The `createOcclusionSilhouette()` system already works correctly for the simple 
 2. Fix: Changed the inverse transform to use `modelGroup.parent.matrixWorld` instead of `modelGroup.matrixWorld`. This preserves the group's local transforms (scale, position, rotation) in the baked geometry, so the silhouette correctly matches the rendered model size.
 3. One-line change in `src/rendering/OcclusionOutline.ts` — all quality gates pass (lint, format, typecheck, build, 486 unit tests).
 4. Updated CHANGELOG and this session log.
+
+---
+
+## Session – 2026-03-17 (occlusion false-positive fix)
+
+### Prompt
+> "The occlusions for glb models have improved a bit, but it looks like it's applying the occlusions even when the player character is not behind a wall. It seems to work well when the player is behind a wall, so I think we're close." (with screenshots showing the issue in open rooms vs. correctly behind walls)
+
+### Plan
+1. Diagnose why the `GreaterDepth`-based silhouette renders even in open areas.
+2. Identify that the character's own geometry triggers its own silhouette (the 1.15× scale offset places the silhouette surface behind the character surface at every pixel).
+3. Use the WebGL stencil buffer: character meshes write stencil=1, silhouette only renders where stencil≠1.
+
+### Outcome
+1. Root cause: The occlusion silhouette uses `depthFunc: THREE.GreaterDepth` to render only when something closer is in the depth buffer. But the character's own mesh writes to the depth buffer, and the silhouette is scaled 1.15× outward — so the silhouette surface is slightly behind the character surface at every pixel, passing the GreaterDepth test. This made the silhouette always visible, not just behind walls.
+2. Fix: Added stencil buffer logic. Character meshes now write `stencilRef=1` with `ReplaceStencilOp`. The silhouette material uses `NotEqualStencilFunc` with ref=1, so it skips pixels where the character itself rendered. Only non-character geometry (walls) triggers the silhouette.
+3. Added `enableStencilWrite()` and `enableStencilWriteOnGroup()` helpers in `OcclusionOutline.ts`. Applied to Player (simple box + GLB models), Enemy (body + GLB), and Boss (body, horns, eyes, GLB).
+4. Fixed test mock in `PlayerRestingRegen.test.ts` to include the new exports.
+5. All quality gates pass (lint, format, typecheck, build, 486 unit tests).

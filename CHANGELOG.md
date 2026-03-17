@@ -4,9 +4,11 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-17
 
-Improve occlusion outlines to match the actual shape of GLB voxel models; fix GLB occlusion sizing bug; fix CI permissions; add resting health regeneration; fix Update Visual Snapshots workflow.
+Improve occlusion outlines to match the actual shape of GLB voxel models; fix false-positive occlusion in open areas; fix GLB occlusion sizing bug; fix CI permissions; add resting health regeneration; fix Update Visual Snapshots workflow.
 
 - **Resting health regeneration** — The player now passively regenerates 4 HP/second when resting: idle (no movement) for 15 seconds and out of combat (no attacks or damage taken) for 15 seconds. A "Resting" label fades in above the health bar when active. Moving, attacking, or taking damage interrupts resting and resets both timers. This gives players a way to recover between encounters without potions.
+
+- **Fixed false-positive occlusion silhouettes in open areas** — Character occlusion outlines (the colored silhouettes visible through walls) were appearing even when characters stood in the middle of a room with no walls in front. The `GreaterDepth` depth test was being triggered by the character's own geometry: the silhouette mesh is scaled 1.15× outward, so at each pixel the character's surface sits in front of the silhouette surface, passing the depth comparison. Fixed by using the WebGL stencil buffer — character meshes now write a stencil marker, and the silhouette material skips pixels where the marker is set. This means only actual walls (or other non-character geometry) trigger the see-through outline.
 
 - **Fixed oversized GLB occlusion outlines** — Occlusion silhouettes for GLB character models were rendering many times larger than the actual characters, filling the screen with blue (player) and red (enemy) shapes. The `createOcclusionSilhouetteFromModel()` function was transforming merged geometry into the model group's local space (raw model coordinates), but the silhouette mesh was added to the parent container which didn't apply the model group's scale/position/rotation. Fixed by transforming geometry into the parent's local space instead, so the model group's transforms are preserved in the baked geometry.
 

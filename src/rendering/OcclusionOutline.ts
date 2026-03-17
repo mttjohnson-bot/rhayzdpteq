@@ -3,6 +3,8 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 const OUTLINE_SCALE = 1.15;
 const OUTLINE_OPACITY = 0.35;
+/** Stencil reference value used to mark character pixels. */
+const STENCIL_REF = 1;
 
 /**
  * Creates a silhouette mesh that only renders when occluded by geometry
@@ -29,6 +31,10 @@ export function createOcclusionSilhouette(
     depthTest: true,
     depthWrite: false,
     depthFunc: THREE.GreaterDepth,
+    stencilWrite: false,
+    stencilRef: STENCIL_REF,
+    stencilFunc: THREE.NotEqualStencilFunc,
+    stencilFuncMask: 0xff,
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.renderOrder = 10;
@@ -100,9 +106,42 @@ export function createOcclusionSilhouetteFromModel(
     depthTest: true,
     depthWrite: false,
     depthFunc: THREE.GreaterDepth,
+    stencilWrite: false,
+    stencilRef: STENCIL_REF,
+    stencilFunc: THREE.NotEqualStencilFunc,
+    stencilFuncMask: 0xff,
   });
 
   const mesh = new THREE.Mesh(merged, mat);
   mesh.renderOrder = 10;
   return mesh;
+}
+
+/**
+ * Enables stencil-write on a mesh material so it marks its pixels in the
+ * stencil buffer. The occlusion silhouette uses NotEqualStencilFunc to
+ * skip these pixels, preventing the character's own geometry from
+ * triggering its silhouette.
+ */
+export function enableStencilWrite(material: THREE.Material): void {
+  material.stencilWrite = true;
+  material.stencilRef = STENCIL_REF;
+  material.stencilFunc = THREE.AlwaysStencilFunc;
+  material.stencilZPass = THREE.ReplaceStencilOp;
+}
+
+/**
+ * Traverses a Three.js object and enables stencil-write on all mesh
+ * materials found. Use this on loaded GLB model groups.
+ */
+export function enableStencilWriteOnGroup(group: THREE.Object3D): void {
+  group.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      if (Array.isArray(child.material)) {
+        child.material.forEach((m: THREE.Material) => enableStencilWrite(m));
+      } else {
+        enableStencilWrite(child.material);
+      }
+    }
+  });
 }

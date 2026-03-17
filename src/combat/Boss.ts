@@ -12,6 +12,8 @@ import { BossConfig, BossAbility } from '../dungeon/FloorConfig';
 import {
   createOcclusionSilhouette,
   createOcclusionSilhouetteFromModel,
+  enableStencilWrite,
+  enableStencilWriteOnGroup,
 } from '../rendering/OcclusionOutline';
 import { loadBossModel } from '../rendering/CharacterModelLoader';
 
@@ -100,6 +102,7 @@ export class Boss {
       transparent: true,
       opacity: 1.0,
     });
+    enableStencilWrite(this.bodyMaterial);
     const body = new THREE.Mesh(bodyGeo, this.bodyMaterial);
     body.castShadow = true;
     body.position.y = height / 2;
@@ -122,6 +125,7 @@ export class Boss {
       transparent: true,
       opacity: 1.0,
     });
+    enableStencilWrite(this.hornMaterial);
     const leftHorn = new THREE.Mesh(hornGeo, this.hornMaterial);
     leftHorn.position.set(-size * 0.25, height + size * 0.15, 0);
     leftHorn.rotation.z = 0.3;
@@ -139,6 +143,7 @@ export class Boss {
       transparent: true,
       opacity: 1.0,
     });
+    enableStencilWrite(this.eyeMaterial);
     const leftEye = new THREE.Mesh(eyeGeo, this.eyeMaterial);
     leftEye.position.set(-size * 0.15, height * 0.75, -size * 0.35 - 0.01);
     this.mesh.add(leftEye);
@@ -212,6 +217,8 @@ export class Boss {
       // Rotate GLB model 180° so its front (+Z) aligns with the
       // procedural model's front (-Z) used by the facing-angle formula.
       group.rotation.y = Math.PI;
+
+      enableStencilWriteOnGroup(group);
 
       this.mesh.add(group);
       this.loadedModelGroup = group;
