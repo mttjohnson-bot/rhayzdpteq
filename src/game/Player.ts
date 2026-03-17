@@ -98,6 +98,9 @@ export class Player {
   private simpleGeometry: THREE.BufferGeometry;
   private simpleSilhouette: THREE.Mesh;
 
+  /** Whether the player is currently occluded by a wall/structure from the camera's view. */
+  private _occluded = false;
+
   /** Collision radius — scales with the active character model. */
   collisionRadius: number = PLAYER_SIZE / 2;
 
@@ -111,13 +114,14 @@ export class Player {
     this.mesh.position.y = PLAYER_HEIGHT / 2;
     this.position = this.mesh.position;
 
-    // Occlusion silhouette: visible through walls
+    // Occlusion silhouette: visible through walls (starts hidden; toggled by setOccluded)
     this.simpleSilhouette = createOcclusionSilhouette(
       PLAYER_SIZE,
       PLAYER_HEIGHT,
       PLAYER_SIZE,
       0x66ccff,
     );
+    this.simpleSilhouette.visible = false;
     this.mesh.add(this.simpleSilhouette);
 
     const arcGeo = new THREE.CylinderGeometry(0, 1.0, 0.1, 8, 1, false, 0, Math.PI / 2);
@@ -129,6 +133,22 @@ export class Player {
     this.attackIndicator = new THREE.Mesh(arcGeo, arcMat);
     this.attackIndicator.visible = false;
     this.attackIndicator.position.y = 0.3;
+  }
+
+  /**
+   * Toggle the occlusion silhouette based on whether the player is hidden
+   * behind a wall or structure from the camera's perspective.
+   */
+  setOccluded(occluded: boolean): void {
+    this._occluded = occluded;
+    if (this.activeModelId === 'simple') {
+      this.simpleSilhouette.visible = occluded;
+    } else {
+      this.simpleSilhouette.visible = false;
+      if (this.loadedModelSilhouette) {
+        this.loadedModelSilhouette.visible = occluded;
+      }
+    }
   }
 
   setAutoFaceCallback(cb: (px: number, pz: number) => { x: number; z: number } | null): void {
@@ -558,7 +578,7 @@ export class Player {
       // Restore default box appearance
       this.mesh.geometry = this.simpleGeometry;
       this.mesh.material = this.baseMaterial;
-      this.simpleSilhouette.visible = true;
+      this.simpleSilhouette.visible = this._occluded;
       this.activeModelId = 'simple';
       this.collisionRadius = PLAYER_SIZE / 2;
       return;
@@ -608,6 +628,7 @@ export class Player {
     // Create occlusion silhouette matching the GLB model's actual shape
     const shapedSilhouette = createOcclusionSilhouetteFromModel(group, 0x66ccff);
     if (shapedSilhouette) {
+      shapedSilhouette.visible = this._occluded;
       this.mesh.add(shapedSilhouette);
       this.loadedModelSilhouette = shapedSilhouette;
     } else {
@@ -624,6 +645,7 @@ export class Player {
         0x66ccff,
         silCenter.y,
       );
+      silhouette.visible = this._occluded;
       this.mesh.add(silhouette);
       this.loadedModelSilhouette = silhouette;
     }

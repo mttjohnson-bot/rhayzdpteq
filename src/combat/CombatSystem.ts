@@ -188,6 +188,16 @@ export class CombatSystem {
     this.bosses = [];
   }
 
+  /** All living enemies (for occlusion checks). */
+  getAliveEnemies(): Enemy[] {
+    return this.enemies.filter((e) => e.alive);
+  }
+
+  /** All living bosses (for occlusion checks). */
+  getAliveBosses(): Boss[] {
+    return this.bosses.filter((b) => b.alive);
+  }
+
   get enemyCount(): number {
     return this.enemies.filter((e) => e.alive).length + this.bosses.filter((b) => b.alive).length;
   }

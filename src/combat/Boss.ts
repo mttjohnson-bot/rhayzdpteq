@@ -78,6 +78,10 @@ export class Boss {
   private simpleChildren: THREE.Object3D[] = [];
   private loadedModelGroup: THREE.Group | null = null;
   private loadedModelSilhouette: THREE.Mesh | null = null;
+  private simpleSilhouette: THREE.Mesh | null = null;
+
+  /** Whether this boss is occluded from the camera by a wall/structure. */
+  private _occluded = false;
 
   // Obstacle effects
   private obstacleSpeedMult = 1;
@@ -108,7 +112,7 @@ export class Boss {
     body.position.y = height / 2;
     this.mesh.add(body);
 
-    // Occlusion silhouette: visible through walls
+    // Occlusion silhouette: visible through walls (starts hidden; toggled by setOccluded)
     const silhouette = createOcclusionSilhouette(
       size * 0.7,
       height,
@@ -116,7 +120,9 @@ export class Boss {
       0xff4444,
       height / 2,
     );
+    silhouette.visible = false;
     this.mesh.add(silhouette);
+    this.simpleSilhouette = silhouette;
 
     // Boss horns
     const hornGeo = new THREE.ConeGeometry(size * 0.1, size * 0.4, 4);
@@ -177,6 +183,17 @@ export class Boss {
     }
   }
 
+  /** Toggle the occlusion silhouette based on camera visibility. */
+  setOccluded(occluded: boolean): void {
+    this._occluded = occluded;
+    if (this.modelStyle === 'simple') {
+      if (this.simpleSilhouette) this.simpleSilhouette.visible = occluded;
+    } else {
+      if (this.simpleSilhouette) this.simpleSilhouette.visible = false;
+      if (this.loadedModelSilhouette) this.loadedModelSilhouette.visible = occluded;
+    }
+  }
+
   /**
    * Switch between simple (procedural box) and custom (GLB voxel) model.
    */
@@ -226,6 +243,7 @@ export class Boss {
       // Create occlusion silhouette matching the GLB model's actual shape
       const shapedSilhouette = createOcclusionSilhouetteFromModel(group, 0xff4444);
       if (shapedSilhouette) {
+        shapedSilhouette.visible = this._occluded;
         this.mesh.add(shapedSilhouette);
         this.loadedModelSilhouette = shapedSilhouette;
       } else {
@@ -242,6 +260,7 @@ export class Boss {
           0xff4444,
           silCenter.y,
         );
+        silhouette.visible = this._occluded;
         this.mesh.add(silhouette);
         this.loadedModelSilhouette = silhouette;
       }
