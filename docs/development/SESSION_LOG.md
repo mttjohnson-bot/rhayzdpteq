@@ -1131,3 +1131,23 @@ The `createOcclusionSilhouette()` system already works correctly for the simple 
 3. Added `getAliveEnemies()` and `getAliveBosses()` getters to `CombatSystem` to enable occlusion checks for combat entities.
 4. Silhouettes now start as `visible = false` and are only enabled when the raycast confirms occlusion. Model style switching (`setCharacterModel`, `setModelStyle`) respects the `_occluded` state.
 5. All quality gates pass (lint, format, typecheck, build, 486 unit tests).
+
+---
+
+## Session — 2026-03-17 (Disable occlusion by default)
+
+### Prompt
+> "It looks like the recent occlusion changes while improving have introduced some serious performance issues, can we make the occlusion functionality for glb models off by default and provide a setting to enable it for testing purposes."
+
+### Plan
+1. Add `occlusionEnabled: boolean` to the `GameSettings` interface, defaulting to `false`.
+2. Add an "Occlusion" toggle (ON/OFF) to the Settings UI, between Enemy Models and Diagnostics.
+3. Guard `updateOcclusion()` in `Game.ts` — when disabled, skip all raycasting and ensure silhouettes are hidden.
+4. Update changelog, player guide, and session log.
+
+### Outcome
+1. Added `occlusionEnabled` field to `GameSettings` interface in `SettingsUI.ts`, defaulting to `false`.
+2. Added "Occlusion" row to the settings menu as option index 4 (Diagnostics shifted to 5). Updated `optionCount` from 5 to 6.
+3. `updateOcclusion()` now early-returns when `occlusionEnabled` is `false`, clearing all entity silhouettes and skipping raycasting entirely.
+4. Updated `CHANGELOG.md`, `docs/player/PLAYER_GUIDE.md` settings table, and this session log.
+5. All quality gates pass.

@@ -300,6 +300,7 @@ The Settings tab includes:
 | Controller | Auto-Detect / Keyboard / Gamepad | Choose automatic input detection or lock to a specific device |
 | Character | Simple / Owl (Voxel) / Owlbear (Voxel) | Switch between the default box model, the owl voxel model, or the owlbear voxel model |
 | Enemy Models | Simple / Voxel Art | Switch all enemies and bosses between procedural box geometry and custom voxel art models |
+| Occlusion | OFF / ON | Enable occlusion outlines that show colored silhouettes through walls when characters are hidden (off by default for performance) |
 | Diagnostics | OFF / ON | Show a real-time FPS counter and draw call count in the top-right corner |
 
 Use **Up/Down** (or D-pad) to navigate between options, **Left/Right** to change values.

@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-17
 
-Improve occlusion outlines to match the actual shape of GLB voxel models; fix false-positive occlusion in open areas; fix GLB occlusion sizing bug; fix CI permissions; add resting health regeneration; fix Update Visual Snapshots workflow; add raycast-based occlusion gating.
+Improve occlusion outlines to match the actual shape of GLB voxel models; fix false-positive occlusion in open areas; fix GLB occlusion sizing bug; fix CI permissions; add resting health regeneration; fix Update Visual Snapshots workflow; add raycast-based occlusion gating; disable occlusion by default with settings toggle.
+
+- **Occlusion outlines disabled by default** — The occlusion silhouette system (which shows colored outlines through walls) is now off by default to avoid performance issues from per-frame raycasting. A new "Occlusion" toggle in the Settings menu lets players enable it for testing. When disabled, all raycasting and silhouette visibility updates are skipped entirely.
 
 - **Raycast-based occlusion gating** — Occlusion silhouettes now only appear when a wall or opaque structure actually blocks the camera's line-of-sight to the character. Previously, the `GreaterDepth` depth test caused silhouettes to show at the edges where the floor was closer to the camera than the scaled-up silhouette mesh, producing a visible cyan/orange/red aura even in open areas. A raycaster now periodically checks (every 5 frames) whether any opaque scene geometry intersects the camera-to-entity line. The silhouette is hidden when the entity is in clear view and shown when occluded, at which point the `GreaterDepth` material correctly renders through the wall.
 

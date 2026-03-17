@@ -5,6 +5,7 @@
  *  - Camera mode: third-person isometric (default) or first-person
  *  - Controller detection: auto (default) or manual (keyboard / gamepad)
  *  - Character model: simple box (default), owl, or owlbear voxel model
+ *  - Occlusion outlines: off (default) or on (show silhouettes through walls)
  *  - Diagnostics overlay: off (default) or on (FPS + draw calls)
  */
 
@@ -22,6 +23,7 @@ export interface GameSettings {
   diagnosticsEnabled: boolean;
   characterModel: CharacterModelId;
   enemyModelStyle: EnemyModelStyle;
+  occlusionEnabled: boolean;
 }
 
 export class SettingsUI {
@@ -35,11 +37,12 @@ export class SettingsUI {
     diagnosticsEnabled: false,
     characterModel: 'owl',
     enemyModelStyle: 'custom',
+    occlusionEnabled: false,
   };
 
   // Navigation state for keyboard/gamepad
   private selectedIndex = 0;
-  private readonly optionCount = 5;
+  private readonly optionCount = 6;
 
   // DOM references for highlight updates
   private rows: HTMLDivElement[] = [];
@@ -161,6 +164,9 @@ export class SettingsUI {
         break;
       }
       case 4:
+        this.settings.occlusionEnabled = !this.settings.occlusionEnabled;
+        break;
+      case 5:
         this.settings.diagnosticsEnabled = !this.settings.diagnosticsEnabled;
         break;
     }
@@ -210,7 +216,8 @@ export class SettingsUI {
       this.settings.enemyModelStyle === 'simple' ? 'Simple' : 'Voxel Art',
       3,
     );
-    this.addOptionRow('Diagnostics', this.settings.diagnosticsEnabled ? 'ON' : 'OFF', 4);
+    this.addOptionRow('Occlusion', this.settings.occlusionEnabled ? 'ON' : 'OFF', 4);
+    this.addOptionRow('Diagnostics', this.settings.diagnosticsEnabled ? 'ON' : 'OFF', 5);
 
     // Hint line
     this.hintEl = document.createElement('div');
