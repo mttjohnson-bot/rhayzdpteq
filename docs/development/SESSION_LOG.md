@@ -82,6 +82,24 @@ Entries are listed in reverse chronological order (newest first).
 
 ---
 
+## 2026-03-17 — Fix Update Visual Snapshots Workflow
+
+### Prompt
+> The last couple PRs hit a visual regression notice and I tried running the Update Visual Snapshots but that doesn't seem to have changed anything, and I don't think I noticed the Update Visual Snapshots commit anything... are you able to see what it did and if it actually performed what was expected
+
+### Plan
+1. Compare the Update Visual Snapshots workflow against the Quality workflow's visual regression job to find discrepancies.
+2. Fix whatever is causing the workflow to produce no changes.
+
+### Outcome
+Found that `update-snapshots.yml` was missing the `.vox` → `.glb` model conversion steps (`convert-models.mjs` and `verify-assets.mjs`) that the quality workflow includes. Without these, the update workflow generated screenshots without character models, which either matched the existing (also modelless) baselines or produced screenshots that differed from what the quality workflow sees. Added the two missing steps so both workflows now run in identical environments.
+
+### Notes
+- The quality workflow (`quality.yml`) converts models before both the functional E2E and visual regression jobs, but this was never copied to the update-snapshots workflow when it was created.
+- After this fix, running "Update Visual Snapshots" on a branch should properly regenerate baselines that match what the visual regression job expects.
+
+---
+
 ## 2026-03-14 — Reposition Modals to Top of Window
 
 ### Prompt
