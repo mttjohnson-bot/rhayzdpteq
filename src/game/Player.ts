@@ -17,7 +17,10 @@ import { ActionManager } from './ActionManager';
 import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { events } from '../utils/EventBus';
 import { ComputedStats } from '../rpg/Stats';
-import { createOcclusionSilhouette } from '../rendering/OcclusionOutline';
+import {
+  createOcclusionSilhouette,
+  createOcclusionSilhouetteFromModel,
+} from '../rendering/OcclusionOutline';
 import { ItemRarity } from '../rpg/LootTable';
 import { RARITY_HEX, type WallAABB } from './AssetLibrary';
 import { loadCharacterModel, type CharacterModelId } from '../rendering/CharacterModelLoader';
@@ -552,20 +555,27 @@ export class Player {
     this.activeModelId = id;
     this.collisionRadius = (PLAYER_SIZE / 2) * modelMult;
 
-    // Create occlusion silhouette sized to the loaded GLB model
-    const silBox = new THREE.Box3().setFromObject(group);
-    const silSize = new THREE.Vector3();
-    silBox.getSize(silSize);
-    const silCenter = new THREE.Vector3();
-    silBox.getCenter(silCenter);
-    const silhouette = createOcclusionSilhouette(
-      silSize.x,
-      silSize.y,
-      silSize.z,
-      0x66ccff,
-      silCenter.y,
-    );
-    this.mesh.add(silhouette);
-    this.loadedModelSilhouette = silhouette;
+    // Create occlusion silhouette matching the GLB model's actual shape
+    const shapedSilhouette = createOcclusionSilhouetteFromModel(group, 0x66ccff);
+    if (shapedSilhouette) {
+      this.mesh.add(shapedSilhouette);
+      this.loadedModelSilhouette = shapedSilhouette;
+    } else {
+      // Fallback to bounding-box silhouette if geometry merge fails
+      const silBox = new THREE.Box3().setFromObject(group);
+      const silSize = new THREE.Vector3();
+      silBox.getSize(silSize);
+      const silCenter = new THREE.Vector3();
+      silBox.getCenter(silCenter);
+      const silhouette = createOcclusionSilhouette(
+        silSize.x,
+        silSize.y,
+        silSize.z,
+        0x66ccff,
+        silCenter.y,
+      );
+      this.mesh.add(silhouette);
+      this.loadedModelSilhouette = silhouette;
+    }
   }
 }
