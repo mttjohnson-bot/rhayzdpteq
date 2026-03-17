@@ -37,6 +37,11 @@ export const RESTING_IDLE_TIME = 15; // seconds without movement to start restin
 export const RESTING_COMBAT_COOLDOWN = 15; // seconds out of combat to start resting
 export const RESTING_REGEN_RATE = 4; // HP per second while resting
 
+// Deep rest health regeneration (tier 2)
+export const DEEP_REST_IDLE_TIME = 30; // seconds without movement for deep rest
+export const DEEP_REST_COMBAT_COOLDOWN = 30; // seconds out of combat for deep rest
+export const DEEP_REST_REGEN_RATE = 4; // additional HP per second during deep rest
+
 export const ENEMY_HP = 80;
 export const ENEMY_SPEED = 2.0;
 export const ENEMY_ATTACK_DAMAGE = 20;

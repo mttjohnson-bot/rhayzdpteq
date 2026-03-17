@@ -148,12 +148,14 @@ These obstacles affect enemies too — use them to your advantage.
 
 If you stop moving and stay out of combat for **15 seconds**, your character enters a **resting** state. While resting, you passively regenerate **4 HP per second**. A green "Resting" label appears above the health bar to indicate when resting regen is active.
 
+If you continue resting for a full **30 seconds**, you enter **deep rest**, which adds another **4 HP per second** (for a total of **8 HP/second**). The health bar label changes to "Deep Rest" with a brighter glow.
+
 Resting is interrupted immediately if you:
 - **Move** (any directional input)
 - **Attack** (any attack input)
 - **Take damage** (hit by an enemy)
 
-After being interrupted, both the idle timer and combat cooldown timer must reach 15 seconds again before resting resumes.
+After being interrupted, both the idle timer and combat cooldown timer must reach 15 seconds again before resting resumes (and 30 seconds for deep rest).
 
 ### Enemy Types
 
