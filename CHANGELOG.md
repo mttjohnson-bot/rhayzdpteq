@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-03-17
+
+Improve occlusion outlines to match the actual shape of GLB voxel models.
+
+- **Shape-matching occlusion silhouettes for voxel models** — Occlusion outlines behind walls now match the actual shape of the character's GLB model instead of showing a generic box. The new `createOcclusionSilhouetteFromModel()` function traverses the loaded model's meshes, merges their geometries with world transforms, and creates a slightly scaled-up silhouette. This applies to the player, enemies, and bosses. Falls back to the bounding-box approach if geometry merging fails.
+
 ## 2026-03-16
 
 Add occlusion outlines for GLB (voxel art) character models.

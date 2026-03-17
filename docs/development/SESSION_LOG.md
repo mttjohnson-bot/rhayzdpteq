@@ -1020,3 +1020,20 @@ The `createOcclusionSilhouette()` system already works correctly for the simple 
 2. After loading a GLB model, a new silhouette is computed from the model's bounding box using `createOcclusionSilhouette()` with the correct color (cyan for player, orange for enemies, red for bosses).
 3. When switching back to simple models, the GLB silhouette is removed and the original simple silhouette is restored.
 4. Updated CHANGELOG and this session log.
+
+---
+
+## 2026-03-17 — Shape-matching occlusion silhouettes for GLB models
+
+### Prompt
+> "The occlusions have been added but I'm seeing the simple model as the occlusion for the glb voxel models. Is there a way that we can produce an occlusion outline of the glb models that match the shape of the player and other characters so that it makes a bit more sense when displaying the occlusions."
+
+### Plan
+1. Create a new `createOcclusionSilhouetteFromModel()` function that builds the silhouette from the actual GLB model geometry instead of a bounding box.
+2. Update Player, Enemy, and Boss to use the shape-matching function, with fallback to the box approach if merging fails.
+
+### Outcome
+1. Added `createOcclusionSilhouetteFromModel()` to `OcclusionOutline.ts` — traverses the GLB group's meshes, clones and merges their geometries (applying world transforms), scales slightly outward for the outline effect, and applies the same GreaterDepth occlusion material.
+2. Updated Player.ts, Enemy.ts, and Boss.ts to prefer the shape-matching silhouette with a bounding-box fallback.
+3. All quality gates pass (lint, format, typecheck, build, 476 unit tests).
+4. Updated CHANGELOG and this session log.
