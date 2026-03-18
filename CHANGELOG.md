@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-18
 
-Optimize GLB occlusion system: build-time silhouette generation, layer-based raycasting, fix false positives; fix GitHub Pages deploy cache.
+Optimize GLB occlusion system: build-time silhouette generation, layer-based raycasting, fix false positives; fix GitHub Pages deploy cache; fix diagnostics overlay positioning.
+
+- **Fixed diagnostics overlay hidden behind menu button** — The diagnostics panel (FPS/draw calls) was positioned at the same top-right location as the hamburger menu button, causing it to be covered. Moved the diagnostics overlay below the menu button so both are visible simultaneously.
 
 - **Fixed GitHub Pages deploy failure (stale GLB cache)** — The deploy workflow's GLB cache key was based only on `.vox` file hashes, so changes to the conversion script (e.g., adding silhouette generation) didn't invalidate the cache. This caused the "Verify .glb assets exist" step to fail because cached files didn't include the new `-silhouette.glb` outputs. The cache key now includes `scripts/convert-models.mjs` so pipeline changes trigger reconversion. Also fixed in the `convert-models.yml` workflow.
 

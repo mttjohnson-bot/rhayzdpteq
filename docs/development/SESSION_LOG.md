@@ -1264,3 +1264,20 @@ The `createOcclusionSilhouette()` system already works correctly for the simple 
 
 ### Notes
 - This is a classic cache invalidation bug — the cache key didn't account for all inputs that affect the cached output. The conversion script is an input to the `.glb` files just as much as the `.vox` sources are.
+
+---
+
+## 2026-03-18 — Fix Diagnostics Overlay Positioning
+
+### Prompt
+> "I tried to turn on the diagnostics in the settings, but it ends up on the screen being covered up by the menu... can the box for the diagnostics information be positioned below the menu button in the upper right corner"
+
+### Plan
+1. Identify the positioning of both the diagnostics overlay and the menu button.
+2. Move the diagnostics overlay below the menu button.
+
+### Outcome
+The diagnostics overlay (`DiagnosticsOverlay.ts`) was positioned at `top: 10px, right: 10px`, which overlapped the hamburger menu button (`InstructionsPanel.ts`) at `top: 12px, right: 12px`. Changed the diagnostics overlay to `top: 52px, right: 12px` so it renders just below the menu button, aligned to the same right edge.
+
+### Notes
+- Simple CSS positioning fix. The menu button is ~40px tall (12px top + 8px padding + ~16px content + 8px padding), so 52px top provides a clean gap below it.

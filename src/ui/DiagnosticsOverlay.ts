@@ -23,8 +23,8 @@ export class DiagnosticsOverlay {
     this.container = document.createElement('div');
     Object.assign(this.container.style, {
       position: 'absolute',
-      top: '10px',
-      right: '10px',
+      top: '52px',
+      right: '12px',
       padding: '0.3rem 0.6rem',
       background: 'rgba(0, 0, 0, 0.7)',
       border: '1px solid rgba(170, 68, 255, 0.3)',
