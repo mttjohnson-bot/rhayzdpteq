@@ -1196,3 +1196,49 @@ The `createOcclusionSilhouette()` system already works correctly for the simple 
 ### Notes
 - Deep rest stacks with base resting regen (4 + 4 = 8 HP/s) rather than replacing it, matching how the user described it as "increases again another 4."
 - Both tiers are interrupted by the same actions (movement, attack, damage) and use the same idle/combat timers.
+
+---
+
+## Session — 2026-03-18: Optimize GLB Occlusion Loading and Runtime Performance
+
+### Prompt
+> "Now that we're building occlusions for the glb models I noticed that when a level loads it takes a significantly and noticably longer time to initially load, and once some improvements were made to try and get the occlusions to only show when a character is obstructed it got worse... It takes several seconds before the player can move when loading the level... If once I'm in the level and I turn on occlusions in the level then it pauses for about 3-5 seconds and then allows the player to move for about 2 seconds then pauses again continuously."
+
+### Plan
+1. Diagnose three root causes of the performance problems in the occlusion system.
+2. Replace expensive `createOcclusionSilhouetteFromModel()` (which clones + merges all mesh geometries) with lightweight bounding-box silhouettes.
+3. Add a `WALL_LAYER` constant and tag wall/structure meshes with it in FloorRenderer, Hub, and AssetLibrary.
+4. Configure the occlusion raycaster to only test `WALL_LAYER` objects instead of the entire scene.
+5. Scope raycasting to the active scene group (dungeon/hub/library) instead of `scene.children`.
+6. Increase occlusion check interval from 5 to 15 frames.
+7. Remove dead code (`createOcclusionSilhouetteFromModel`, `mergeGeometries` import).
+
+### Outcome
+1. **Loading stall eliminated** — `createOcclusionSilhouetteFromModel()` was the bottleneck. It cloned every mesh geometry, called `mergeGeometries()`, and applied matrix transforms per entity. With many enemies per floor, this blocked the main thread for seconds. Replaced with `createOcclusionSilhouette()` (simple BoxGeometry) which is instant.
+2. **Runtime stuttering fixed** — `intersectObjects(scene.children, true)` was raycasting against every object in the entire scene recursively (floors, enemies, decorations, silhouettes — hundreds of InstancedMesh instances). Now uses Three.js layers (`WALL_LAYER = 1`) so the raycaster only tests wall meshes. Scoped to the active group (dungeon/hub/library) instead of the whole scene.
+3. **False positives fixed** — Floor tiles are opaque, so rays from camera to entities always hit them. Other enemies' opaque meshes also triggered cross-entity occlusion. The layer-based approach means only wall geometry counts as an occluder.
+4. **Check interval tripled** — From every 5 frames (~12/sec) to every 15 frames (~4/sec). Still responsive enough for the player to notice occlusion changes.
+5. Files modified: `constants.ts`, `OcclusionOutline.ts`, `FloorRenderer.ts`, `Hub.ts`, `AssetLibrary.ts`, `Game.ts`, `Player.ts`, `Enemy.ts`, `Boss.ts`, `PlayerRestingRegen.test.ts`.
+6. All 496 unit tests pass, lint/format/typecheck/build all clean.
+
+### Follow-up Prompt
+> "Did you replace the occlusions that matched the glb models shape with some simple box silhouettes? The simple box silhouettes do not match the shape of the glb models and won't work. We need silhouettes that take the same or similar shape to the models... is it possible to generate that during the build time like the optimized GLB models from the .vox files... that way we aren't trying to do expensive work during game runtime."
+
+### Follow-up Plan
+1. Extend `convert-models.mjs` to generate `{name}-silhouette.glb` for each model — same geometry scaled 1.15× outward, no colors/normals.
+2. Update `verify-assets.mjs` to check silhouette files exist.
+3. Add `loadCharacterSilhouette`, `loadEnemySilhouette`, `loadBossSilhouette` to `CharacterModelLoader.ts`.
+4. Add `applyOcclusionMaterial()` to `OcclusionOutline.ts` — applies the GreaterDepth+stencil material to a loaded silhouette group.
+5. Update Player, Enemy, Boss to load pre-built silhouettes and apply occlusion material at runtime. Falls back to box silhouette if `.glb` not available.
+
+### Follow-up Outcome
+1. **Build-time silhouette generation** — `convert-models.mjs` now generates 17 `-silhouette.glb` files (one per model). Uses the same voxel face-culling as the main model but only emits positions+indices (no colors/normals), then scales all vertices outward from bounding-box center by 1.15×.
+2. **Silhouette loading at runtime** — Three new loading functions cache and clone silhouette groups like the model loader. `applyOcclusionMaterial()` traverses the loaded group and applies the GreaterDepth+stencil material.
+3. **Silhouettes match model shape** — Since the silhouette `.glb` is derived from the same voxel data as the model, it perfectly matches the character's actual shape.
+4. **No runtime geometry work** — Loading a pre-built `.glb` is the same cost as loading any model (already fast). The expensive `mergeGeometries()` and geometry cloning happen only once at build time.
+5. **Hash-based caching** — Silhouette regeneration is skipped when the source `.vox` hasn't changed (checked alongside the model `.glb`).
+6. Files modified: `convert-models.mjs`, `verify-assets.mjs`, `CharacterModelLoader.ts`, `OcclusionOutline.ts`, `Player.ts`, `Enemy.ts`, `Boss.ts`, `PlayerRestingRegen.test.ts`, `CHANGELOG.md`.
+
+### Notes
+- The user correctly identified that box silhouettes don't match the model shape and proposed the build-time approach. This is the ideal solution since the models are static.
+- Three.js layers for raycasting (from the first pass) are retained — the wall-layer filter and the build-time silhouettes solve orthogonal problems.

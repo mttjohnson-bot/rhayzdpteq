@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-03-18
+
+Optimize GLB occlusion system: build-time silhouette generation, layer-based raycasting, fix false positives.
+
+- **Build-time silhouette generation** — The asset pipeline (`convert-models.mjs`) now generates a `{name}-silhouette.glb` alongside each character model. These contain the same geometry scaled 1.15× outward from center, with no colors or normals. At runtime, silhouettes are loaded like any other `.glb` (fast, cached) and the occlusion material is applied. This replaces the previous approach of cloning and merging all mesh geometries at spawn time, which caused multi-second loading stalls.
+
+- **Layer-based occlusion raycasting** — Wall and structure meshes are tagged with `WALL_LAYER` (Three.js layer 1). The occlusion raycaster tests only this layer, scoped to the active scene group. This replaces the previous approach of raycasting against the entire scene graph every 5 frames, which caused continuous stuttering. Check interval increased to 15 frames.
+
+- **Fixed false-positive occlusion on enemies** — Enemies were showing occlusion silhouettes in open areas because floor tiles and other enemies' opaque meshes triggered the raycaster. Layer-based filtering ensures only wall geometry counts as an occluder.
+
+- **Asset verification updated** — `verify-assets.mjs` now checks that both `.glb` and `-silhouette.glb` files exist for every `.vox` source, preventing silent 404s for silhouette assets in production.
+
+- **Graceful fallback** — If a silhouette `.glb` fails to load, the system falls back to a bounding-box silhouette, ensuring occlusion always works.
+
 ## 2026-03-17
 
 Extend player level cap from 20 to 100; improve occlusion outlines to match the actual shape of GLB voxel models; fix false-positive occlusion in open areas; fix GLB occlusion sizing bug; fix CI permissions; add resting health regeneration with deep rest tier; fix Update Visual Snapshots workflow; add raycast-based occlusion gating; disable occlusion by default with settings toggle.

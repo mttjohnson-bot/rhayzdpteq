@@ -22,11 +22,11 @@ import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { FloorDifficulty } from '../dungeon/FloorConfig';
 import {
   createOcclusionSilhouette,
-  createOcclusionSilhouetteFromModel,
+  applyOcclusionMaterial,
   enableStencilWrite,
   enableStencilWriteOnGroup,
 } from '../rendering/OcclusionOutline';
-import { loadEnemyModel } from '../rendering/CharacterModelLoader';
+import { loadEnemyModel, loadEnemySilhouette } from '../rendering/CharacterModelLoader';
 
 export type EnemyModelStyle = 'simple' | 'custom';
 export type EnemyState = 'patrol' | 'chase' | 'attack' | 'dead';
@@ -60,7 +60,7 @@ export class Enemy {
   private modelStyle: EnemyModelStyle = 'simple';
   private simpleChildren: THREE.Object3D[] = [];
   private loadedModelGroup: THREE.Group | null = null;
-  private loadedModelSilhouette: THREE.Mesh | null = null;
+  private loadedModelSilhouette: THREE.Object3D | null = null;
   private simpleSilhouette: THREE.Mesh | null = null;
   private targetHeight: number = 0;
   private targetSize: number = 0;
@@ -303,14 +303,18 @@ export class Enemy {
       this.mesh.add(group);
       this.loadedModelGroup = group;
 
-      // Create occlusion silhouette matching the GLB model's actual shape
-      const shapedSilhouette = createOcclusionSilhouetteFromModel(group, 0xff6644);
-      if (shapedSilhouette) {
-        shapedSilhouette.visible = this._occluded;
-        this.mesh.add(shapedSilhouette);
-        this.loadedModelSilhouette = shapedSilhouette;
+      // Load pre-built silhouette from the asset pipeline (matches model shape)
+      const silGroup = await loadEnemySilhouette(this.enemyType.id);
+      if (silGroup) {
+        applyOcclusionMaterial(silGroup, 0xff6644);
+        silGroup.scale.copy(group.scale);
+        silGroup.position.copy(group.position);
+        silGroup.rotation.y = group.rotation.y;
+        silGroup.visible = this._occluded;
+        this.mesh.add(silGroup);
+        this.loadedModelSilhouette = silGroup;
       } else {
-        // Fallback to bounding-box silhouette if geometry merge fails
+        // Fallback to bounding-box silhouette if silhouette .glb not available
         const silBox = new THREE.Box3().setFromObject(group);
         const silSize = new THREE.Vector3();
         silBox.getSize(silSize);

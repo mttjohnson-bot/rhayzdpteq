@@ -7,6 +7,12 @@
  * neighbor-based face culling and vertex colors, and writes .glb output
  * using @gltf-transform/core.
  *
+ * For each model it also generates a `-silhouette.glb` variant — the same
+ * geometry scaled outward by 1.15× from center, with no colors or normals.
+ * This silhouette mesh is used at runtime for the occlusion outline effect
+ * (see OcclusionOutline.ts). Generating it at build time avoids expensive
+ * geometry merging in the browser.
+ *
  * Usage:
  *   node scripts/convert-models.mjs
  *
@@ -22,6 +28,8 @@ import { Document, NodeIO } from '@gltf-transform/core';
 
 const SRC_DIR = 'assets/characters';
 const OUT_DIR = 'public/assets/characters';
+
+const OUTLINE_SCALE = 1.15;
 
 // ── .vox parser ──
 
@@ -94,7 +102,18 @@ function parseVox(buffer) {
   return { sizeX, sizeY, sizeZ, voxels, palette };
 }
 
-// ── Mesh builder ──
+// ── Shared face definitions ──
+
+const FACES = [
+  { dir: [1, 0, 0], vertices: [[1,0,0],[1,1,0],[1,1,1],[1,0,1]] },
+  { dir: [-1, 0, 0], vertices: [[0,0,1],[0,1,1],[0,1,0],[0,0,0]] },
+  { dir: [0, 1, 0], vertices: [[0,1,0],[0,1,1],[1,1,1],[1,1,0]] },
+  { dir: [0, -1, 0], vertices: [[0,0,1],[0,0,0],[1,0,0],[1,0,1]] },
+  { dir: [0, 0, 1], vertices: [[0,0,1],[1,0,1],[1,1,1],[0,1,1]] },
+  { dir: [0, 0, -1], vertices: [[1,0,0],[0,0,0],[0,1,0],[1,1,0]] },
+];
+
+// ── Mesh builders ──
 
 function buildMeshData(model) {
   const { voxels, palette, sizeX, sizeY } = model;
@@ -103,16 +122,6 @@ function buildMeshData(model) {
   for (const v of voxels) {
     occupied.add(`${v.x},${v.y},${v.z}`);
   }
-
-  // Six face directions
-  const faces = [
-    { dir: [1, 0, 0], vertices: [[1,0,0],[1,1,0],[1,1,1],[1,0,1]] },
-    { dir: [-1, 0, 0], vertices: [[0,0,1],[0,1,1],[0,1,0],[0,0,0]] },
-    { dir: [0, 1, 0], vertices: [[0,1,0],[0,1,1],[1,1,1],[1,1,0]] },
-    { dir: [0, -1, 0], vertices: [[0,0,1],[0,0,0],[1,0,0],[1,0,1]] },
-    { dir: [0, 0, 1], vertices: [[0,0,1],[1,0,1],[1,1,1],[0,1,1]] },
-    { dir: [0, 0, -1], vertices: [[1,0,0],[0,0,0],[0,1,0],[1,1,0]] },
-  ];
 
   const positions = [];
   const normals = [];
@@ -126,7 +135,7 @@ function buildMeshData(model) {
     const g = palette[ci * 4 + 1] / 255;
     const b = palette[ci * 4 + 2] / 255;
 
-    for (const face of faces) {
+    for (const face of FACES) {
       const [dx, dy, dz] = face.dir;
       if (occupied.has(`${v.x + dx},${v.y + dy},${v.z + dz}`)) continue;
 
@@ -156,7 +165,66 @@ function buildMeshData(model) {
   };
 }
 
-// ── glTF builder ──
+/**
+ * Build silhouette mesh data — same geometry as the model but:
+ *  - No colors or normals (the occlusion material is applied at runtime)
+ *  - All vertices scaled outward from the bounding-box center by OUTLINE_SCALE
+ */
+function buildSilhouetteMeshData(model) {
+  const { voxels, sizeX, sizeY } = model;
+
+  const occupied = new Set();
+  for (const v of voxels) {
+    occupied.add(`${v.x},${v.y},${v.z}`);
+  }
+
+  const positions = [];
+  const indices = [];
+  let vertCount = 0;
+
+  for (const v of voxels) {
+    for (const face of FACES) {
+      const [dx, dy, dz] = face.dir;
+      if (occupied.has(`${v.x + dx},${v.y + dy},${v.z + dz}`)) continue;
+
+      for (const [vx, vy, vz] of face.vertices) {
+        const px = v.x + vx - sizeX / 2;
+        const py = v.z + vz;
+        const pz = -(v.y + vy - sizeY / 2);
+        positions.push(px, py, pz);
+      }
+
+      indices.push(vertCount, vertCount + 1, vertCount + 2);
+      indices.push(vertCount, vertCount + 2, vertCount + 3);
+      vertCount += 4;
+    }
+  }
+
+  // Scale outward from bounding-box center
+  const posArray = new Float32Array(positions);
+  let minX = Infinity, minY = Infinity, minZ = Infinity;
+  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  for (let i = 0; i < posArray.length; i += 3) {
+    minX = Math.min(minX, posArray[i]);     maxX = Math.max(maxX, posArray[i]);
+    minY = Math.min(minY, posArray[i + 1]); maxY = Math.max(maxY, posArray[i + 1]);
+    minZ = Math.min(minZ, posArray[i + 2]); maxZ = Math.max(maxZ, posArray[i + 2]);
+  }
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+  const cz = (minZ + maxZ) / 2;
+  for (let i = 0; i < posArray.length; i += 3) {
+    posArray[i]     = cx + (posArray[i]     - cx) * OUTLINE_SCALE;
+    posArray[i + 1] = cy + (posArray[i + 1] - cy) * OUTLINE_SCALE;
+    posArray[i + 2] = cz + (posArray[i + 2] - cz) * OUTLINE_SCALE;
+  }
+
+  return {
+    positions: posArray,
+    indices: vertCount < 65536 ? new Uint16Array(indices) : new Uint32Array(indices),
+  };
+}
+
+// ── glTF builders ──
 
 async function convertVoxToGlb(voxPath, glbPath) {
   const buffer = readFileSync(voxPath);
@@ -207,6 +275,39 @@ async function convertVoxToGlb(voxPath, glbPath) {
   writeFileSync(glbPath, Buffer.from(glb));
 }
 
+async function convertVoxToSilhouetteGlb(voxPath, silGlbPath) {
+  const buffer = readFileSync(voxPath);
+  const model = parseVox(buffer);
+  const mesh = buildSilhouetteMeshData(model);
+
+  const doc = new Document();
+  const buf = doc.createBuffer();
+
+  const positionAccessor = doc.createAccessor()
+    .setType('VEC3')
+    .setArray(mesh.positions)
+    .setBuffer(buf);
+
+  const indexAccessor = doc.createAccessor()
+    .setType('SCALAR')
+    .setArray(mesh.indices)
+    .setBuffer(buf);
+
+  // No material, no normals, no colors — applied at runtime
+  const prim = doc.createPrimitive()
+    .setAttribute('POSITION', positionAccessor)
+    .setIndices(indexAccessor);
+
+  const gltfMesh = doc.createMesh().addPrimitive(prim);
+  const node = doc.createNode().setMesh(gltfMesh);
+  const scene = doc.createScene().addChild(node);
+  doc.getRoot().setDefaultScene(scene);
+
+  const io = new NodeIO();
+  const glb = await io.writeBinary(doc);
+  writeFileSync(silGlbPath, Buffer.from(glb));
+}
+
 // ── Main ──
 
 async function main() {
@@ -225,14 +326,15 @@ async function main() {
     const name = basename(voxFile, '.vox');
     const voxPath = join(SRC_DIR, voxFile);
     const glbPath = join(OUT_DIR, `${name}.glb`);
+    const silGlbPath = join(OUT_DIR, `${name}-silhouette.glb`);
     const hashPath = join(OUT_DIR, `${name}.md5`);
 
     // Compute hash
     const content = readFileSync(voxPath);
     const currentHash = createHash('md5').update(content).digest('hex');
 
-    // Skip if unchanged
-    if (existsSync(glbPath) && existsSync(hashPath)) {
+    // Skip if unchanged and both output files exist
+    if (existsSync(glbPath) && existsSync(silGlbPath) && existsSync(hashPath)) {
       const storedHash = readFileSync(hashPath, 'utf-8').trim();
       if (currentHash === storedHash) {
         console.log(`  SKIP ${voxFile} (unchanged)`);
@@ -241,8 +343,9 @@ async function main() {
       }
     }
 
-    console.log(`  CONVERT ${voxFile} → ${name}.glb`);
+    console.log(`  CONVERT ${voxFile} → ${name}.glb + ${name}-silhouette.glb`);
     await convertVoxToGlb(voxPath, glbPath);
+    await convertVoxToSilhouetteGlb(voxPath, silGlbPath);
     writeFileSync(hashPath, currentHash);
     converted++;
   }

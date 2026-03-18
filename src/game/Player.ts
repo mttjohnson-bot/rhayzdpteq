@@ -25,13 +25,17 @@ import { events } from '../utils/EventBus';
 import { ComputedStats } from '../rpg/Stats';
 import {
   createOcclusionSilhouette,
-  createOcclusionSilhouetteFromModel,
+  applyOcclusionMaterial,
   enableStencilWrite,
   enableStencilWriteOnGroup,
 } from '../rendering/OcclusionOutline';
 import { ItemRarity } from '../rpg/LootTable';
 import { RARITY_HEX, type WallAABB } from './AssetLibrary';
-import { loadCharacterModel, type CharacterModelId } from '../rendering/CharacterModelLoader';
+import {
+  loadCharacterModel,
+  loadCharacterSilhouette,
+  type CharacterModelId,
+} from '../rendering/CharacterModelLoader';
 
 export class Player {
   readonly mesh: THREE.Mesh;
@@ -101,7 +105,7 @@ export class Player {
   // Character model switching
   private activeModelId: CharacterModelId = 'simple';
   private loadedModelGroup: THREE.Group | null = null;
-  private loadedModelSilhouette: THREE.Mesh | null = null;
+  private loadedModelSilhouette: THREE.Object3D | null = null;
   private simpleGeometry: THREE.BufferGeometry;
   private simpleSilhouette: THREE.Mesh;
 
@@ -657,14 +661,17 @@ export class Player {
     this.activeModelId = id;
     this.collisionRadius = (PLAYER_SIZE / 2) * modelMult;
 
-    // Create occlusion silhouette matching the GLB model's actual shape
-    const shapedSilhouette = createOcclusionSilhouetteFromModel(group, 0x66ccff);
-    if (shapedSilhouette) {
-      shapedSilhouette.visible = this._occluded;
-      this.mesh.add(shapedSilhouette);
-      this.loadedModelSilhouette = shapedSilhouette;
+    // Load pre-built silhouette from the asset pipeline (matches model shape)
+    const silGroup = await loadCharacterSilhouette(id);
+    if (silGroup) {
+      applyOcclusionMaterial(silGroup, 0x66ccff);
+      silGroup.scale.copy(group.scale);
+      silGroup.position.copy(group.position);
+      silGroup.visible = this._occluded;
+      this.mesh.add(silGroup);
+      this.loadedModelSilhouette = silGroup;
     } else {
-      // Fallback to bounding-box silhouette if geometry merge fails
+      // Fallback to bounding-box silhouette if silhouette .glb not available
       const silBox = new THREE.Box3().setFromObject(group);
       const silSize = new THREE.Vector3();
       silBox.getSize(silSize);

@@ -36,6 +36,7 @@ import {
   MODEL_SCALE_OWL,
   MODEL_SCALE_OWLBEAR,
   MODEL_SCALE_DEFAULT,
+  WALL_LAYER,
   type EnemyTypeId,
 } from '../utils/constants';
 import { TestDummy } from '../combat/TestDummy';
@@ -1542,6 +1543,7 @@ export class AssetLibrary {
     mesh.position.set(cx, WALL_HEIGHT / 2, cz);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
+    mesh.layers.enable(WALL_LAYER);
     this.group.add(mesh);
 
     // Track AABB for collision

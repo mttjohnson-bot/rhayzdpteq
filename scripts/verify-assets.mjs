@@ -6,7 +6,8 @@
  * missing .glb files before they cause silent 404s in production.
  *
  * It reads the source .vox files from assets/characters/ and checks that a
- * corresponding .glb file exists in public/assets/characters/.
+ * corresponding .glb file AND -silhouette.glb file exist in
+ * public/assets/characters/.
  *
  * Exit codes:
  *   0 — All expected .glb files found
@@ -31,10 +32,19 @@ let missing = 0;
 for (const voxFile of voxFiles) {
   const name = basename(voxFile, '.vox');
   const glbPath = join(GLB_DIR, `${name}.glb`);
+  const silGlbPath = join(GLB_DIR, `${name}-silhouette.glb`);
+
   if (existsSync(glbPath)) {
     console.log(`  ✓ ${glbPath}`);
   } else {
     console.error(`  ✗ MISSING: ${glbPath} (source: ${join(SRC_DIR, voxFile)})`);
+    missing++;
+  }
+
+  if (existsSync(silGlbPath)) {
+    console.log(`  ✓ ${silGlbPath}`);
+  } else {
+    console.error(`  ✗ MISSING: ${silGlbPath} (source: ${join(SRC_DIR, voxFile)})`);
     missing++;
   }
 }
@@ -48,4 +58,4 @@ if (missing > 0) {
   process.exit(1);
 }
 
-console.log(`\nverify-assets: All ${voxFiles.length} .glb model(s) verified.`);
+console.log(`\nverify-assets: All ${voxFiles.length} model(s) and silhouette(s) verified.`);

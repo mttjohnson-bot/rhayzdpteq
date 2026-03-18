@@ -78,13 +78,14 @@ vi.mock('../../src/rendering/OcclusionOutline', () => ({
   createOcclusionSilhouette: vi.fn(() => ({
     visible: true,
   })),
-  createOcclusionSilhouetteFromModel: vi.fn(() => null),
+  applyOcclusionMaterial: vi.fn(),
   enableStencilWrite: vi.fn(),
   enableStencilWriteOnGroup: vi.fn(),
 }));
 
 vi.mock('../../src/rendering/CharacterModelLoader', () => ({
   loadCharacterModel: vi.fn(),
+  loadCharacterSilhouette: vi.fn(),
 }));
 
 import { Player } from '../../src/game/Player';

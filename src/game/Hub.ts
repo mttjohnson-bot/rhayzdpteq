@@ -1,5 +1,12 @@
 import * as THREE from 'three';
-import { TILE_SIZE, WALL_HEIGHT, HUB_WIDTH, HUB_DEPTH, COLORS } from '../utils/constants';
+import {
+  TILE_SIZE,
+  WALL_HEIGHT,
+  HUB_WIDTH,
+  HUB_DEPTH,
+  COLORS,
+  WALL_LAYER,
+} from '../utils/constants';
 
 export interface PortalInfo {
   x: number;
@@ -66,6 +73,7 @@ export function createHubScene(): {
     wall.position.set(x, WALL_HEIGHT / 2, z);
     wall.castShadow = true;
     wall.receiveShadow = true;
+    wall.layers.enable(WALL_LAYER);
     group.add(wall);
   };
 

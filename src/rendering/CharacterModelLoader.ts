@@ -1,10 +1,15 @@
 /**
  * Loads and caches character .glb models for use as player meshes.
+ * Also loads pre-built silhouette .glb files used for occlusion outlines.
  *
  * IMPORTANT — Asset Pipeline:
  *   Models are optimized .glb files generated from .vox sources by the CI
  *   model conversion pipeline (scripts/convert-models.mjs). The GLTFLoader
  *   is the ONLY loader used. There is no runtime .vox fallback.
+ *
+ *   Each model has a companion `-silhouette.glb` generated at build time
+ *   that contains the same geometry scaled 1.15× outward for the occlusion
+ *   outline effect. This avoids expensive runtime geometry merging.
  *
  *   If a .glb file is missing, the correct fix is to run the conversion
  *   pipeline — not to add a fallback loader.
@@ -50,24 +55,26 @@ const cache = new Map<string, THREE.Group>();
  * Load a .glb file. Returns the scene group or null on failure.
  * Logs detailed error information when loading fails.
  */
-function loadGlb(url: string): Promise<THREE.Group | null> {
+function loadGlb(url: string, enableShadows = true): Promise<THREE.Group | null> {
   return new Promise<THREE.Group | null>((resolve) => {
     loader.load(
       url,
       (gltf) => {
         const scene = gltf.scene;
-        scene.traverse((child) => {
-          if (child instanceof THREE.Mesh) {
-            child.castShadow = true;
-          }
-        });
-        console.log(`[CharacterModelLoader] Loaded .glb model from ${url}`);
+        if (enableShadows) {
+          scene.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+              child.castShadow = true;
+            }
+          });
+        }
+        console.log(`[CharacterModelLoader] Loaded .glb from ${url}`);
         resolve(scene);
       },
       undefined,
       (error) => {
         console.error(
-          `[CharacterModelLoader] Failed to load .glb model from ${url}.`,
+          `[CharacterModelLoader] Failed to load .glb from ${url}.`,
           `This means the model conversion pipeline has not been run.`,
           `Run: ./scripts/convert-models.mjs`,
           `Or trigger the "Convert Character Models" GitHub Actions workflow.`,
@@ -164,6 +171,66 @@ export async function loadBossModel(bossName: string): Promise<THREE.Group | nul
     );
     return null;
   }
+
+  cache.set(cacheKey, group);
+  return group.clone();
+}
+
+// ---------------------------------------------------------------------------
+// Silhouette model loading — pre-built at build time for occlusion outlines
+// ---------------------------------------------------------------------------
+
+/**
+ * Load a character silhouette model by ID.
+ * Returns a clone of the cached scene graph, or null on failure.
+ * Silhouettes have no shadows or materials — the caller applies the occlusion material.
+ */
+export async function loadCharacterSilhouette(id: CharacterModelId): Promise<THREE.Group | null> {
+  if (id === 'simple') return null;
+
+  const cacheKey = `silhouette_${id}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return cached.clone();
+
+  const glbPath = MODEL_PATHS[id].replace('.glb', '-silhouette.glb');
+  const url = assetBase() + glbPath;
+  const group = await loadGlb(url, false);
+  if (!group) return null;
+
+  cache.set(cacheKey, group);
+  return group.clone();
+}
+
+/**
+ * Load an enemy silhouette model by type ID.
+ * Returns a clone of the cached scene graph, or null on failure.
+ */
+export async function loadEnemySilhouette(typeId: EnemyModelId): Promise<THREE.Group | null> {
+  const cacheKey = `silhouette_enemy_${typeId}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return cached.clone();
+
+  const url = `${assetBase()}assets/characters/${typeId}-silhouette.glb`;
+  const group = await loadGlb(url, false);
+  if (!group) return null;
+
+  cache.set(cacheKey, group);
+  return group.clone();
+}
+
+/**
+ * Load a boss silhouette model by boss name.
+ * Returns a clone of the cached scene graph, or null on failure.
+ */
+export async function loadBossSilhouette(bossName: string): Promise<THREE.Group | null> {
+  const modelId = bossNameToModelId(bossName);
+  const cacheKey = `silhouette_boss_${modelId}`;
+  const cached = cache.get(cacheKey);
+  if (cached) return cached.clone();
+
+  const url = `${assetBase()}assets/characters/${modelId}-silhouette.glb`;
+  const group = await loadGlb(url, false);
+  if (!group) return null;
 
   cache.set(cacheKey, group);
   return group.clone();
