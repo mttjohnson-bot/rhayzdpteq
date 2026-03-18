@@ -39,7 +39,7 @@ jobs:
           path: |
             public/assets/characters/*.glb
             public/assets/characters/*.md5
-          key: glb-models-${{ hashFiles('assets/characters/*.vox') }}
+          key: glb-models-${{ hashFiles('assets/characters/*.vox', 'scripts/convert-models.mjs') }}
 
       - name: Convert models
         if: steps.cache-glb.outputs.cache-hit != 'true'

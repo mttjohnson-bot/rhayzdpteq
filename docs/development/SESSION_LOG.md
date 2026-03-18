@@ -1242,3 +1242,25 @@ The `createOcclusionSilhouette()` system already works correctly for the simple 
 ### Notes
 - The user correctly identified that box silhouettes don't match the model shape and proposed the build-time approach. This is the ideal solution since the models are static.
 - Three.js layers for raycasting (from the first pass) are retained — the wall-layer filter and the build-time silhouettes solve orthogonal problems.
+
+---
+
+## 2026-03-18 — Fix GitHub Pages Deploy Cache Staleness
+
+### Prompt
+> "When pull request 139 was merged there were errors in the Deploy to GitHub Pages #139 github action during the merge. Can you investigate the issues that came up there."
+
+(Clarified: this referred to the deploy action run triggered by merging PR #137, "Build-time silhouette generation and layer-based occlusion raycasting".)
+
+### Plan
+1. Investigate the deploy workflow to identify why the "Verify .glb assets exist" step failed.
+2. Fix the root cause — the GLB cache key not including the conversion script.
+3. Apply the same fix to all workflows that cache GLB files.
+
+### Outcome
+1. **Root cause identified** — The deploy workflow caches `.glb` files with a key based solely on `hashFiles('assets/characters/*.vox')`. PR #137 added silhouette `.glb` generation to `convert-models.mjs` without changing any `.vox` files. The cache key was unchanged, so the old cache (without silhouette files) was restored, the conversion step was skipped, and `verify-assets.mjs` (which now checks for silhouette files) failed.
+2. **Cache key fixed** — Both `deploy.yml` and `convert-models.yml` now use `hashFiles('assets/characters/*.vox', 'scripts/convert-models.mjs')`, so changes to the conversion pipeline invalidate the cache.
+3. The `quality.yml` and `update-snapshots.yml` workflows were not affected (they run conversion unconditionally without caching).
+
+### Notes
+- This is a classic cache invalidation bug — the cache key didn't account for all inputs that affect the cached output. The conversion script is an input to the `.glb` files just as much as the `.vox` sources are.
