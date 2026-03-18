@@ -2,6 +2,18 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-03-18
+
+Optimize GLB occlusion system to eliminate loading stalls and runtime stuttering; fix false-positive occlusion on enemies in open areas.
+
+- **Eliminated occlusion loading stall** — Level loading was taking several seconds longer due to `createOcclusionSilhouetteFromModel()` which cloned and merged all mesh geometries for every entity at spawn time. Replaced with lightweight bounding-box silhouettes that create instantly.
+
+- **Fixed runtime occlusion stuttering** — The occlusion raycaster was testing against the entire scene graph (floors, enemies, decorations, etc.) every 5 frames, causing periodic freezes. Now uses Three.js layers to raycast only against wall/structure meshes, and only within the active scene group (dungeon, hub, or library). Check interval increased to every 15 frames.
+
+- **Fixed false-positive occlusion on enemies** — Enemies were showing occlusion silhouettes even when standing in open areas because the floor tiles and other enemies' opaque meshes were triggering the raycaster. The layer-based approach ensures only wall geometry counts as an occluder.
+
+- **Removed dead code** — Removed the unused `createOcclusionSilhouetteFromModel()` function and its `mergeGeometries` import from `OcclusionOutline.ts`.
+
 ## 2026-03-17
 
 Extend player level cap from 20 to 100; improve occlusion outlines to match the actual shape of GLB voxel models; fix false-positive occlusion in open areas; fix GLB occlusion sizing bug; fix CI permissions; add resting health regeneration with deep rest tier; fix Update Visual Snapshots workflow; add raycast-based occlusion gating; disable occlusion by default with settings toggle.

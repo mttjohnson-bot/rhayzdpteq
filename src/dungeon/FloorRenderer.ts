@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { DungeonData, TileType, ObstacleType } from './DungeonGenerator';
-import { TILE_SIZE, WALL_HEIGHT } from '../utils/constants';
+import { TILE_SIZE, WALL_HEIGHT, WALL_LAYER } from '../utils/constants';
 import { getFloorConfig } from './FloorConfig';
 
 export interface DungeonMeshData {
@@ -114,6 +114,7 @@ export function buildDungeonMesh(dungeon: DungeonData, floor: number = 1): Dunge
       true,
       true,
     );
+    mesh.layers.enable(WALL_LAYER);
     group.add(mesh);
 
     // Wall tops (slightly lighter)
@@ -129,6 +130,7 @@ export function buildDungeonMesh(dungeon: DungeonData, floor: number = 1): Dunge
       false,
       false,
     );
+    topMesh.layers.enable(WALL_LAYER);
     group.add(topMesh);
   }
 
@@ -301,6 +303,7 @@ export function buildDungeonMesh(dungeon: DungeonData, floor: number = 1): Dunge
       true,
       true,
     );
+    mesh.layers.enable(WALL_LAYER);
     group.add(mesh);
     // Crate top (lighter color)
     const topMesh = createBatchedBoxes(
@@ -315,6 +318,7 @@ export function buildDungeonMesh(dungeon: DungeonData, floor: number = 1): Dunge
       false,
       false,
     );
+    topMesh.layers.enable(WALL_LAYER);
     group.add(topMesh);
   }
 

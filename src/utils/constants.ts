@@ -2,6 +2,13 @@
 export const TILE_SIZE = 1;
 export const WALL_HEIGHT = 2;
 
+/**
+ * Three.js layer index used exclusively for wall/structure meshes that should
+ * act as occluders. The occlusion raycaster tests only this layer so it
+ * ignores floors, enemies, decorations, etc.
+ */
+export const WALL_LAYER = 1;
+
 // Hub dimensions (in tiles)
 export const HUB_WIDTH = 15;
 export const HUB_DEPTH = 15;

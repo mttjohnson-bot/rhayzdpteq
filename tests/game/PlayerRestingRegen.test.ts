@@ -78,7 +78,6 @@ vi.mock('../../src/rendering/OcclusionOutline', () => ({
   createOcclusionSilhouette: vi.fn(() => ({
     visible: true,
   })),
-  createOcclusionSilhouetteFromModel: vi.fn(() => null),
   enableStencilWrite: vi.fn(),
   enableStencilWriteOnGroup: vi.fn(),
 }));

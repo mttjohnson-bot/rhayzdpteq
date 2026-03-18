@@ -25,7 +25,6 @@ import { events } from '../utils/EventBus';
 import { ComputedStats } from '../rpg/Stats';
 import {
   createOcclusionSilhouette,
-  createOcclusionSilhouetteFromModel,
   enableStencilWrite,
   enableStencilWriteOnGroup,
 } from '../rendering/OcclusionOutline';
@@ -657,29 +656,21 @@ export class Player {
     this.activeModelId = id;
     this.collisionRadius = (PLAYER_SIZE / 2) * modelMult;
 
-    // Create occlusion silhouette matching the GLB model's actual shape
-    const shapedSilhouette = createOcclusionSilhouetteFromModel(group, 0x66ccff);
-    if (shapedSilhouette) {
-      shapedSilhouette.visible = this._occluded;
-      this.mesh.add(shapedSilhouette);
-      this.loadedModelSilhouette = shapedSilhouette;
-    } else {
-      // Fallback to bounding-box silhouette if geometry merge fails
-      const silBox = new THREE.Box3().setFromObject(group);
-      const silSize = new THREE.Vector3();
-      silBox.getSize(silSize);
-      const silCenter = new THREE.Vector3();
-      silBox.getCenter(silCenter);
-      const silhouette = createOcclusionSilhouette(
-        silSize.x,
-        silSize.y,
-        silSize.z,
-        0x66ccff,
-        silCenter.y,
-      );
-      silhouette.visible = this._occluded;
-      this.mesh.add(silhouette);
-      this.loadedModelSilhouette = silhouette;
-    }
+    // Create lightweight bounding-box silhouette for occlusion
+    const silBox = new THREE.Box3().setFromObject(group);
+    const silSize = new THREE.Vector3();
+    silBox.getSize(silSize);
+    const silCenter = new THREE.Vector3();
+    silBox.getCenter(silCenter);
+    const silhouette = createOcclusionSilhouette(
+      silSize.x,
+      silSize.y,
+      silSize.z,
+      0x66ccff,
+      silCenter.y,
+    );
+    silhouette.visible = this._occluded;
+    this.mesh.add(silhouette);
+    this.loadedModelSilhouette = silhouette;
   }
 }

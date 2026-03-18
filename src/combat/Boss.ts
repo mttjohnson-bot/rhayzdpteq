@@ -11,7 +11,6 @@ import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { BossConfig, BossAbility } from '../dungeon/FloorConfig';
 import {
   createOcclusionSilhouette,
-  createOcclusionSilhouetteFromModel,
   enableStencilWrite,
   enableStencilWriteOnGroup,
 } from '../rendering/OcclusionOutline';
@@ -240,30 +239,22 @@ export class Boss {
       this.mesh.add(group);
       this.loadedModelGroup = group;
 
-      // Create occlusion silhouette matching the GLB model's actual shape
-      const shapedSilhouette = createOcclusionSilhouetteFromModel(group, 0xff4444);
-      if (shapedSilhouette) {
-        shapedSilhouette.visible = this._occluded;
-        this.mesh.add(shapedSilhouette);
-        this.loadedModelSilhouette = shapedSilhouette;
-      } else {
-        // Fallback to bounding-box silhouette if geometry merge fails
-        const silBox = new THREE.Box3().setFromObject(group);
-        const silSize = new THREE.Vector3();
-        silBox.getSize(silSize);
-        const silCenter = new THREE.Vector3();
-        silBox.getCenter(silCenter);
-        const silhouette = createOcclusionSilhouette(
-          silSize.x,
-          silSize.y,
-          silSize.z,
-          0xff4444,
-          silCenter.y,
-        );
-        silhouette.visible = this._occluded;
-        this.mesh.add(silhouette);
-        this.loadedModelSilhouette = silhouette;
-      }
+      // Create lightweight bounding-box silhouette for occlusion
+      const silBox = new THREE.Box3().setFromObject(group);
+      const silSize = new THREE.Vector3();
+      silBox.getSize(silSize);
+      const silCenter = new THREE.Vector3();
+      silBox.getCenter(silCenter);
+      const silhouette = createOcclusionSilhouette(
+        silSize.x,
+        silSize.y,
+        silSize.z,
+        0xff4444,
+        silCenter.y,
+      );
+      silhouette.visible = this._occluded;
+      this.mesh.add(silhouette);
+      this.loadedModelSilhouette = silhouette;
 
       // Re-show health bar
       this.healthBarFg.visible = true;

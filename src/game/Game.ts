@@ -46,6 +46,7 @@ import {
   HUB_DEPTH,
   PLAYER_ATTACK_RANGE,
   PLAYER_ATTACK_ARC,
+  WALL_LAYER,
 } from '../utils/constants';
 
 export type GameState = 'menu' | 'hub' | 'dungeon' | 'library';
@@ -163,9 +164,9 @@ export class Game {
   private readonly AUTO_SAVE_INTERVAL = 30; // seconds
 
   // Occlusion check — raycast from camera to entities to toggle silhouettes
-  private occlusionRaycaster = new THREE.Raycaster();
+  private occlusionRaycaster: THREE.Raycaster;
   private occlusionFrameCounter = 0;
-  private readonly OCCLUSION_CHECK_INTERVAL = 5; // check every 5 frames
+  private readonly OCCLUSION_CHECK_INTERVAL = 15; // check every 15 frames (~4/sec at 60fps)
   // Reusable vectors for occlusion checks (avoid allocations per frame)
   private _occDir = new THREE.Vector3();
 
@@ -197,6 +198,10 @@ export class Game {
     this.bossHealthBar = new BossHealthBar();
     this.libraryDialog = new LibraryAssetDialog();
     this.combatSystem = new CombatSystem(this.sceneManager.scene, this.player);
+
+    // Occlusion raycaster — only test wall-layer objects
+    this.occlusionRaycaster = new THREE.Raycaster();
+    this.occlusionRaycaster.layers.set(WALL_LAYER);
 
     // RPG systems
     this.playerStats = new PlayerStats();
@@ -1640,41 +1645,41 @@ export class Game {
     if (this.occlusionFrameCounter < this.OCCLUSION_CHECK_INTERVAL) return;
     this.occlusionFrameCounter = 0;
 
+    // Determine the root group that contains wall geometry
+    const sceneRoot =
+      this.state === 'dungeon'
+        ? this.dungeonGroup
+        : this.state === 'library'
+          ? (this.assetLibrary?.group ?? null)
+          : this.hubGroup;
+
+    if (!sceneRoot) return;
+
     const cam = this.camera.camera;
-    const scene = this.sceneManager.scene;
 
     // Player
-    const playerOccluded = this.isOccludedFromCamera(
-      cam,
-      this.player.position,
-      this.player.mesh,
-      scene,
-    );
+    const playerOccluded = this.isOccludedFromCamera(cam, this.player.position, sceneRoot);
     this.player.setOccluded(playerOccluded);
 
     // Enemies + bosses (only in dungeon state)
     if (this.state === 'dungeon') {
       for (const enemy of this.combatSystem.getAliveEnemies()) {
-        const occ = this.isOccludedFromCamera(cam, enemy.position, enemy.mesh, scene);
-        enemy.setOccluded(occ);
+        enemy.setOccluded(this.isOccludedFromCamera(cam, enemy.position, sceneRoot));
       }
       for (const boss of this.combatSystem.getAliveBosses()) {
-        const occ = this.isOccludedFromCamera(cam, boss.position, boss.mesh, scene);
-        boss.setOccluded(occ);
+        boss.setOccluded(this.isOccludedFromCamera(cam, boss.position, sceneRoot));
       }
     }
   }
 
   /**
-   * Returns true if a wall or opaque structure blocks the line-of-sight from
-   * the camera to `targetPos`. Objects belonging to `excludeRoot` (the
-   * entity's own mesh hierarchy) are ignored.
+   * Returns true if a wall or structure on WALL_LAYER blocks the line-of-sight
+   * from the camera to `targetPos`.
    */
   private isOccludedFromCamera(
     cam: THREE.Camera,
     targetPos: THREE.Vector3,
-    excludeRoot: THREE.Object3D,
-    scene: THREE.Scene,
+    sceneRoot: THREE.Object3D,
   ): boolean {
     this._occDir.subVectors(targetPos, cam.position);
     const dist = this._occDir.length();
@@ -1682,29 +1687,10 @@ export class Game {
     this._occDir.divideScalar(dist); // normalize in-place
 
     this.occlusionRaycaster.set(cam.position, this._occDir);
-    // Stop just before the target to avoid hitting the entity itself
     this.occlusionRaycaster.far = dist - 0.1;
 
-    const hits = this.occlusionRaycaster.intersectObjects(scene.children, true);
-
-    for (const hit of hits) {
-      // Skip the entity's own meshes
-      if (this.isDescendantOf(hit.object, excludeRoot)) continue;
-      // Skip transparent or invisible objects (portals, effects, silhouettes)
-      const mat = (hit.object as THREE.Mesh).material as THREE.Material | undefined;
-      if (mat && (mat.transparent || !mat.visible)) continue;
-      // Hit an opaque occluder
-      return true;
-    }
-    return false;
-  }
-
-  private isDescendantOf(obj: THREE.Object3D, ancestor: THREE.Object3D): boolean {
-    let current: THREE.Object3D | null = obj;
-    while (current) {
-      if (current === ancestor) return true;
-      current = current.parent;
-    }
-    return false;
+    // Only tests objects whose layers overlap with the raycaster's WALL_LAYER
+    const hits = this.occlusionRaycaster.intersectObjects(sceneRoot.children, true);
+    return hits.length > 0;
   }
 }
