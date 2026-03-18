@@ -4,7 +4,9 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-18
 
-Optimize GLB occlusion system: build-time silhouette generation, layer-based raycasting, fix false positives.
+Optimize GLB occlusion system: build-time silhouette generation, layer-based raycasting, fix false positives; fix GitHub Pages deploy cache.
+
+- **Fixed GitHub Pages deploy failure (stale GLB cache)** — The deploy workflow's GLB cache key was based only on `.vox` file hashes, so changes to the conversion script (e.g., adding silhouette generation) didn't invalidate the cache. This caused the "Verify .glb assets exist" step to fail because cached files didn't include the new `-silhouette.glb` outputs. The cache key now includes `scripts/convert-models.mjs` so pipeline changes trigger reconversion. Also fixed in the `convert-models.yml` workflow.
 
 - **Build-time silhouette generation** — The asset pipeline (`convert-models.mjs`) now generates a `{name}-silhouette.glb` alongside each character model. These contain the same geometry scaled 1.15× outward from center, with no colors or normals. At runtime, silhouettes are loaded like any other `.glb` (fast, cached) and the occlusion material is applied. This replaces the previous approach of cloning and merging all mesh geometries at spawn time, which caused multi-second loading stalls.
 
