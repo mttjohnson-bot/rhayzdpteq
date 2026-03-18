@@ -4,15 +4,17 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-03-18
 
-Optimize GLB occlusion system to eliminate loading stalls and runtime stuttering; fix false-positive occlusion on enemies in open areas.
+Optimize GLB occlusion system: build-time silhouette generation, layer-based raycasting, fix false positives.
 
-- **Eliminated occlusion loading stall** — Level loading was taking several seconds longer due to `createOcclusionSilhouetteFromModel()` which cloned and merged all mesh geometries for every entity at spawn time. Replaced with lightweight bounding-box silhouettes that create instantly.
+- **Build-time silhouette generation** — The asset pipeline (`convert-models.mjs`) now generates a `{name}-silhouette.glb` alongside each character model. These contain the same geometry scaled 1.15× outward from center, with no colors or normals. At runtime, silhouettes are loaded like any other `.glb` (fast, cached) and the occlusion material is applied. This replaces the previous approach of cloning and merging all mesh geometries at spawn time, which caused multi-second loading stalls.
 
-- **Fixed runtime occlusion stuttering** — The occlusion raycaster was testing against the entire scene graph (floors, enemies, decorations, etc.) every 5 frames, causing periodic freezes. Now uses Three.js layers to raycast only against wall/structure meshes, and only within the active scene group (dungeon, hub, or library). Check interval increased to every 15 frames.
+- **Layer-based occlusion raycasting** — Wall and structure meshes are tagged with `WALL_LAYER` (Three.js layer 1). The occlusion raycaster tests only this layer, scoped to the active scene group. This replaces the previous approach of raycasting against the entire scene graph every 5 frames, which caused continuous stuttering. Check interval increased to 15 frames.
 
-- **Fixed false-positive occlusion on enemies** — Enemies were showing occlusion silhouettes even when standing in open areas because the floor tiles and other enemies' opaque meshes were triggering the raycaster. The layer-based approach ensures only wall geometry counts as an occluder.
+- **Fixed false-positive occlusion on enemies** — Enemies were showing occlusion silhouettes in open areas because floor tiles and other enemies' opaque meshes triggered the raycaster. Layer-based filtering ensures only wall geometry counts as an occluder.
 
-- **Removed dead code** — Removed the unused `createOcclusionSilhouetteFromModel()` function and its `mergeGeometries` import from `OcclusionOutline.ts`.
+- **Asset verification updated** — `verify-assets.mjs` now checks that both `.glb` and `-silhouette.glb` files exist for every `.vox` source, preventing silent 404s for silhouette assets in production.
+
+- **Graceful fallback** — If a silhouette `.glb` fails to load, the system falls back to a bounding-box silhouette, ensuring occlusion always works.
 
 ## 2026-03-17
 

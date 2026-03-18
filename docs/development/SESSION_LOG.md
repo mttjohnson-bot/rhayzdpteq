@@ -1221,6 +1221,24 @@ The `createOcclusionSilhouette()` system already works correctly for the simple 
 5. Files modified: `constants.ts`, `OcclusionOutline.ts`, `FloorRenderer.ts`, `Hub.ts`, `AssetLibrary.ts`, `Game.ts`, `Player.ts`, `Enemy.ts`, `Boss.ts`, `PlayerRestingRegen.test.ts`.
 6. All 496 unit tests pass, lint/format/typecheck/build all clean.
 
+### Follow-up Prompt
+> "Did you replace the occlusions that matched the glb models shape with some simple box silhouettes? The simple box silhouettes do not match the shape of the glb models and won't work. We need silhouettes that take the same or similar shape to the models... is it possible to generate that during the build time like the optimized GLB models from the .vox files... that way we aren't trying to do expensive work during game runtime."
+
+### Follow-up Plan
+1. Extend `convert-models.mjs` to generate `{name}-silhouette.glb` for each model — same geometry scaled 1.15× outward, no colors/normals.
+2. Update `verify-assets.mjs` to check silhouette files exist.
+3. Add `loadCharacterSilhouette`, `loadEnemySilhouette`, `loadBossSilhouette` to `CharacterModelLoader.ts`.
+4. Add `applyOcclusionMaterial()` to `OcclusionOutline.ts` — applies the GreaterDepth+stencil material to a loaded silhouette group.
+5. Update Player, Enemy, Boss to load pre-built silhouettes and apply occlusion material at runtime. Falls back to box silhouette if `.glb` not available.
+
+### Follow-up Outcome
+1. **Build-time silhouette generation** — `convert-models.mjs` now generates 17 `-silhouette.glb` files (one per model). Uses the same voxel face-culling as the main model but only emits positions+indices (no colors/normals), then scales all vertices outward from bounding-box center by 1.15×.
+2. **Silhouette loading at runtime** — Three new loading functions cache and clone silhouette groups like the model loader. `applyOcclusionMaterial()` traverses the loaded group and applies the GreaterDepth+stencil material.
+3. **Silhouettes match model shape** — Since the silhouette `.glb` is derived from the same voxel data as the model, it perfectly matches the character's actual shape.
+4. **No runtime geometry work** — Loading a pre-built `.glb` is the same cost as loading any model (already fast). The expensive `mergeGeometries()` and geometry cloning happen only once at build time.
+5. **Hash-based caching** — Silhouette regeneration is skipped when the source `.vox` hasn't changed (checked alongside the model `.glb`).
+6. Files modified: `convert-models.mjs`, `verify-assets.mjs`, `CharacterModelLoader.ts`, `OcclusionOutline.ts`, `Player.ts`, `Enemy.ts`, `Boss.ts`, `PlayerRestingRegen.test.ts`, `CHANGELOG.md`.
+
 ### Notes
-- The shaped silhouette approach (matching GLB model geometry exactly) was architecturally sound but too expensive for real-time use with many entities. Bounding-box silhouettes are a perfectly acceptable visual trade-off.
-- Three.js layers are the idiomatic way to filter raycasts — objects on layer 0 (default) still render normally, and enabling layer 1 in addition doesn't affect rendering.
+- The user correctly identified that box silhouettes don't match the model shape and proposed the build-time approach. This is the ideal solution since the models are static.
+- Three.js layers for raycasting (from the first pass) are retained — the wall-layer filter and the build-time silhouettes solve orthogonal problems.

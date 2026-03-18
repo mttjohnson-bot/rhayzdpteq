@@ -22,10 +22,11 @@ import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { FloorDifficulty } from '../dungeon/FloorConfig';
 import {
   createOcclusionSilhouette,
+  applyOcclusionMaterial,
   enableStencilWrite,
   enableStencilWriteOnGroup,
 } from '../rendering/OcclusionOutline';
-import { loadEnemyModel } from '../rendering/CharacterModelLoader';
+import { loadEnemyModel, loadEnemySilhouette } from '../rendering/CharacterModelLoader';
 
 export type EnemyModelStyle = 'simple' | 'custom';
 export type EnemyState = 'patrol' | 'chase' | 'attack' | 'dead';
@@ -59,7 +60,7 @@ export class Enemy {
   private modelStyle: EnemyModelStyle = 'simple';
   private simpleChildren: THREE.Object3D[] = [];
   private loadedModelGroup: THREE.Group | null = null;
-  private loadedModelSilhouette: THREE.Mesh | null = null;
+  private loadedModelSilhouette: THREE.Object3D | null = null;
   private simpleSilhouette: THREE.Mesh | null = null;
   private targetHeight: number = 0;
   private targetSize: number = 0;
@@ -302,22 +303,34 @@ export class Enemy {
       this.mesh.add(group);
       this.loadedModelGroup = group;
 
-      // Create lightweight bounding-box silhouette for occlusion
-      const silBox = new THREE.Box3().setFromObject(group);
-      const silSize = new THREE.Vector3();
-      silBox.getSize(silSize);
-      const silCenter = new THREE.Vector3();
-      silBox.getCenter(silCenter);
-      const silhouette = createOcclusionSilhouette(
-        silSize.x,
-        silSize.y,
-        silSize.z,
-        0xff6644,
-        silCenter.y,
-      );
-      silhouette.visible = this._occluded;
-      this.mesh.add(silhouette);
-      this.loadedModelSilhouette = silhouette;
+      // Load pre-built silhouette from the asset pipeline (matches model shape)
+      const silGroup = await loadEnemySilhouette(this.enemyType.id);
+      if (silGroup) {
+        applyOcclusionMaterial(silGroup, 0xff6644);
+        silGroup.scale.copy(group.scale);
+        silGroup.position.copy(group.position);
+        silGroup.rotation.y = group.rotation.y;
+        silGroup.visible = this._occluded;
+        this.mesh.add(silGroup);
+        this.loadedModelSilhouette = silGroup;
+      } else {
+        // Fallback to bounding-box silhouette if silhouette .glb not available
+        const silBox = new THREE.Box3().setFromObject(group);
+        const silSize = new THREE.Vector3();
+        silBox.getSize(silSize);
+        const silCenter = new THREE.Vector3();
+        silBox.getCenter(silCenter);
+        const silhouette = createOcclusionSilhouette(
+          silSize.x,
+          silSize.y,
+          silSize.z,
+          0xff6644,
+          silCenter.y,
+        );
+        silhouette.visible = this._occluded;
+        this.mesh.add(silhouette);
+        this.loadedModelSilhouette = silhouette;
+      }
 
       // Re-show health bar on top of the custom model
       this.healthBarBg.visible = true;

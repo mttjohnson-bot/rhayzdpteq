@@ -11,10 +11,11 @@ import { DungeonData, TileType } from '../dungeon/DungeonGenerator';
 import { BossConfig, BossAbility } from '../dungeon/FloorConfig';
 import {
   createOcclusionSilhouette,
+  applyOcclusionMaterial,
   enableStencilWrite,
   enableStencilWriteOnGroup,
 } from '../rendering/OcclusionOutline';
-import { loadBossModel } from '../rendering/CharacterModelLoader';
+import { loadBossModel, loadBossSilhouette } from '../rendering/CharacterModelLoader';
 
 export type BossModelStyle = 'simple' | 'custom';
 
@@ -76,7 +77,7 @@ export class Boss {
   private modelStyle: BossModelStyle = 'simple';
   private simpleChildren: THREE.Object3D[] = [];
   private loadedModelGroup: THREE.Group | null = null;
-  private loadedModelSilhouette: THREE.Mesh | null = null;
+  private loadedModelSilhouette: THREE.Object3D | null = null;
   private simpleSilhouette: THREE.Mesh | null = null;
 
   /** Whether this boss is occluded from the camera by a wall/structure. */
@@ -239,22 +240,34 @@ export class Boss {
       this.mesh.add(group);
       this.loadedModelGroup = group;
 
-      // Create lightweight bounding-box silhouette for occlusion
-      const silBox = new THREE.Box3().setFromObject(group);
-      const silSize = new THREE.Vector3();
-      silBox.getSize(silSize);
-      const silCenter = new THREE.Vector3();
-      silBox.getCenter(silCenter);
-      const silhouette = createOcclusionSilhouette(
-        silSize.x,
-        silSize.y,
-        silSize.z,
-        0xff4444,
-        silCenter.y,
-      );
-      silhouette.visible = this._occluded;
-      this.mesh.add(silhouette);
-      this.loadedModelSilhouette = silhouette;
+      // Load pre-built silhouette from the asset pipeline (matches model shape)
+      const silGroup = await loadBossSilhouette(this.config.name);
+      if (silGroup) {
+        applyOcclusionMaterial(silGroup, 0xff4444);
+        silGroup.scale.copy(group.scale);
+        silGroup.position.copy(group.position);
+        silGroup.rotation.y = group.rotation.y;
+        silGroup.visible = this._occluded;
+        this.mesh.add(silGroup);
+        this.loadedModelSilhouette = silGroup;
+      } else {
+        // Fallback to bounding-box silhouette if silhouette .glb not available
+        const silBox = new THREE.Box3().setFromObject(group);
+        const silSize = new THREE.Vector3();
+        silBox.getSize(silSize);
+        const silCenter = new THREE.Vector3();
+        silBox.getCenter(silCenter);
+        const silhouette = createOcclusionSilhouette(
+          silSize.x,
+          silSize.y,
+          silSize.z,
+          0xff4444,
+          silCenter.y,
+        );
+        silhouette.visible = this._occluded;
+        this.mesh.add(silhouette);
+        this.loadedModelSilhouette = silhouette;
+      }
 
       // Re-show health bar
       this.healthBarFg.visible = true;

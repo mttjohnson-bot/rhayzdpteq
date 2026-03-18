@@ -25,12 +25,17 @@ import { events } from '../utils/EventBus';
 import { ComputedStats } from '../rpg/Stats';
 import {
   createOcclusionSilhouette,
+  applyOcclusionMaterial,
   enableStencilWrite,
   enableStencilWriteOnGroup,
 } from '../rendering/OcclusionOutline';
 import { ItemRarity } from '../rpg/LootTable';
 import { RARITY_HEX, type WallAABB } from './AssetLibrary';
-import { loadCharacterModel, type CharacterModelId } from '../rendering/CharacterModelLoader';
+import {
+  loadCharacterModel,
+  loadCharacterSilhouette,
+  type CharacterModelId,
+} from '../rendering/CharacterModelLoader';
 
 export class Player {
   readonly mesh: THREE.Mesh;
@@ -100,7 +105,7 @@ export class Player {
   // Character model switching
   private activeModelId: CharacterModelId = 'simple';
   private loadedModelGroup: THREE.Group | null = null;
-  private loadedModelSilhouette: THREE.Mesh | null = null;
+  private loadedModelSilhouette: THREE.Object3D | null = null;
   private simpleGeometry: THREE.BufferGeometry;
   private simpleSilhouette: THREE.Mesh;
 
@@ -656,21 +661,32 @@ export class Player {
     this.activeModelId = id;
     this.collisionRadius = (PLAYER_SIZE / 2) * modelMult;
 
-    // Create lightweight bounding-box silhouette for occlusion
-    const silBox = new THREE.Box3().setFromObject(group);
-    const silSize = new THREE.Vector3();
-    silBox.getSize(silSize);
-    const silCenter = new THREE.Vector3();
-    silBox.getCenter(silCenter);
-    const silhouette = createOcclusionSilhouette(
-      silSize.x,
-      silSize.y,
-      silSize.z,
-      0x66ccff,
-      silCenter.y,
-    );
-    silhouette.visible = this._occluded;
-    this.mesh.add(silhouette);
-    this.loadedModelSilhouette = silhouette;
+    // Load pre-built silhouette from the asset pipeline (matches model shape)
+    const silGroup = await loadCharacterSilhouette(id);
+    if (silGroup) {
+      applyOcclusionMaterial(silGroup, 0x66ccff);
+      silGroup.scale.copy(group.scale);
+      silGroup.position.copy(group.position);
+      silGroup.visible = this._occluded;
+      this.mesh.add(silGroup);
+      this.loadedModelSilhouette = silGroup;
+    } else {
+      // Fallback to bounding-box silhouette if silhouette .glb not available
+      const silBox = new THREE.Box3().setFromObject(group);
+      const silSize = new THREE.Vector3();
+      silBox.getSize(silSize);
+      const silCenter = new THREE.Vector3();
+      silBox.getCenter(silCenter);
+      const silhouette = createOcclusionSilhouette(
+        silSize.x,
+        silSize.y,
+        silSize.z,
+        0x66ccff,
+        silCenter.y,
+      );
+      silhouette.visible = this._occluded;
+      this.mesh.add(silhouette);
+      this.loadedModelSilhouette = silhouette;
+    }
   }
 }

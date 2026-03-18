@@ -42,6 +42,37 @@ export function createOcclusionSilhouette(
 }
 
 /**
+ * Applies the occlusion outline material to all meshes in a pre-built
+ * silhouette group (loaded from a `-silhouette.glb` file). Replaces whatever
+ * material the GLB was loaded with (typically none/default) with the same
+ * GreaterDepth + NotEqual stencil material used by `createOcclusionSilhouette`.
+ *
+ * The group's renderOrder is set to 10 so the silhouette renders after
+ * normal geometry. Returns the group for chaining.
+ */
+export function applyOcclusionMaterial(group: THREE.Object3D, color: number): void {
+  const mat = new THREE.MeshBasicMaterial({
+    color,
+    transparent: true,
+    opacity: OUTLINE_OPACITY,
+    depthTest: true,
+    depthWrite: false,
+    depthFunc: THREE.GreaterDepth,
+    stencilWrite: false,
+    stencilRef: STENCIL_REF,
+    stencilFunc: THREE.NotEqualStencilFunc,
+    stencilFuncMask: 0xff,
+  });
+
+  group.traverse((child) => {
+    if (child instanceof THREE.Mesh) {
+      child.material = mat;
+      child.renderOrder = 10;
+    }
+  });
+}
+
+/**
  * Enables stencil-write on a mesh material so it marks its pixels in the
  * stencil buffer. The occlusion silhouette uses NotEqualStencilFunc to
  * skip these pixels, preventing the character's own geometry from
