@@ -82,6 +82,26 @@ Entries are listed in reverse chronological order (newest first).
 
 ---
 
+## 2026-03-20 — Upgrade Vite 7 to 8 (Rolldown migration)
+
+### Prompt
+> It looks like one of the dependabot pull requests (PR #142) hit some errors during quality checks. It is suggesting to move vite from 7.3.1 to 8.0.1. There may be breaking changes in moving from 7.x to 8.x. Can you investigate the issue and provide suggestions on what would be needed to resolve them?
+
+### Plan
+1. Investigate the CI build failure on the dependabot PR.
+2. Research Vite 8 breaking changes and migration guide.
+3. Identify the root cause (`manualChunks` object form removed in Vite 8/Rolldown).
+4. Migrate `manualChunks` to `codeSplitting` and move `input` to `rolldownOptions`.
+
+### Outcome
+The build failure was caused by Vite 8 replacing Rollup with Rolldown, which removes the object form of `manualChunks`. Migrated the config: replaced `rollupOptions.output.manualChunks` with `rolldownOptions.output.codeSplitting` using Rolldown's `groups` syntax, and moved `input` from `rollupOptions` to `rolldownOptions`. The `rollup-plugin-visualizer` remains in `rollupOptions.plugins` as it's compatible via the compat layer. All quality gates pass (lint, format, typecheck, build, 496 unit tests).
+
+### Notes
+- The `rollupOptions.input` config was silently ignored when `rolldownOptions` was also present — discovered during testing when `model-gallery.html` was missing from the build output.
+- The `rollup-plugin-visualizer` already supports Rolldown natively, so no plugin changes needed.
+
+---
+
 ## 2026-03-17 — Fix Update Visual Snapshots Workflow
 
 ### Prompt

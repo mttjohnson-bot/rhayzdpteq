@@ -23,15 +23,6 @@ export default defineConfig({
     target: 'es2020',
     outDir: 'dist',
     rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html'),
-        'model-gallery': resolve(__dirname, 'model-gallery.html'),
-      },
-      output: {
-        manualChunks: {
-          three: ['three'],
-        },
-      },
       plugins: analyze
         ? [
             visualizer({
@@ -42,6 +33,17 @@ export default defineConfig({
             }),
           ]
         : [],
+    },
+    rolldownOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        'model-gallery': resolve(__dirname, 'model-gallery.html'),
+      },
+      output: {
+        codeSplitting: {
+          groups: [{ name: 'three', test: /node_modules\/three/ }],
+        },
+      },
     },
   },
 });
