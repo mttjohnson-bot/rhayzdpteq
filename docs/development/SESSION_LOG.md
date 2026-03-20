@@ -1281,3 +1281,22 @@ The diagnostics overlay (`DiagnosticsOverlay.ts`) was positioned at `top: 10px, 
 
 ### Notes
 - Simple CSS positioning fix. The menu button is ~40px tall (12px top + 8px padding + ~16px content + 8px padding), so 52px top provides a clean gap below it.
+
+---
+
+## 2026-03-20 — Fix Boss Floating Bug on Floors 2 & 3
+
+### Prompt
+> "The bosses on floor 2 and 3 seems to jump up stay floating in the air rising continually higher. I'm wondering if it has something to do with the slam attack or something else. Can you investigate this and offer some suggestions on what the problem is and what could be fixed."
+
+### Plan
+1. Investigate boss Y position management, slam attack implementation, and ability timer lifecycle.
+2. Identify why only floors 2 and 3 are affected (floor 1 boss has no slam ability).
+3. Apply a robust fix that prevents the slam ability from ending while the boss is airborne.
+
+### Outcome
+Root cause: In `Boss.ts`, `startAbility('slam')` set both `slamTimer` and `abilityTimer` to 0.5s. When the rise phase completed at 0.5s, `abilityTimer` also expired, setting `currentAbility = null` before the fall phase could execute. The boss stayed at its risen Y position (~1.5 units), and each subsequent slam added more height. Fixed by keeping `abilityTimer` alive while `position.y > 0` during the slam case, so the ability cannot end until the boss is back on the ground.
+
+### Notes
+- Floor 1 boss uses `['charge', 'summon']` (no slam), which is why it was never affected.
+- The fragile alternative (setting `abilityTimer = 0.65`) was rejected in favor of the robust guard that ties ability lifetime to the actual Y position, avoiding frame-timing edge cases.

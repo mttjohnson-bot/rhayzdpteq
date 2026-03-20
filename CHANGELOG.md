@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-03-20
+
+Fix boss floating bug on floors 2 and 3.
+
+- **Fixed bosses floating upward after slam attack** — Bosses on floors 2 and 3 would rise into the air and never come back down, floating progressively higher with each slam. The `abilityTimer` (0.5s) expired at the same moment the rise phase ended, preventing the fall phase from ever executing. The slam ability now keeps itself alive until the boss's Y position returns to ground level, ensuring the full rise-and-fall animation always completes regardless of frame timing.
+
 ## 2026-03-18
 
 Optimize GLB occlusion system: build-time silhouette generation, layer-based raycasting, fix false positives; fix GitHub Pages deploy cache; fix diagnostics overlay positioning.
