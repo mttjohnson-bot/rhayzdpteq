@@ -513,6 +513,10 @@ export class Boss {
             events.emit('bossSlam', this.position.x, this.position.z);
           }
         }
+        // Keep ability alive until boss is back on the ground
+        if (this.position.y > 0) {
+          this.abilityTimer = Math.max(this.abilityTimer, 0.05);
+        }
         break;
       }
     }
