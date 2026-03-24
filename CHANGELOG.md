@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-03-24
+
+Add bug handling workflow guidance to CLAUDE.md.
+
+- **Added bug reproduction workflow to CLAUDE.md** — New "Bug Handling Workflow" section establishes a three-phase process: understand the bug through clarifying questions, write a failing test that reproduces it before touching source code, then fix and prove the fix with a passing test. This prevents premature fixes, misunderstood bugs, and regressions from slipping back in.
+
 ## 2026-03-20
 
 Fix boss floating bug on floors 2 and 3.
