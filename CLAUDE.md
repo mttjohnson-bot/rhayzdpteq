@@ -229,6 +229,55 @@ Do not skip these steps or rely solely on the pre-commit hook. The hook only che
 
 The production bundle must stay under **5 MB gzipped** (see Performance Guidelines). After adding new dependencies or large features, run `npm run analyze` to generate an interactive bundle treemap at `dist/stats.html` and verify the budget is not exceeded.
 
+## Bug Handling Workflow
+
+When a bug is reported, **do not immediately attempt a fix.** Follow this three-phase workflow instead.
+
+### Phase 1: Understand the bug before touching code
+
+Ask clarifying questions until the behavior is unambiguous. You need to know:
+
+1. **What actually happens** — exact behavior, including any error messages, console output, or visual symptoms.
+2. **What was expected** — what *should* have happened instead.
+3. **Reproduction steps** — the exact sequence of actions that triggers the bug. Include starting state, inputs, and any conditions that seem relevant.
+4. **Consistency** — does it happen every time, or only sometimes? If intermittent, under what conditions?
+5. **Scope** — is this specific to a certain floor, enemy type, item, game state, or input?
+6. **Environment** — browser, OS, any relevant settings (if the bug might be platform-specific).
+7. **When it started** — was there a recent change that may have introduced it?
+
+Do not proceed to Phase 2 until you can describe the bug in one clear sentence: *"When X happens, Y occurs instead of Z."* If you cannot write that sentence yet, ask more questions.
+
+### Phase 2: Write a failing test that reproduces the bug
+
+Before changing any source code, write a unit test (or E2E test if appropriate) that:
+
+- Sets up the conditions that trigger the bug
+- Asserts the **expected** behavior (not the broken behavior)
+- **Fails** when run against the current code — confirming the bug is reproducible
+
+Commit this failing test on its own with a message like `test: reproduce bug — <short description>`. This commit is the baseline: it proves the bug exists and defines what "fixed" means.
+
+If you cannot write an automated test (e.g., the bug requires browser rendering that unit tests can't cover), document the manual reproduction steps in a comment in the test file and write the closest approximation you can. Never skip this phase by jumping straight to a fix.
+
+### Phase 3: Fix the bug, prove it with the test
+
+Now modify source code to correct the behavior. When your fix is right, the test from Phase 2 will turn green. Do not mark the bug as fixed until:
+
+1. The previously-failing test now passes
+2. All other existing tests still pass (`npm test`)
+3. The full quality gate suite is clean (lint, format, typecheck, build)
+
+Commit the fix separately from the test so the history clearly shows: *"here's the reproduction, here's the fix."*
+
+### Why this order matters
+
+Jumping straight to a fix risks:
+- Fixing the wrong thing (misunderstood the bug)
+- Fixing it in a way that happens to pass but doesn't address the root cause
+- Leaving no regression guard — the bug can silently return
+
+The failing test is the contract. It defines what broken looks like, forces a precise understanding of the bug, and becomes a permanent regression test after the fix.
+
 ## Code Style and Conventions
 
 - TypeScript strict mode
