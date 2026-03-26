@@ -1320,3 +1320,26 @@ Root cause: In `Boss.ts`, `startAbility('slam')` set both `slamTimer` and `abili
 ### Notes
 - Floor 1 boss uses `['charge', 'summon']` (no slam), which is why it was never affected.
 - The fragile alternative (setting `abilityTimer = 0.65`) was rejected in favor of the robust guard that ties ability lifetime to the actual Y position, avoiding frame-timing edge cases.
+
+---
+
+## 2026-03-26 — Fix npm audit security vulnerabilities
+
+### Prompt
+> "In some newer pull requests and merges there were some security checks that failed for npm audit. Can you look into this and see what is needed to resolve the identified issues."
+
+### Plan
+1. Run `npm audit` to identify the specific vulnerabilities.
+2. Apply `npm audit fix` to update affected transitive dependencies.
+3. Verify all quality gates still pass after the updates.
+
+### Outcome
+Two vulnerabilities fixed via `npm audit fix` (no breaking changes, only patch-level updates to transitive dependencies):
+- **picomatch** 4.0.3 → 4.0.4: High-severity ReDoS (GHSA-c2c7-rcm5-vvqj) and method injection (GHSA-3v7f-55p6-f55p).
+- **yaml** 2.8.2 → 2.8.3: Moderate-severity stack overflow (GHSA-48c2-rrv3-qjmp).
+
+Both are transitive dependencies of vite, lint-staged, vitest, and rollup-plugin-visualizer. Only `package-lock.json` changed — no source code modifications needed.
+
+### Notes
+- The fix was trivial since both packages had patched versions available that satisfied existing semver ranges.
+- All quality gates passed: lint, format, typecheck, build, and 496 unit tests.

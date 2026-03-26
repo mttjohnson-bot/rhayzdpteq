@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-03-26
+
+Fix npm audit security vulnerabilities.
+
+- **Updated picomatch from 4.0.3 to 4.0.4** — Fixes a high-severity ReDoS vulnerability via extglob quantifiers (GHSA-c2c7-rcm5-vvqj) and a method injection issue in POSIX character classes (GHSA-3v7f-55p6-f55p).
+- **Updated yaml from 2.8.2 to 2.8.3** — Fixes a moderate-severity stack overflow via deeply nested YAML collections (GHSA-48c2-rrv3-qjmp).
+
 ## 2026-03-24
 
 Add bug handling workflow guidance to CLAUDE.md.
