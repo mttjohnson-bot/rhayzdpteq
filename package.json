@@ -17,7 +17,7 @@
     "test:e2e": "playwright test",
     "test:e2e:functional": "playwright test --grep-invert @visual",
     "test:e2e:visual": "playwright test --grep @visual",
-    "test:e2e:update-snapshots": "playwright test --grep @visual --update-snapshots",
+    "test:e2e:update-snapshots": "playwright test --grep @visual --update-snapshots=all",
     "analyze": "ANALYZE=true vite build",
     "audit": "npm audit --audit-level=high",
     "prepare": "husky"
