@@ -141,12 +141,16 @@ test.describe('Asset Library Visual Tests', () => {
       // Wait for hub to settle
       await page.waitForTimeout(500);
 
-      // Walk east (D key) towards the library door at x=8, z=0
-      // Player spawns at (0,0), needs to travel ~8 units east
-      // Auto-enters library when within 2.5 units of door
+      // Walk east towards the library door at x=8, z=0.
+      // The game applies a -45° isometric rotation to movement input, so:
+      //   D alone (moveX=+1) moves northeast in world space (+X, -Z)
+      //   D + S together (moveX=+1, moveZ=+1) moves pure east (+X)
+      // Player spawns at (0,0), auto-enters library when within 2.5 units of door.
       await page.keyboard.down('KeyD');
+      await page.keyboard.down('KeyS');
       await page.waitForTimeout(3000);
       await page.keyboard.up('KeyD');
+      await page.keyboard.up('KeyS');
 
       // Wait for library scene to load and render
       await page.waitForTimeout(1500);
