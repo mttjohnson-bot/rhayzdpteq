@@ -7,6 +7,11 @@ on:
         description: 'Branch to update snapshots on'
         required: true
         type: string
+      force:
+        description: 'Force commit even if snapshots appear unchanged'
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -39,13 +44,21 @@ jobs:
       - name: Build production bundle
         run: npm run build
 
+      - name: Delete existing snapshots (force rebuild)
+        if: inputs.force
+        run: rm -rf tests/e2e/__snapshots__/
+
       - name: Update visual snapshots
         run: npm run test:e2e:update-snapshots
 
       - name: Check for changes
         id: changes
         run: |
-          git diff --quiet tests/e2e/__snapshots__/ && echo "changed=false" >> "$GITHUB_OUTPUT" || echo "changed=true" >> "$GITHUB_OUTPUT"
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            git diff --quiet tests/e2e/__snapshots__/ && echo "changed=false" >> "$GITHUB_OUTPUT" || echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Commit updated baselines
         if: steps.changes.outputs.changed == 'true'
