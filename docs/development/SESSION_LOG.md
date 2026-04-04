@@ -82,6 +82,26 @@ Entries are listed in reverse chronological order (newest first).
 
 ---
 
+## 2026-04-04 — Fix visual snapshot update workflow
+
+### Prompt
+> I tried running the "Update Visual Snapshots" workflow but it didn't change the hub-hud.png file. The image looks different from what I see in the live game. I want it rebuilt but it doesn't seem to be changing.
+
+### Plan
+1. Investigate the full chain: workflow → npm script → Playwright flag → snapshot output.
+2. Identify root cause: `--update-snapshots` defaults to `missing` in Playwright 1.47+, only creating new snapshots but not overwriting existing ones.
+3. Fix by changing to `--update-snapshots=all` in `package.json`.
+
+### Outcome
+The `test:e2e:update-snapshots` npm script was using `--update-snapshots` without specifying a mode. In Playwright 1.58 (the project's version), this defaults to `missing` — only creating snapshots that don't exist. Existing baselines are silently skipped. Changed to `--update-snapshots=all` so the workflow overwrites all baselines with fresh screenshots from the current code.
+
+### Notes
+- The `#hud` element in the visual test is a transparent full-screen overlay, so the screenshot includes the 3D canvas behind it (including the player character model).
+- Investigation confirmed that several UI changes had landed since the last snapshot update but couldn't be captured due to the flag behavior.
+- After this fix, re-running the "Update Visual Snapshots" workflow on `main` should commit updated baselines.
+
+---
+
 ## 2026-03-20 — Upgrade Vite 7 to 8 (Rolldown migration)
 
 ### Prompt

@@ -4,7 +4,10 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-04-04
 
-Fix TypeScript 6.0.2 compatibility for dependabot upgrade PR.
+Fix visual snapshot update workflow and TypeScript 6.0.2 compatibility.
+
+- **Fixed visual snapshot update workflow not overwriting existing baselines** — The `--update-snapshots` flag in Playwright 1.47+ defaults to `missing` mode, which only creates snapshots that don't exist yet but skips existing ones. Changed to `--update-snapshots=all` so the "Update Visual Snapshots" workflow actually regenerates all baselines from the current code.
+- **Added "Force rebuild" checkbox to Update Visual Snapshots workflow** — When checked, deletes existing snapshots before regenerating and always commits the result, even if the images appear binary-identical. Useful when you want to guarantee fresh baselines.
 
 - **Removed deprecated `baseUrl` from tsconfig.json** — TypeScript 6.0 deprecates the `baseUrl` compiler option (TS5101). Removed it and updated `paths` entries to use relative paths (`"./src/*"` instead of `"src/*"`), which is supported since TypeScript 4.1. This unblocks the dependabot PR (#150) that bumps TypeScript from 5.9.3 to 6.0.2.
 
