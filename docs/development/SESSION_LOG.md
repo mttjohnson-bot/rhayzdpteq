@@ -1343,3 +1343,24 @@ Both are transitive dependencies of vite, lint-staged, vitest, and rollup-plugin
 ### Notes
 - The fix was trivial since both packages had patched versions available that satisfied existing semver ranges.
 - All quality gates passed: lint, format, typecheck, build, and 496 unit tests.
+
+---
+
+## 2026-04-04 — Fix TypeScript 6.0.2 upgrade CI failures
+
+### Prompt
+> "There is a pull request #150 on the repo but some of the checks are failing, can you investigate the issues and update the branch with some fixes to resolve the issues on that pull request."
+
+### Plan
+1. Identify PR #150 as a dependabot TypeScript 5.9.3 → 6.0.2 major version bump.
+2. Reproduce the CI failure locally — `tsc` errors with TS5101: `baseUrl` is deprecated in TypeScript 6.0.
+3. Remove the deprecated `baseUrl` option from `tsconfig.json` and make `paths` entries relative (`"./src/*"`).
+4. Verify all quality gates pass and push the fix.
+
+### Outcome
+Single tsconfig.json change: removed `baseUrl` and updated the `paths` alias to use a relative path. All quality gates pass — lint, format, typecheck, build, and 496 unit tests.
+
+### Notes
+- TypeScript 6.0 deprecates `baseUrl` with TS5101, warning it will stop functioning in TypeScript 7.0. The migration guide recommends using relative paths in `paths` entries instead.
+- The `@/*` path alias was the only consumer of `baseUrl`; no bare-specifier imports depended on it.
+- An alternative fix (`"ignoreDeprecations": "6.0"`) was considered but rejected in favor of the cleaner removal since `baseUrl` was unnecessary.

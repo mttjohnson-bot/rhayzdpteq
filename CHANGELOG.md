@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-04-04
+
+Fix TypeScript 6.0.2 compatibility for dependabot upgrade PR.
+
+- **Removed deprecated `baseUrl` from tsconfig.json** — TypeScript 6.0 deprecates the `baseUrl` compiler option (TS5101). Removed it and updated `paths` entries to use relative paths (`"./src/*"` instead of `"src/*"`), which is supported since TypeScript 4.1. This unblocks the dependabot PR (#150) that bumps TypeScript from 5.9.3 to 6.0.2.
+
 ## 2026-03-26
 
 Fix npm audit security vulnerabilities.
