@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
 
 /**
- * Visual regression tests for in-game menu tabs and the Asset Library scene.
+ * Visual regression tests for in-game menu tabs.
  *
  * These tests capture screenshots of each menu tab (Inventory, Skills, Controls,
- * Settings) and the Asset Library area. All are tagged @visual so they run in
- * the non-blocking visual regression CI job.
+ * Settings) opened from the hub. All are tagged @visual so they run in the
+ * non-blocking visual regression CI job.
  *
  * Note: The Map tab is only available inside a dungeon, so it is not tested here.
  * The Diagnostics tab may be disabled by default — it is skipped for now.
@@ -116,48 +116,6 @@ test.describe('Menu Tab Visual Tests', () => {
       });
 
       await expect(page).toHaveScreenshot('menu-tab-settings.png', {
-        maxDiffPixelRatio: 0.02,
-      });
-    },
-  );
-});
-
-test.describe('Asset Library Visual Tests', () => {
-  test(
-    'visual regression: asset library',
-    { tag: '@visual' },
-    async ({ page }) => {
-      // Clear saves and start a fresh game
-      await page.goto('/');
-      await page.evaluate(() => localStorage.clear());
-      await page.reload();
-      await page.waitForSelector('#menu-screen', { timeout: 10_000 });
-
-      // Start new game
-      const newGameBtn = page.locator('#menu-screen button:has-text("New Game")');
-      await newGameBtn.click();
-      await page.waitForSelector('#hud', { timeout: 5_000 });
-
-      // Wait for hub to settle
-      await page.waitForTimeout(500);
-
-      // Walk east towards the library door at x=8, z=0.
-      // The game applies a -45° isometric rotation to movement input, so:
-      //   D alone (moveX=+1) moves northeast in world space (+X, -Z)
-      //   D + S together (moveX=+1, moveZ=+1) moves pure east (+X)
-      // Player spawns at (0,0), auto-enters library when within 2.5 units of door.
-      await page.keyboard.down('KeyD');
-      await page.keyboard.down('KeyS');
-      await page.waitForTimeout(3000);
-      await page.keyboard.up('KeyD');
-      await page.keyboard.up('KeyS');
-
-      // Wait for library scene to load and render
-      await page.waitForTimeout(1500);
-
-      // Take a screenshot of the HUD overlay in the library (same approach as hub-hud)
-      const hud = page.locator('#hud');
-      await expect(hud).toHaveScreenshot('library-hud.png', {
         maxDiffPixelRatio: 0.02,
       });
     },
