@@ -4,7 +4,10 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-04-04
 
-Fix visual snapshot update workflow and TypeScript 6.0.2 compatibility.
+Add visual regression tests for menu tabs and Asset Library; fix snapshot update workflow and TypeScript 6.0.2 compatibility.
+
+- **Added visual regression screenshots for all menu tabs** — New test file captures screenshots of the Inventory, Skills, Controls, and Settings tabs when opened from the hub. These run in the non-blocking visual regression CI job alongside the existing title-screen and hub-hud snapshots.
+- **Added visual regression screenshot for the Asset Library** — Captures the HUD overlay when the player enters the Asset Library through the east door, matching the existing hub-hud screenshot approach.
 
 - **Fixed visual snapshot update workflow not overwriting existing baselines** — The `--update-snapshots` flag in Playwright 1.47+ defaults to `missing` mode, which only creates snapshots that don't exist yet but skips existing ones. Changed to `--update-snapshots=all` so the "Update Visual Snapshots" workflow actually regenerates all baselines from the current code.
 - **Added "Force rebuild" checkbox to Update Visual Snapshots workflow** — When checked, deletes existing snapshots before regenerating and always commits the result, even if the images appear binary-identical. Useful when you want to guarantee fresh baselines.
