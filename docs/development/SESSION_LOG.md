@@ -1384,3 +1384,33 @@ Single tsconfig.json change: removed `baseUrl` and updated the `paths` alias to 
 - TypeScript 6.0 deprecates `baseUrl` with TS5101, warning it will stop functioning in TypeScript 7.0. The migration guide recommends using relative paths in `paths` entries instead.
 - The `@/*` path alias was the only consumer of `baseUrl`; no bare-specifier imports depended on it.
 - An alternative fix (`"ignoreDeprecations": "6.0"`) was considered but rejected in favor of the cleaner removal since `baseUrl` was unnecessary.
+
+---
+
+## 2026-04-04 — Add menu tab and Asset Library visual tests
+
+### Prompt
+> "How can we improve the e2e testing of visual tests to include some additional screenshots for the menu and all of its tabs?"
+> "Would it also be possible to get a screenshot of the library like we have of the hub?"
+
+### Plan
+1. Analyze existing visual tests (only title-screen and hub-hud screenshots).
+2. Identify all 6 menu tabs and which are available in the hub context (Map is dungeon-only).
+3. Create a new test file (`menu-tabs-visual.test.ts`) with visual regression tests for Inventory, Skills, Controls, and Settings tabs.
+4. Add a visual regression test for the Asset Library scene by walking the player east to trigger auto-entry.
+5. All tests tagged `@visual` for the non-blocking CI job.
+
+### Outcome
+New test file `tests/e2e/menu-tabs-visual.test.ts` with 5 visual regression tests:
+- **Inventory tab** — opens with I key, screenshots full page with tab bar and inventory panel.
+- **Skills tab** — opens with K key, screenshots skill tree with 3 branches.
+- **Controls tab** — opens inventory then tabs right with `]` to reach Controls.
+- **Settings tab** — opens inventory then tabs right with `]` to reach Settings.
+- **Asset Library** — starts new game, walks east to auto-enter library, screenshots HUD overlay.
+
+Baselines will be generated in CI on first run (per project rules — local baselines mismatch CI rendering).
+
+### Notes
+- Map tab is skipped because it's only available inside a dungeon, not in the hub.
+- Diagnostics tab is skipped as it may be disabled by default.
+- Tab cycling uses `]` key which skips disabled tabs (like Map in hub), so the test counts tab presses accordingly.
