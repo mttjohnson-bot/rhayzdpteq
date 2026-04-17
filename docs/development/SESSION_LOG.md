@@ -1414,3 +1414,28 @@ Baselines will be generated in CI on first run (per project rules — local base
 - Map tab is skipped because it's only available inside a dungeon, not in the hub.
 - Diagnostics tab is skipped as it may be disabled by default.
 - Tab cycling uses `]` key which skips disabled tabs (like Map in hub), so the test counts tab presses accordingly.
+
+---
+
+## 2026-04-17 — Fix security audit failures blocking dependabot PRs
+
+### Prompt
+> "I'm seeing several pull requests that were opened by dependabot and seem to be failing the security checks (`npm audit --audit-level=high`). Can you look at the various pull requests and see what needs to be done to update the dependencies involved and fix the security checks?"
+
+### Plan
+1. List all open dependabot PRs and check their CI status.
+2. Identify the common "npm audit" failure across all 6 PRs.
+3. Run `npm audit` on main to find the actual vulnerabilities.
+4. Apply `npm audit fix` to update vulnerable packages.
+5. Verify all quality gates pass, commit, and push.
+
+### Outcome
+Updated `package-lock.json` to fix two vulnerabilities:
+- **vite 8.0.3 → 8.0.8** — Fixes 3 high-severity issues (path traversal, fs.deny bypass, WebSocket file read).
+- **brace-expansion 5.0.4 → 5.0.5** — Fixes moderate-severity process hang via zero-step sequences.
+
+All quality gates pass (lint, format, typecheck, build, 496 unit tests). The fix is on `main` via a dedicated branch, which will unblock all 6 dependabot PRs once merged.
+
+### Notes
+- The audit failures were pre-existing on main, not introduced by any dependabot PR. Each dependabot PR bumps a different package but inherits the same failing `npm audit` check from the base branch.
+- Only `package-lock.json` changed — the `package.json` semver ranges already covered the patched versions.
