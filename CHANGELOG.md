@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-04-17
+
+Fix npm audit security vulnerabilities blocking dependabot PRs.
+
+- **Updated vite from 8.0.3 to 8.0.8** — Fixes three high-severity vulnerabilities: path traversal in optimized deps `.map` handling (GHSA-4w7w-66w2-5vf9), `server.fs.deny` bypass with queries (GHSA-v2wj-q39q-566r), and arbitrary file read via dev server WebSocket (GHSA-p9ff-h696-f583).
+- **Updated brace-expansion from 5.0.4 to 5.0.5** — Fixes a moderate-severity issue where zero-step sequences cause process hang and memory exhaustion (GHSA-f886-m6hf-6m8v).
+
 ## 2026-04-04
 
 Add visual regression tests for menu tabs and Asset Library; fix snapshot update workflow and TypeScript 6.0.2 compatibility.
