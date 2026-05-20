@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-05-20
+
+Consolidate open Dependabot dependency updates into a single batch.
+
+- **Bumped `three` from 0.183.2 to 0.184.0 and `@types/three` from 0.183.1 to 0.184.1** — Grouped update (must move together) from Dependabot PR #174.
+- **Bumped `jsdom` from 29.0.2 to 29.1.1** — `getComputedStyle()` optimizations and CSS fixes (`border-radius` serialization, `background-origin`/`background-clip`, ratio CSS unit, style cache invalidation). From Dependabot PR #173.
+- **Bumped `vite` from 8.0.8 to 8.0.13** — Rolldown rc.17, HMR client logger fixes, CSS minification warning improvements, and additional optimizer/dev-server bug fixes. Caret range unchanged; lockfile updated. From Dependabot PR #172.
+- **Bumped `typescript-eslint` from 8.59.0 to 8.59.4** — Patch fixes to `no-unnecessary-type-assertion`, `no-unnecessary-type-arguments`, and `no-unnecessary-condition` rules. From Dependabot PR #171.
+- **Bumped `typescript` from 6.0.2 to 6.0.3** — Hardened ATA package name filtering and marked class property initializers as containers. From Dependabot PR #170.
+
 ## 2026-04-17
 
 Fix npm audit security vulnerabilities blocking dependabot PRs.

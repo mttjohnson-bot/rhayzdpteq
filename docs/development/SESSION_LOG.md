@@ -82,6 +82,27 @@ Entries are listed in reverse chronological order (newest first).
 
 ---
 
+## 2026-05-20 — Consolidate open Dependabot dependency updates
+
+### Prompt
+> It looks like dependabot created several new pull requests on the repo about new versions on dependencies. Can you review them all and identify which ones need to be resolved so we can apply a single update to address all the version changes that are needed.
+
+### Plan
+1. List all open Dependabot PRs and identify the package + version delta for each.
+2. Verify the installed versions in `package-lock.json` match each PR's "from" version so the updates are still applicable.
+3. Confirm none of the PRs overlap on the same package (so they can be cleanly batched).
+4. Apply all updates in one branch (`claude/review-dependabot-updates-vQQYY`), regenerate the lockfile, run the full quality gate suite, and update the changelog.
+
+### Outcome
+Bundled five Dependabot PRs (#170–#174) into a single consolidated update: `three` 0.183.2 → 0.184.0 with `@types/three` 0.183.1 → 0.184.1 (grouped), `jsdom` 29.0.2 → 29.1.1, `vite` 8.0.8 → 8.0.13 (caret already covered 8.0.10), `typescript-eslint` 8.59.0 → 8.59.4, and `typescript` 6.0.2 → 6.0.3. Lint, type check, build, and unit tests (496 passing) all clean. See CHANGELOG.md for the breakdown.
+
+### Notes
+- All five PRs were independent (no shared packages) and all minor/patch bumps, so consolidation was low risk.
+- `npm install` after editing the manifest did not bump `vite` because the existing caret `^8.0.3` already allowed it; needed `npm update vite` to pull the lockfile forward.
+- A few packages picked up newer patch releases than what each individual PR advertised (e.g., `@types/three` 0.184.1 vs 0.184.0, `typescript-eslint` 8.59.4 vs 8.59.1) because the caret ranges now allow them — still within the requested major/minor windows.
+
+---
+
 ## 2026-04-04 — Fix visual snapshot update workflow
 
 ### Prompt
