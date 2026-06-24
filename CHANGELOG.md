@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-06-24
+
+Merge safe Dependabot updates and clear npm audit security vulnerabilities blocking the remaining dependency PRs.
+
+- **Merged Dependabot updates `@playwright/test` 1.59.1 → 1.60.0 (#176), `vite` 8.0.13 → 8.0.14 (#177), and `eslint` 10.2.1 → 10.4.0 (#178)** — Low-risk minor/patch dev-dependency bumps with all CI checks green.
+- **Updated `vite` from 8.0.14 to 8.1.0** — Fixes two high-severity vulnerabilities: `server.fs.deny` bypass on Windows alternate paths (GHSA-fx2h-pf6j-xcff) and launch-editor NTLMv2 hash disclosure via UNC path handling on Windows (GHSA-v6wh-96g9-6wx3). Caret range unchanged; lockfile updated.
+- **Updated `undici` from 7.25.0 to 7.28.0** — Transitive dependency via `jsdom`. Fixes multiple high-severity issues including TLS certificate validation bypass in SOCKS5 ProxyAgent (GHSA-vmh5-mc38-953g), shared-cache information disclosure (GHSA-pr7r-676h-xcf6), Set-Cookie header injection (GHSA-p88m-4jfj-68fv), and WebSocket denial of service (GHSA-vxpw-j846-p89q).
+- **Updated `brace-expansion` from 5.0.5 to 5.0.6** — Transitive dependency. Fixes a moderate-severity ReDoS where a large numeric range defeats the documented `max` DoS protection (GHSA-jxxr-4gwj-5jf2).
+
 ## 2026-05-20
 
 Consolidate open Dependabot dependency updates into a single batch.
