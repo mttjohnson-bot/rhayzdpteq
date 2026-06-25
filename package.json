@@ -34,7 +34,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@gltf-transform/core": "^4.3.0",
-    "@playwright/test": "^1.60.0",
+    "@playwright/test": "^1.61.1",
     "@types/three": "^0.184.0",
     "@vitest/coverage-v8": "^4.1.9",
     "eslint": "^10.4.0",
