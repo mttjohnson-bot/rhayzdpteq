@@ -34,7 +34,7 @@ jobs:
       # Cache converted .glb files keyed on hash of all .vox source files
       - name: Restore cached .glb files
         id: cache-glb
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             public/assets/characters/*.glb
