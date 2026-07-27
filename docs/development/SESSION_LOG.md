@@ -1482,3 +1482,79 @@ All quality gates pass (lint, format, typecheck, build, 496 unit tests). The fix
 ### Notes
 - The audit failures were pre-existing on main, not introduced by any dependabot PR. Each dependabot PR bumps a different package but inherits the same failing `npm audit` check from the base branch.
 - Only `package-lock.json` changed — the `package.json` semver ranges already covered the patched versions.
+
+---
+
+## 2026-07-27 — Review Dependabot PRs and fix the failing security audit
+
+### Prompt
+> "There are some new dependabot pull requests that need to be reviewed for updating dependencies. I think one of the security audit actions are failing and that may need to be corrected too."
+
+### Plan
+1. List the open Dependabot PRs and pull each branch locally to review the real diffs.
+2. Find the failing security check and diagnose the root cause.
+3. Clear the audit vulnerabilities on a branch so the fix lands on `main` and unblocks every Dependabot PR at once.
+4. Verify each pending dependency bump against the quality gates before recommending a merge.
+
+### Outcome
+The weekly scheduled **Security / npm audit** run on `main` (run 30260997047, 2026-07-27) failed with two high-severity advisories, both dev-only transitives:
+- **postcss 8.5.15 → 8.5.23** — path traversal via `sourceMappingURL` source-map auto-loading (GHSA-r28c-9q8g-f849).
+- **brace-expansion 5.0.6 → 5.0.8** — two DoS advisories (GHSA-3jxr-9vmj-r5cp, GHSA-mh99-v99m-4gvg).
+
+`npm audit fix` resolved both within the existing caret ranges — lockfile-only, no `package.json` change, no major bumps. `nanoid` moved 3.3.12 → 3.3.16 as a side effect of the postcss update. Also renamed the workflow's audit step from "Audit production dependencies" to "Audit dependencies", since the command audits dev dependencies too and the old label misdescribed the gate.
+
+All seven open Dependabot PRs were reviewed. Diffs are narrow and mechanical; the five npm bumps were verified together against the full quality gate suite. See the review table in the pull request description for the per-PR recommendation.
+
+### Notes
+- This is the third recurrence of the same pattern (2026-03-26, 2026-04-17, 2026-06-24): dev-toolchain transitives drift out of date, the audit gate goes red on `main`, and every open Dependabot PR inherits the failure from its base branch. The PRs are not themselves at fault. Worth considering a `dependabot.yml` grouping rule or a scheduled auto-`audit fix` if it keeps repeating.
+- The 2026-05-20 and 2026-06-24 sessions updated `CHANGELOG.md` but skipped their `SESSION_LOG.md` entries, so the log jumps from 2026-04-17 to this entry. Not backfilled — flagging it rather than inventing history.
+
+### Follow-up — Dependabot grouping rules
+
+### Prompt
+> "Take care of the suggestion: A dependabot.yml grouping rule for dev transitives would likely stop the recurring cleanup sessions"
+
+### Outcome
+Added grouping to `.github/dependabot.yml`. Applied to the seven currently-open PRs, this collapses the five npm bumps (prettier, @playwright/test, typescript-eslint, @gltf-transform/core, eslint — all dev minor/patch) into a single `dev-dependencies` PR. The two GitHub Actions PRs are major bumps and stay separate by design.
+
+Group ordering matters: `three` and `@types/three` are declared first because Dependabot assigns each update to the *first* matching group, and `three` is the repo's only production dependency while `@types/three` is a dev dependency. Without that group, the dev/production split would have separated the pair, which the 2026-05-20 session recorded as something that must not happen.
+
+### Correction to the previous suggestion
+The suggestion this follow-up came from was overstated, and the grouping rule does **not** on its own stop the recurring audit failures. Dependabot version updates only ever open PRs for *direct* dependencies. The packages that keep failing the gate — postcss, brace-expansion, nanoid, undici — are all *transitive*, and no grouping rule causes Dependabot to touch them.
+
+A search of every Dependabot PR ever opened in this repository confirms it: 15 PRs, all routine version bumps of direct dependencies, and **not one security-update PR** — despite high-severity advisories against those transitives sitting open repeatedly since 2026-03-26. That points to **Dependabot security updates being disabled** in the repository settings (Settings → Code security → Dependabot security updates). That setting cannot be enabled from `dependabot.yml`; it is a repository-level toggle. Enabling it is the actual fix, since Dependabot security updates *do* open PRs against transitive npm packages when a patched version fits the existing range.
+
+What the grouping rule genuinely buys: less PR churn, and a broader lockfile regeneration on each grouped update, which pulls transitives forward more often as a side effect. That is partial mitigation, not a fix. A `npm-security` group with `applies-to: security-updates` is included so that the fixes collapse into one PR if and when the repository setting is turned on; it is inert until then.
+
+### Notes
+- Config validated by parsing the YAML and checking every group key against the Dependabot schema (`patterns`, `dependency-type`, `update-types`, `applies-to`).
+- Fallback if the repository setting stays off: a scheduled workflow running `npm audit fix` and opening a PR would close the loop without depending on Dependabot. Not built — flagged as an option.
+
+### Follow-up — Scheduled Audit Fix workflow
+
+### Prompt
+> "build the scheduled npm audit fix workflow"
+
+### Outcome
+Added `.github/workflows/audit-fix.yml`. Runs weekly (Monday 06:00 UTC, two hours ahead of the Security workflow's audit) plus `workflow_dispatch`. Flow: `npm audit fix` → bail out quietly if the lockfile is unchanged → verify with lint, format, typecheck, build, unit tests → force-push `chore/npm-audit-fix` → open a PR, or refresh the open one in place.
+
+This is the piece that actually addresses the recurring cleanup, since it operates on the lockfile directly and therefore reaches the transitive packages Dependabot version updates never touch.
+
+### Design decisions
+- **`--force` is never used.** Plain `npm audit fix` stays within existing semver ranges. `--force` performs breaking major bumps, which is not something to open unattended. Anything needing a major bump is reported in the PR body instead of being applied.
+- **Gates run inside the workflow.** A PR opened with the default `GITHUB_TOKEN` does not trigger other workflows — GitHub blocks that to prevent recursive runs. Without inline gates the PR would show zero checks. The workflow accepts an optional `AUDIT_FIX_TOKEN` secret (a PAT); when set, the PR triggers normal CI and the inline gates become a fast pre-check. E2E is skipped deliberately: too slow for this job, and unreachable by a lockfile-only patch bump.
+- **`actions/github-script` rather than a third-party PR action.** `peter-evans/create-pull-request` is the usual choice, but adding a third-party action to a *security* workflow widens the supply chain this workflow exists to protect. `github-script` is already used in `quality.yml`.
+- **Fixed branch, force-pushed.** `chore/npm-audit-fix` is a scratch branch owned by the workflow and recreated from `main` each run, so repeated runs refresh one PR instead of stacking new ones. A `concurrency` group prevents two runs racing to push it.
+- **`npm audit fix` exit code is ignored.** It exits non-zero when unfixable vulnerabilities remain, which is not a workflow failure. The lockfile diff, not the exit code, decides whether there is anything to propose.
+
+### Verification
+Could not run the workflow itself, so the two pieces carrying real logic were executed locally instead:
+- The lockfile version-diff script was run against this session's actual pre- and post-`audit fix` lockfiles and reproduced the correct table (brace-expansion 5.0.6→5.0.8, nanoid 3.3.12→3.3.16, postcss 8.5.15→8.5.23).
+- The `github-script` block was extracted from the YAML, syntax-checked, and driven through a stub harness covering all four paths: no existing PR (creates + labels), PR already open (updates in place), clean audit, and unresolved-vulnerabilities. All four render correctly.
+- YAML parsed and step/trigger/permission structure asserted.
+
+Untested until it runs on GitHub: the scheduled trigger, the git push, and the live API calls.
+
+### Notes
+- Also documented the dependency-hygiene loop in `ARCHITECTURE.md` under CI/CD, including the weekly schedule and the `AUDIT_FIX_TOKEN` upgrade path.
+- This workflow is a fallback, not a replacement for enabling Dependabot security updates in the repository settings. That setting still gives faster, per-advisory PRs; this one guarantees the loop closes weekly regardless.
