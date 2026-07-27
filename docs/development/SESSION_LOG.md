@@ -1631,3 +1631,26 @@ The `github-script` block was extracted, syntax-checked as an async function bod
 ### Notes
 - **The scratch branch `chore/actions-pr-probe` could not be deleted.** The git proxy rejects deletes (`send-pack: unexpected disconnect`) and no MCP tool can delete a ref — `create_branch` exists with no counterpart. The branch and its registered workflow remain and need removing by hand. The workflow is inert: it triggers only on push to that branch.
 - Enabling the repository setting, or providing an `AUDIT_FIX_TOKEN` PAT, makes the fallback dormant — the code prefers a PR whenever one is possible.
+
+### Follow-up — Reviewing the next round of Dependabot PRs
+
+### Prompt
+> "It looks like there are some new dependabot pull requests that came up, can you review them, and if applicable, shepard them through to merge."
+
+### Outcome
+Two new PRs, both merged:
+
+| PR | Update | Outcome |
+|----|--------|---------|
+| #195 | `three` 0.184.0 → 0.185.1, `@types/three` 0.184.1 → 0.185.1 | Merged |
+| #196 | `jsdom` 29.1.1 → 30.0.0 | Merged |
+
+Both arrived with every check already green, but each had been tested only against `main` at `780c19e` and only in isolation. Neither run proves the two bumps are compatible *with each other*, so before merging anything both branches were merged into a throwaway local branch off current `main` and the full gate suite was run against the combined tree: lint, `tsc --noEmit`, 496 unit tests, and a production build. All clean. #196 was then rebased onto post-#195 `main` so its CI re-ran against what it would actually merge into.
+
+### Risk assessment
+- **#195 (`three`)** is the only production dependency in the repo, and three.js ships breaking changes in *minor* versions — 0.184 → 0.185 is not a semver-patch-grade change despite the version shape. The gates that would catch a rendering regression all passed: type check against the matching `@types/three`, functional E2E, and visual regression (screenshot comparison, so silent visual drift would have surfaced). The `three` chunk is 153 kB gzipped against a 5 MB budget.
+- **#196 (`jsdom` major)** is dev-only — it is the unit-test DOM environment and nothing reaches players. The single documented breaking change is a raised Node floor of `^22.22.2 || ^24.15.0 || >=26.0.0`. It also drags `undici` 7 → 8 and `whatwg-url` 16 → 17 transitively, both dev-only under jsdom.
+
+### Notes
+- **The Node floor is a tighter fit than the green checks suggest.** CI pins `node-version: 22`, which `setup-node` resolves to the latest 22.x, and this session's environment is on exactly 22.22.2 — the bare minimum jsdom 30 accepts. It works, but there is zero headroom: any environment on an older 22.x (or Node 20, which the previous jsdom still supported) now gets an `EBADENGINE` warning on install, and `npm ci` under `engine-strict` would hard-fail. `package.json` declares no `engines` field, so nothing in the repo records this floor. Worth adding one if a contributor ever hits it.
+- `npm install` again rewrote `package-lock.json` to strip `libc` fields, the same environment noise the previous session recorded — this session's npm is 10.9.7, older than the one Dependabot uses. Reverted rather than committed. This is now the second session to hit it; it is expected, not a defect in the PRs.
