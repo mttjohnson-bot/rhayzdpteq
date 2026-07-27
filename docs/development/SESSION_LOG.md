@@ -1558,3 +1558,29 @@ Untested until it runs on GitHub: the scheduled trigger, the git push, and the l
 ### Notes
 - Also documented the dependency-hygiene loop in `ARCHITECTURE.md` under CI/CD, including the weekly schedule and the `AUDIT_FIX_TOKEN` upgrade path.
 - This workflow is a fallback, not a replacement for enabling Dependabot security updates in the repository settings. That setting still gives faster, per-advisory PRs; this one guarantees the loop closes weekly regardless.
+
+### Follow-up — Merging the unblocked Dependabot PRs
+
+### Prompt
+> "Create the pr and see it through" → clarified as: see the existing Dependabot PRs through to merge.
+
+### Outcome
+Merged three of the four open Dependabot PRs. The landscape changed mid-task: within minutes of the grouping rule landing on `main`, Dependabot re-evaluated and closed PRs #184–#188, replacing them with a single grouped PR. Seven PRs became four.
+
+| PR | Change | Outcome |
+|----|--------|---------|
+| #191 | `dev-dependencies` group, 9 updates | Merged (with a formatting fix) |
+| #189 | `actions/setup-node` 6 → 7 | Merged |
+| #183 | `actions/cache` 5 → 6 | Merged |
+| #192 | `typescript` 6.0.3 → 7.0.2 | **Held open — blocked upstream** |
+
+### Two real problems found
+1. **#191 would have failed CI.** The group bumps Prettier 3.8.3 → 3.9.6, and 3.9 changed how union types are broken in property declarations. `npm run format:check` failed on `src/game/Player.ts`, which would have taken the blocking Lint & Format job with it. Fixed by committing `prettier --write` output to the PR branch before merging; the job then passed. Only `Player.ts` was committed — the local `npm install` had also rewritten `package-lock.json`, stripping `libc` fields that Dependabot's newer npm had written, which is environment noise and was reverted.
+
+2. **#192 cannot be merged.** `typescript-eslint` declares `peerDependencies.typescript: ">=4.8.4 <6.1.0"` — even at 8.65.0, the version #191 brings in. TypeScript 7.0.2 therefore fails `npm ci` with `ERESOLVE`. Verified against the post-#191 dependency set, so merging #191 first does not unblock it. Worth recording the trap: `npm install` builds the tree anyway and only flags it `invalid` under `npm ls`, while `npm ci` — which every CI job uses — hard-fails. A green local `npm install` proves nothing here. Commented on the PR with the evidence and left it open.
+
+### Notes
+- #183's checks were green but dated 2026-06-25, predating everything from today; its branch was still based on `c40864b`. Refreshed it onto current `main` before merging rather than trusting stale checks. Worth remembering that a green tick is not by itself evidence the PR was tested against what it will merge into.
+- The rebased #189 picked up `audit-fix.yml`, closing the loose end where that workflow still pinned `setup-node@v6`. All workflows are now consistent: `checkout@v7` ×12, `setup-node@v7` ×11, `cache@v6` ×2.
+- Dependabot's own `.github/dependabot.yml` validation check passed on #183, independently confirming the grouping config is well-formed.
+- The grouping rule is now validated in production, not just in theory: five individual PRs collapsed into one, and the two action majors plus the TypeScript major stayed separate exactly as configured.

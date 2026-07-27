@@ -4,8 +4,12 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-07-27
 
-Clear the npm audit vulnerabilities failing the weekly Security workflow and blocking the open Dependabot PRs, group Dependabot updates to cut PR churn, and automate the recurring audit cleanup.
+Clear the npm audit vulnerabilities failing the weekly Security workflow and blocking the open Dependabot PRs, group Dependabot updates to cut PR churn, automate the recurring audit cleanup, and merge the unblocked dependency updates.
 
+- **Merged the first grouped Dependabot PR (#191), covering 9 dev-dependency updates** — `eslint` 10.4.0 → 10.8.0, `typescript-eslint` 8.59.1 → 8.65.0, `prettier` 3.8.3 → 3.9.6, `vite` 8.0.14 → 8.1.5, `@playwright/test` 1.60.0 → 1.62.0, `@gltf-transform/core` 4.3.0 → 4.4.2, `lint-staged` 17.0.8 → 17.2.0, and `@vitest/coverage-v8` 4.1.9 → 4.1.10. The new grouping rule collapsed what would previously have been five separate PRs into one.
+- **Reformatted `src/game/Player.ts` for Prettier 3.9** — Prettier 3.9 changed how union types are broken in property declarations, which made `npm run format:check` fail and would have taken the blocking Lint & Format CI job with it. Cosmetic only; no behaviour change.
+- **Bumped `actions/setup-node` from 6 to 7 (#189) and `actions/cache` from 5 to 6 (#183)** — Both majors are ESM migrations with no input or output changes. All workflows now use `setup-node@v7` and `cache@v6` consistently.
+- **Held back `typescript` 6.0.3 → 7.0.2 (#192)** — Blocked upstream: `typescript-eslint` (including 8.65.0) declares a peer range of `>=4.8.4 <6.1.0`, so TypeScript 7 fails `npm ci` with `ERESOLVE`. Left open pending upstream support rather than merged.
 - **Updated `postcss` from 8.5.15 to 8.5.23** — Transitive dependency via `vite`. Fixes a high-severity path traversal in previous source map auto-loading, where a crafted `sourceMappingURL` leads to arbitrary `.map` file disclosure (GHSA-r28c-9q8g-f849).
 - **Updated `brace-expansion` from 5.0.6 to 5.0.8** — Transitive dependency. Fixes two high-severity denial-of-service issues: exponential-time expansion of consecutive non-expanding `{}` groups (GHSA-3jxr-9vmj-r5cp) and unbounded expansion length causing an out-of-memory process crash (GHSA-mh99-v99m-4gvg).
 - **Updated `nanoid` from 3.3.12 to 3.3.16** — Transitive dependency pulled forward alongside the `postcss` update. No advisory; version bump only.
