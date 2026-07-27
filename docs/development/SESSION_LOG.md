@@ -1529,3 +1529,32 @@ What the grouping rule genuinely buys: less PR churn, and a broader lockfile reg
 ### Notes
 - Config validated by parsing the YAML and checking every group key against the Dependabot schema (`patterns`, `dependency-type`, `update-types`, `applies-to`).
 - Fallback if the repository setting stays off: a scheduled workflow running `npm audit fix` and opening a PR would close the loop without depending on Dependabot. Not built — flagged as an option.
+
+### Follow-up — Scheduled Audit Fix workflow
+
+### Prompt
+> "build the scheduled npm audit fix workflow"
+
+### Outcome
+Added `.github/workflows/audit-fix.yml`. Runs weekly (Monday 06:00 UTC, two hours ahead of the Security workflow's audit) plus `workflow_dispatch`. Flow: `npm audit fix` → bail out quietly if the lockfile is unchanged → verify with lint, format, typecheck, build, unit tests → force-push `chore/npm-audit-fix` → open a PR, or refresh the open one in place.
+
+This is the piece that actually addresses the recurring cleanup, since it operates on the lockfile directly and therefore reaches the transitive packages Dependabot version updates never touch.
+
+### Design decisions
+- **`--force` is never used.** Plain `npm audit fix` stays within existing semver ranges. `--force` performs breaking major bumps, which is not something to open unattended. Anything needing a major bump is reported in the PR body instead of being applied.
+- **Gates run inside the workflow.** A PR opened with the default `GITHUB_TOKEN` does not trigger other workflows — GitHub blocks that to prevent recursive runs. Without inline gates the PR would show zero checks. The workflow accepts an optional `AUDIT_FIX_TOKEN` secret (a PAT); when set, the PR triggers normal CI and the inline gates become a fast pre-check. E2E is skipped deliberately: too slow for this job, and unreachable by a lockfile-only patch bump.
+- **`actions/github-script` rather than a third-party PR action.** `peter-evans/create-pull-request` is the usual choice, but adding a third-party action to a *security* workflow widens the supply chain this workflow exists to protect. `github-script` is already used in `quality.yml`.
+- **Fixed branch, force-pushed.** `chore/npm-audit-fix` is a scratch branch owned by the workflow and recreated from `main` each run, so repeated runs refresh one PR instead of stacking new ones. A `concurrency` group prevents two runs racing to push it.
+- **`npm audit fix` exit code is ignored.** It exits non-zero when unfixable vulnerabilities remain, which is not a workflow failure. The lockfile diff, not the exit code, decides whether there is anything to propose.
+
+### Verification
+Could not run the workflow itself, so the two pieces carrying real logic were executed locally instead:
+- The lockfile version-diff script was run against this session's actual pre- and post-`audit fix` lockfiles and reproduced the correct table (brace-expansion 5.0.6→5.0.8, nanoid 3.3.12→3.3.16, postcss 8.5.15→8.5.23).
+- The `github-script` block was extracted from the YAML, syntax-checked, and driven through a stub harness covering all four paths: no existing PR (creates + labels), PR already open (updates in place), clean audit, and unresolved-vulnerabilities. All four render correctly.
+- YAML parsed and step/trigger/permission structure asserted.
+
+Untested until it runs on GitHub: the scheduled trigger, the git push, and the live API calls.
+
+### Notes
+- Also documented the dependency-hygiene loop in `ARCHITECTURE.md` under CI/CD, including the weekly schedule and the `AUDIT_FIX_TOKEN` upgrade path.
+- This workflow is a fallback, not a replacement for enabling Dependabot security updates in the repository settings. That setting still gives faster, per-advisory PRs; this one guarantees the loop closes weekly regardless.
