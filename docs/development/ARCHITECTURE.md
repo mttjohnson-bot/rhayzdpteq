@@ -243,9 +243,30 @@ Push/PR
 
 Merge to main
   └── Build + Deploy to GitHub Pages
+
+Weekly schedule (Monday)
+  ├── 06:00 UTC  audit-fix  (npm audit fix → opens/updates a PR if anything changed)
+  └── 08:00 UTC  security   (npm audit + CodeQL)
 ```
 
 All required jobs must pass before PR merge. Visual regression is non-blocking.
+
+### Dependency hygiene
+
+`npm audit --audit-level=high` in `security.yml` gates every PR, and it audits dev
+dependencies too — the dev toolchain is part of the build supply chain. Historically
+every vulnerability it has caught came from a *transitive* dev package (postcss,
+brace-expansion, nanoid, undici), not from anything declared in `package.json`.
+
+Dependabot version updates never open PRs for transitive packages, so those advisories
+accumulate silently until the gate goes red and blocks every open PR at once. The
+`audit-fix.yml` workflow closes that loop: it runs `npm audit fix` weekly (never
+`--force`, so no major bumps), verifies the result against lint, format, typecheck,
+build, and unit tests, then opens or refreshes a PR on the `chore/npm-audit-fix` branch.
+
+Because a PR opened with the default `GITHUB_TOKEN` does not trigger other workflows,
+`audit-fix.yml` runs those gates inline and records the result in the PR body. Setting
+an `AUDIT_FIX_TOKEN` repository secret to a PAT makes the PR trigger normal CI instead.
 
 ---
 

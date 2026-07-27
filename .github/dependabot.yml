@@ -6,9 +6,55 @@ updates:
       interval: weekly
     target-branch: main
     labels: ["dependencies"]
+    open-pull-requests-limit: 5
+    groups:
+      # three and @types/three must always move together — a version mismatch
+      # between the library and its type definitions breaks the type check.
+      # They live in different dependency types (three is the only production
+      # dependency, @types/three is dev), so this group must come first:
+      # Dependabot assigns each update to the first group it matches, and the
+      # dev/production groups below would otherwise split the pair apart.
+      three:
+        patterns:
+          - "three"
+          - "@types/three"
+
+      # Minor and patch bumps to the dev toolchain land as a single PR. Beyond
+      # cutting PR churn, the grouped update regenerates a larger slice of the
+      # lockfile at once, which pulls transitive packages forward more often —
+      # transitives are where the recurring npm audit failures come from.
+      dev-dependencies:
+        dependency-type: development
+        update-types:
+          - minor
+          - patch
+
+      production-dependencies:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
+
+      # If Dependabot security updates are enabled for this repository (a
+      # setting under Code security, not something dependabot.yml can turn on),
+      # this collapses the resulting fixes into one PR instead of one per
+      # advisory. Harmless while that setting is off.
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
 
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
       interval: weekly
     labels: ["dependencies", "github-actions"]
+    groups:
+      github-actions:
+        update-types:
+          - minor
+          - patch
+
+# Major version bumps are deliberately left ungrouped in both ecosystems, so
+# each one arrives as its own PR with its own CI run and can be reviewed and
+# reverted on its own.
