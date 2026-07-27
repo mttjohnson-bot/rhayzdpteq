@@ -1482,3 +1482,29 @@ All quality gates pass (lint, format, typecheck, build, 496 unit tests). The fix
 ### Notes
 - The audit failures were pre-existing on main, not introduced by any dependabot PR. Each dependabot PR bumps a different package but inherits the same failing `npm audit` check from the base branch.
 - Only `package-lock.json` changed — the `package.json` semver ranges already covered the patched versions.
+
+---
+
+## 2026-07-27 — Review Dependabot PRs and fix the failing security audit
+
+### Prompt
+> "There are some new dependabot pull requests that need to be reviewed for updating dependencies. I think one of the security audit actions are failing and that may need to be corrected too."
+
+### Plan
+1. List the open Dependabot PRs and pull each branch locally to review the real diffs.
+2. Find the failing security check and diagnose the root cause.
+3. Clear the audit vulnerabilities on a branch so the fix lands on `main` and unblocks every Dependabot PR at once.
+4. Verify each pending dependency bump against the quality gates before recommending a merge.
+
+### Outcome
+The weekly scheduled **Security / npm audit** run on `main` (run 30260997047, 2026-07-27) failed with two high-severity advisories, both dev-only transitives:
+- **postcss 8.5.15 → 8.5.23** — path traversal via `sourceMappingURL` source-map auto-loading (GHSA-r28c-9q8g-f849).
+- **brace-expansion 5.0.6 → 5.0.8** — two DoS advisories (GHSA-3jxr-9vmj-r5cp, GHSA-mh99-v99m-4gvg).
+
+`npm audit fix` resolved both within the existing caret ranges — lockfile-only, no `package.json` change, no major bumps. `nanoid` moved 3.3.12 → 3.3.16 as a side effect of the postcss update. Also renamed the workflow's audit step from "Audit production dependencies" to "Audit dependencies", since the command audits dev dependencies too and the old label misdescribed the gate.
+
+All seven open Dependabot PRs were reviewed. Diffs are narrow and mechanical; the five npm bumps were verified together against the full quality gate suite. See the review table in the pull request description for the per-PR recommendation.
+
+### Notes
+- This is the third recurrence of the same pattern (2026-03-26, 2026-04-17, 2026-06-24): dev-toolchain transitives drift out of date, the audit gate goes red on `main`, and every open Dependabot PR inherits the failure from its base branch. The PRs are not themselves at fault. Worth considering a `dependabot.yml` grouping rule or a scheduled auto-`audit fix` if it keeps repeating.
+- The 2026-05-20 and 2026-06-24 sessions updated `CHANGELOG.md` but skipped their `SESSION_LOG.md` entries, so the log jumps from 2026-04-17 to this entry. Not backfilled — flagging it rather than inventing history.

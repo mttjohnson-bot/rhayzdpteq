@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-07-27
+
+Clear the npm audit vulnerabilities failing the weekly Security workflow and blocking the open Dependabot PRs.
+
+- **Updated `postcss` from 8.5.15 to 8.5.23** — Transitive dependency via `vite`. Fixes a high-severity path traversal in previous source map auto-loading, where a crafted `sourceMappingURL` leads to arbitrary `.map` file disclosure (GHSA-r28c-9q8g-f849).
+- **Updated `brace-expansion` from 5.0.6 to 5.0.8** — Transitive dependency. Fixes two high-severity denial-of-service issues: exponential-time expansion of consecutive non-expanding `{}` groups (GHSA-3jxr-9vmj-r5cp) and unbounded expansion length causing an out-of-memory process crash (GHSA-mh99-v99m-4gvg).
+- **Updated `nanoid` from 3.3.12 to 3.3.16** — Transitive dependency pulled forward alongside the `postcss` update. No advisory; version bump only.
+- **Renamed the Security workflow's audit step to "Audit dependencies"** — The step was labelled "Audit production dependencies", but `npm audit --audit-level=high` covers dev dependencies too. Every vulnerability it has flagged to date has come from the dev toolchain, so the old name misdescribed what the gate actually enforces. Behaviour is unchanged — the gate still audits the full dependency tree.
+
 ## 2026-06-24
 
 Merge safe Dependabot updates and clear npm audit security vulnerabilities blocking the remaining dependency PRs.

@@ -30,7 +30,9 @@ jobs:
 
       - run: npm ci
 
-      - name: Audit production dependencies
+      # Audits the full dependency tree, dev dependencies included — the dev
+      # toolchain is part of the build supply chain, so it stays in scope.
+      - name: Audit dependencies
         run: npm audit --audit-level=high
 
   codeql:
