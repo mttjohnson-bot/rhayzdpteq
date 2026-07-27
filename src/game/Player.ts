@@ -92,8 +92,8 @@ export class Player {
 
   // Mob collision callback
   private getMobColliders:
-    | (() => Array<{ position: THREE.Vector3; collisionRadius: number; alive: boolean }>)
-    | null = null;
+    (() => Array<{ position: THREE.Vector3; collisionRadius: number; alive: boolean }>) | null =
+    null;
 
   // Equipment visuals
   private weaponPivot: THREE.Group | null = null;
