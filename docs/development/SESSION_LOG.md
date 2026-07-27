@@ -1603,3 +1603,31 @@ Used `versions: ["7.x"]` rather than `update-types: ["version-update:semver-majo
 ### Notes
 - TypeScript 6.x minor and patch updates are unaffected.
 - #192 stays open. Dependabot will close it on its next run now that the version is ignored; it was not closed manually.
+
+### Follow-up — Determining the Actions PR-creation setting, and hardening against it
+
+### Prompt
+> "check the allow github actions to create pull requests setting" → then "harden the workflow to fall back to an issue"
+
+### Determining the setting
+No API available in this environment exposes repository Actions settings, and `gh` is unavailable. Rather than report it unknowable a third time, the setting was determined empirically with a throwaway workflow on a scratch branch.
+
+The probe calls `pulls.create` with `head === base`, which cannot produce a pull request, and reads the error code. The Actions restriction is enforced at the authorization layer, *before* request validation, so the two cases are distinguishable without side effects:
+- `403 GitHub Actions is not permitted to create or approve pull requests` → setting off
+- `422 No commits between main and main` → setting on
+
+Result: **403 — the setting is OFF.** `audit-fix.yml`'s PR step would have failed on its first real run.
+
+### Hardening
+`audit-fix.yml` now catches that specific 403 and opens a tracking issue instead, with `issues: write` added. The issue carries the same version table, audit state, and gate results as the PR body would, prefixed with a one-click `compare/main...branch?expand=1` link and an explanation of the setting. One issue is reused across runs, matched by title.
+
+Deliberately narrow: only `403` *with that message* is recoverable. A bad base, a missing branch, or a transient 5xx still fails the run. Silently swallowing every error would turn a broken workflow into a quiet no-op, which is worse than a red run. Labelling is best-effort and wrapped, so a missing label cannot fail a step after the PR or issue already exists.
+
+Because the branch push happens before the PR step, the verified fix reaches `chore/npm-audit-fix` regardless — only the PR-opening degrades.
+
+### Verification
+The `github-script` block was extracted, syntax-checked as an async function body (top-level `await`/`return` are valid there but not in a standalone CJS file), then driven through a stub harness over eight paths: existing PR updated; PR created; 403 with no existing issue; 403 with an existing issue; 403 where only a *pull request* matches the issue title (must not be reused — the `!i.pull_request` filter); a non-matching 403; a 500; and a failing label call. All eight behaved correctly.
+
+### Notes
+- **The scratch branch `chore/actions-pr-probe` could not be deleted.** The git proxy rejects deletes (`send-pack: unexpected disconnect`) and no MCP tool can delete a ref — `create_branch` exists with no counterpart. The branch and its registered workflow remain and need removing by hand. The workflow is inert: it triggers only on push to that branch.
+- Enabling the repository setting, or providing an `AUDIT_FIX_TOKEN` PAT, makes the fallback dormant — the code prefers a PR whenever one is possible.
