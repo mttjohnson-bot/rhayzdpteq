@@ -7,6 +7,15 @@ updates:
     target-branch: main
     labels: ["dependencies"]
     open-pull-requests-limit: 5
+    ignore:
+      # TypeScript 7 is blocked by typescript-eslint, which still declares
+      # peerDependencies.typescript ">=4.8.4 <6.1.0" as of 8.65.0. Installing
+      # TS 7 alongside it fails `npm ci` with ERESOLVE, so the update cannot
+      # pass CI (see #192). Scoped to the 7.x line only — 6.x minor and patch
+      # updates still come through, and TS 8 will be offered when it lands.
+      # Remove this entry once typescript-eslint widens its peer range.
+      - dependency-name: "typescript"
+        versions: ["7.x"]
     groups:
       # three and @types/three must always move together — a version mismatch
       # between the library and its type definitions breaks the type check.
