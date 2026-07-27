@@ -1508,3 +1508,24 @@ All seven open Dependabot PRs were reviewed. Diffs are narrow and mechanical; th
 ### Notes
 - This is the third recurrence of the same pattern (2026-03-26, 2026-04-17, 2026-06-24): dev-toolchain transitives drift out of date, the audit gate goes red on `main`, and every open Dependabot PR inherits the failure from its base branch. The PRs are not themselves at fault. Worth considering a `dependabot.yml` grouping rule or a scheduled auto-`audit fix` if it keeps repeating.
 - The 2026-05-20 and 2026-06-24 sessions updated `CHANGELOG.md` but skipped their `SESSION_LOG.md` entries, so the log jumps from 2026-04-17 to this entry. Not backfilled — flagging it rather than inventing history.
+
+### Follow-up — Dependabot grouping rules
+
+### Prompt
+> "Take care of the suggestion: A dependabot.yml grouping rule for dev transitives would likely stop the recurring cleanup sessions"
+
+### Outcome
+Added grouping to `.github/dependabot.yml`. Applied to the seven currently-open PRs, this collapses the five npm bumps (prettier, @playwright/test, typescript-eslint, @gltf-transform/core, eslint — all dev minor/patch) into a single `dev-dependencies` PR. The two GitHub Actions PRs are major bumps and stay separate by design.
+
+Group ordering matters: `three` and `@types/three` are declared first because Dependabot assigns each update to the *first* matching group, and `three` is the repo's only production dependency while `@types/three` is a dev dependency. Without that group, the dev/production split would have separated the pair, which the 2026-05-20 session recorded as something that must not happen.
+
+### Correction to the previous suggestion
+The suggestion this follow-up came from was overstated, and the grouping rule does **not** on its own stop the recurring audit failures. Dependabot version updates only ever open PRs for *direct* dependencies. The packages that keep failing the gate — postcss, brace-expansion, nanoid, undici — are all *transitive*, and no grouping rule causes Dependabot to touch them.
+
+A search of every Dependabot PR ever opened in this repository confirms it: 15 PRs, all routine version bumps of direct dependencies, and **not one security-update PR** — despite high-severity advisories against those transitives sitting open repeatedly since 2026-03-26. That points to **Dependabot security updates being disabled** in the repository settings (Settings → Code security → Dependabot security updates). That setting cannot be enabled from `dependabot.yml`; it is a repository-level toggle. Enabling it is the actual fix, since Dependabot security updates *do* open PRs against transitive npm packages when a patched version fits the existing range.
+
+What the grouping rule genuinely buys: less PR churn, and a broader lockfile regeneration on each grouped update, which pulls transitives forward more often as a side effect. That is partial mitigation, not a fix. A `npm-security` group with `applies-to: security-updates` is included so that the fixes collapse into one PR if and when the repository setting is turned on; it is inert until then.
+
+### Notes
+- Config validated by parsing the YAML and checking every group key against the Dependabot schema (`patterns`, `dependency-type`, `update-types`, `applies-to`).
+- Fallback if the repository setting stays off: a scheduled workflow running `npm audit fix` and opening a PR would close the loop without depending on Dependabot. Not built — flagged as an option.
