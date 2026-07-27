@@ -10,6 +10,11 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  # Needed for the fallback path below: this repository has "Allow GitHub
+  # Actions to create and approve pull requests" disabled, which no workflow
+  # `permissions:` block can override, so pulls.create returns 403. Opening an
+  # issue is not restricted that way and carries the same information.
+  issues: write
 
 # Never let two runs race to force-push the same branch.
 concurrency:
@@ -176,41 +181,105 @@ jobs:
               '',
               '## Follow-up',
               '',
-              '- Branch is regenerated from `main` on every run, so this PR force-updates in place.',
+              '- The branch is regenerated from `main` on every run and force-updated in place,',
+              '  so this is refreshed rather than duplicated.',
               '- Review the version table above before merging.',
             ].join('\n');
 
-            const { data: existing } = await github.rest.pulls.list({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              state: 'open',
-              head: `${context.repo.owner}:${branch}`,
+            const { owner, repo } = context.repo;
+
+            // Labelling is best-effort. A missing label would otherwise fail the
+            // whole step after the PR or issue has already been created.
+            const label = async (number) => {
+              try {
+                await github.rest.issues.addLabels({
+                  owner, repo, issue_number: number, labels: ['dependencies'],
+                });
+              } catch (err) {
+                core.warning(`Could not label #${number}: ${err.message}`);
+              }
+            };
+
+            const { data: existingPrs } = await github.rest.pulls.list({
+              owner, repo, state: 'open', head: `${owner}:${branch}`,
             });
 
-            if (existing.length > 0) {
+            if (existingPrs.length > 0) {
               await github.rest.pulls.update({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: existing[0].number,
-                body,
+                owner, repo, pull_number: existingPrs[0].number, body,
               });
-              core.notice(`Updated existing PR #${existing[0].number}`);
-            } else {
+              core.notice(`Updated existing PR #${existingPrs[0].number}`);
+              return;
+            }
+
+            try {
               const { data: created } = await github.rest.pulls.create({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
+                owner, repo,
                 title: 'fix: apply npm audit fix',
                 head: branch,
                 base: 'main',
                 body,
               });
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: created.number,
-                labels: ['dependencies'],
-              });
+              await label(created.number);
               core.notice(`Opened PR #${created.number}`);
+              return;
+            } catch (err) {
+              // Only this specific refusal is recoverable. "Allow GitHub Actions
+              // to create and approve pull requests" is off, and a workflow
+              // cannot grant itself that. Anything else — a bad base, a missing
+              // branch, a transient 5xx — is a real failure and must stay loud.
+              const blocked =
+                err.status === 403 &&
+                /not permitted to create or approve pull requests/i.test(err.message ?? '');
+              if (!blocked) throw err;
+              core.warning(
+                'Actions is not permitted to create pull requests; opening an issue instead.',
+              );
+            }
+
+            // Fallback. The branch is already pushed and verified, so the work is
+            // not lost — a human just has to open the PR.
+            const compareUrl =
+              `${context.serverUrl}/${owner}/${repo}/compare/main...${branch}?expand=1`;
+            const issueTitle = 'Automated npm audit fix is waiting for a pull request';
+            const issueBody = [
+              `**[→ Open the pull request](${compareUrl})**`,
+              '',
+              `The fix is committed and pushed to \`${branch}\`, and every quality gate`,
+              'below passed against it. It could not be turned into a pull request',
+              'automatically: this repository has **Settings → Actions → General →',
+              'Workflow permissions → "Allow GitHub Actions to create and approve pull',
+              'requests"** disabled, and a workflow cannot override that from its own',
+              '`permissions:` block.',
+              '',
+              'Enabling that setting, or setting an `AUDIT_FIX_TOKEN` secret to a PAT,',
+              'makes this issue stop appearing and the PR open on its own.',
+              '',
+              '---',
+              '',
+              body,
+            ].join('\n');
+
+            // Reuse one issue rather than filing a fresh one every week. Matched by
+            // title; listForRepo also returns pull requests, so those are filtered.
+            const { data: openIssues } = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', per_page: 100,
+            });
+            const existingIssue = openIssues.find(
+              (i) => !i.pull_request && i.title === issueTitle,
+            );
+
+            if (existingIssue) {
+              await github.rest.issues.update({
+                owner, repo, issue_number: existingIssue.number, body: issueBody,
+              });
+              core.notice(`Updated existing issue #${existingIssue.number}`);
+            } else {
+              const { data: issue } = await github.rest.issues.create({
+                owner, repo, title: issueTitle, body: issueBody,
+              });
+              await label(issue.number);
+              core.notice(`Opened issue #${issue.number}`);
             }
 
       - name: Report no-op
