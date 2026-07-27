@@ -268,6 +268,16 @@ Because a PR opened with the default `GITHUB_TOKEN` does not trigger other workf
 `audit-fix.yml` runs those gates inline and records the result in the PR body. Setting
 an `AUDIT_FIX_TOKEN` repository secret to a PAT makes the PR trigger normal CI instead.
 
+This repository currently has **Settings → Actions → General → Workflow permissions →
+"Allow GitHub Actions to create and approve pull requests"** *disabled*, verified by
+probing the API (`pulls.create` returns `403 GitHub Actions is not permitted to create
+or approve pull requests`). A workflow cannot override that from its own `permissions:`
+block. `audit-fix.yml` therefore catches that specific 403 and opens — or refreshes — a
+single tracking issue instead, carrying the same version table, audit state, and gate
+results plus a one-click compare link. The branch is pushed either way, so the verified
+fix is never lost; only the PR-opening step degrades. Any other error still fails the
+run loudly. Enabling the setting, or providing `AUDIT_FIX_TOKEN`, restores normal PRs.
+
 ---
 
 ## Key Files for Common Tasks
