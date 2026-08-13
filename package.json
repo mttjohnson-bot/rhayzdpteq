@@ -35,7 +35,7 @@
     "@eslint/js": "^10.0.1",
     "@gltf-transform/core": "^4.4.2",
     "@playwright/test": "^1.62.0",
-    "@types/three": "^0.185.1",
+    "@types/three": "^0.185.4",
     "@vitest/coverage-v8": "^4.1.10",
     "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.8",
