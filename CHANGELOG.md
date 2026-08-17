@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-08-17
+
+Clear the two high-severity advisories failing the Security workflow's npm audit gate, unblocking the open Dependabot PRs.
+
+- **Updated `brace-expansion` from 5.0.8 to 5.0.9** — Transitive dev dependency via `eslint` → `minimatch`. Fixes a high-severity denial of service through unbounded intermediate arrays, which bypasses the mitigation added for CVE-2026-14257 (GHSA-rgw5-rvv9-x895).
+- **Updated `nanoid` from 3.3.16 to 3.3.18** — Transitive dev dependency via `vite` → `postcss`. Fixes a high-severity issue where custom generators loop indefinitely when `size` is zero (GHSA-2v37-7h3g-55p8).
+- **Unblocked the `npm audit` gate that was failing every open Dependabot PR** — Both advisories were present on `main`, so the Security workflow's `npm audit --audit-level=high` step failed on every pull request regardless of its contents. Neither vulnerability was introduced by the Dependabot updates, and neither could be fixed by them: Dependabot version updates only move direct dependencies, and both packages sit two levels down. `npm audit` now reports zero vulnerabilities.
+- **Applied the fix as a targeted lockfile edit rather than `npm audit fix`** — Both replacements satisfy the existing semver ranges (`^5.0.5` and `^3.3.16`), so only the `version`, `resolved`, and `integrity` fields changed — six lines total. Running `npm audit fix` instead produces a 30-line diff, because it also strips the `libc` metadata from eleven optional platform packages. That churn is not a local-environment artifact as previously recorded: the scheduled Audit Fix workflow's own branch is byte-identical to the local result, so `npm audit fix` drops those fields wherever it runs. Verified with a clean `npm ci`, which revalidates every integrity hash.
+
 ## 2026-07-27
 
 Clear the npm audit vulnerabilities failing the weekly Security workflow and blocking the open Dependabot PRs, group Dependabot updates to cut PR churn, automate the recurring audit cleanup, and merge the unblocked dependency updates.
