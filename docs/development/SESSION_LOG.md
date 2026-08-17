@@ -1654,3 +1654,38 @@ Both arrived with every check already green, but each had been tested only again
 ### Notes
 - **The Node floor is a tighter fit than the green checks suggest.** CI pins `node-version: 22`, which `setup-node` resolves to the latest 22.x, and this session's environment is on exactly 22.22.2 — the bare minimum jsdom 30 accepts. It works, but there is zero headroom: any environment on an older 22.x (or Node 20, which the previous jsdom still supported) now gets an `EBADENGINE` warning on install, and `npm ci` under `engine-strict` would hard-fail. `package.json` declares no `engines` field, so nothing in the repo records this floor. Worth adding one if a contributor ever hits it.
 - `npm install` again rewrote `package-lock.json` to strip `libc` fields, the same environment noise the previous session recorded — this session's npm is 10.9.7, older than the one Dependabot uses. Reverted rather than committed. This is now the second session to hit it; it is expected, not a defect in the PRs.
+
+### Follow-up — Clearing the audit gate blocking the Dependabot PRs
+
+### Prompt
+> "It looks like there are some new dependabot pull requests that came up, can you review them, and if applicable, shepard them through to merge. It looks like the security actions have been failing recently."
+
+### What was actually failing
+Two Dependabot PRs were open, #201 (`@types/three` 0.185.1 → 0.185.4) and #202 (the dev-dependencies group, 6 updates). Both showed eight green checks and one red: `npm audit`.
+
+The failure belonged to neither PR. `main` at `d0bafd8` carried two high-severity advisories, so `npm audit --audit-level=high` failed on every pull request regardless of contents:
+
+| Package | Path | Advisory |
+|---------|------|----------|
+| `brace-expansion` 5.0.8 | `eslint` → `minimatch` | GHSA-rgw5-rvv9-x895 — DoS via unbounded intermediate arrays, bypassing the CVE-2026-14257 mitigation |
+| `nanoid` 3.3.16 | `vite` → `postcss` | GHSA-2v37-7h3g-55p8 — custom generators loop indefinitely when `size` is zero |
+
+Dependabot could not have fixed either one. Version updates only move direct dependencies, and both packages sit two levels down. #202 does drag `nanoid` to 3.3.18 incidentally, via `postcss` 8.5.26 raising its floor to `^3.3.17` — but `brace-expansion` stays put, so its audit failed too.
+
+### Why the automation did not catch it
+`audit-fix.yml` is not broken. It ran on schedule this morning at 07:08 UTC, found the fix, pushed `chore/npm-audit-fix`, hit the expected 403 on `pulls.create`, and updated tracking issue **#200** — exactly the fallback built in the previous session. It has done this on all three of its runs (Aug 3, Aug 10, Aug 17), each reporting `success`.
+
+That is the gap: the fallback works, but a quietly-updated issue is easy to miss, and the run is green either way. Three weeks of correct automation produced no visible signal. Worth considering a failing exit, or a notification, when the fallback path is taken — a green run whose whole point is that something needs attention is a weak signal.
+
+### The fix
+A targeted lockfile edit, not `npm audit fix`. Both replacements satisfy the existing ranges (`minimatch` wants `^5.0.5`, `postcss` wants `^3.3.16`) and both have unchanged dependency shapes, confirmed against the registry, so only `version`/`resolved`/`integrity` moved — six lines.
+
+`npm audit fix` produces the same package versions but a 30-line diff, because it also strips `libc` from eleven optional platform packages.
+
+**This corrects an earlier entry.** The previous session recorded that churn as an artifact of this environment's npm being older (10.9.7) than the one Dependabot uses. That is not the cause: `chore/npm-audit-fix`, generated in CI, has the identical lockfile blob (`6fa5c26..963c9d3`) to the local `npm audit fix` result. `npm audit fix` drops those fields wherever it runs. Avoiding the command, not matching npm versions, is what avoids the churn.
+
+Verified with a clean `npm ci` (revalidates every integrity hash) followed by `npm audit --audit-level=high` → 0 vulnerabilities, then lint, format, `tsc --noEmit`, 496 unit tests, and a production build.
+
+### Notes
+- The stale `chore/actions-pr-probe` branch from the previous session is still present and still undeletable through the proxy.
+- Enabling **Settings → Actions → General → Workflow permissions → "Allow GitHub Actions to create and approve pull requests"**, or supplying an `AUDIT_FIX_TOKEN` PAT, would let the weekly audit fix open its own PR and make issue #200 stop recurring. This is the third session to hit the setting.
