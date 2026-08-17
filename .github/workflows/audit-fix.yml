@@ -10,10 +10,11 @@ on:
 permissions:
   contents: write
   pull-requests: write
-  # Needed for the fallback path below: this repository has "Allow GitHub
-  # Actions to create and approve pull requests" disabled, which no workflow
-  # `permissions:` block can override, so pulls.create returns 403. Opening an
-  # issue is not restricted that way and carries the same information.
+  # Needed for the fallback path below. When "Allow GitHub Actions to create and
+  # approve pull requests" is disabled — which no workflow `permissions:` block
+  # can override — pulls.create returns 403. Opening an issue is not restricted
+  # that way and carries the same information. Harmless while the setting is on:
+  # the fallback simply never runs.
   issues: write
 
 # Never let two runs race to force-push the same branch.
@@ -269,18 +270,52 @@ jobs:
               (i) => !i.pull_request && i.title === issueTitle,
             );
 
+            let issueNumber;
             if (existingIssue) {
               await github.rest.issues.update({
                 owner, repo, issue_number: existingIssue.number, body: issueBody,
               });
-              core.notice(`Updated existing issue #${existingIssue.number}`);
+              issueNumber = existingIssue.number;
+              core.notice(`Updated existing issue #${issueNumber}`);
             } else {
               const { data: issue } = await github.rest.issues.create({
                 owner, repo, title: issueTitle, body: issueBody,
               });
-              await label(issue.number);
-              core.notice(`Opened issue #${issue.number}`);
+              issueNumber = issue.number;
+              await label(issueNumber);
+              core.notice(`Opened issue #${issueNumber}`);
             }
+
+            // Surface the fallback in the run summary, so the reason is visible
+            // on the run itself rather than only in the step log.
+            await core.summary
+              .addHeading('Audit fix is waiting for a pull request', 3)
+              .addRaw([
+                `The fix is committed to \`${branch}\` and every quality gate passed`,
+                `against it. Actions is not permitted to open the pull request, so it is`,
+                `tracked on issue #${issueNumber}.`,
+                '',
+                `[→ Open the pull request](${compareUrl})`,
+              ].join('\n'))
+              .write();
+
+            // Fail deliberately. The fix itself is fine — it is verified and
+            // pushed — but it is parked where only a human can finish it, and a
+            // green run is indistinguishable from "nothing needed doing". That
+            // ambiguity is why three weeks of correct fallbacks went unnoticed.
+            // A red run puts an X in the Actions list and triggers GitHub's
+            // scheduled-workflow failure notification.
+            //
+            // This unwinds itself: once Actions is permitted to open pull
+            // requests, pulls.create succeeds, the fallback never runs, and the
+            // job goes green again. Revoking that permission later brings the
+            // signal back automatically.
+            core.setFailed(
+              `Audit fix verified and pushed to ${branch}, but Actions cannot open ` +
+              `the pull request. Tracked on issue #${issueNumber}. Open it from ` +
+              `${compareUrl}, or enable Settings → Actions → General → Workflow ` +
+              `permissions → "Allow GitHub Actions to create and approve pull requests".`,
+            );
 
       - name: Report no-op
         if: steps.fix.outputs.changed == 'false'
