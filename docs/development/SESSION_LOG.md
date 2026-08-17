@@ -1689,3 +1689,52 @@ Verified with a clean `npm ci` (revalidates every integrity hash) followed by `n
 ### Notes
 - The stale `chore/actions-pr-probe` branch from the previous session is still present and still undeletable through the proxy.
 - Enabling **Settings → Actions → General → Workflow permissions → "Allow GitHub Actions to create and approve pull requests"**, or supplying an `AUDIT_FIX_TOKEN` PAT, would let the weekly audit fix open its own PR and make issue #200 stop recurring. This is the third session to hit the setting.
+
+### Follow-up — Making the audit-fix fallback loud instead of widening permissions
+
+### Prompt
+> "Wouldn't that be a bit risky to just allow github actions to create an approve pull requests? That feels like it would have some significant security risks tied to it"
+
+then
+
+> "I think I will eventually change the toggle (option 4), but go ahead and implement option 1 so that until I get the toggle changed it will make the fallback loud, and if decided to remove the grant approve option we have something that will still help surface these issues."
+
+### The pushback was correct
+The previous entry recommended enabling **Settings → Actions → General → "Allow GitHub Actions to create and approve pull requests"**. That recommendation was aimed at the wrong problem and is withdrawn as the primary suggestion.
+
+The setting bundles two capabilities behind one toggle: `pulls.create` and `pulls.createReview` with an approve event. Creating is a proposal; approving is a review signature that can satisfy a branch-protection "require N approvals" rule — the exact control that rule exists to enforce. There is no way to take the create half without the approve half.
+
+Two facts about this repository sharpen it:
+- `main` is **unprotected**, and the workflow already holds `contents: write` and force-pushes `chore/npm-audit-fix`. That token can already write to `main` directly, so opening a pull request is strictly *less* capability than it has today. The create half is not the risk here.
+- The approve half likewise grants nothing today, because there are no required reviews to bypass. It is a latent risk that arms itself silently the day branch protection is added — precisely when review enforcement is being relied on.
+
+The actual defect was never "no PR got opened". It was "nobody was told", and that is fixable in the workflow with no permission change at all.
+
+### What was implemented
+`audit-fix.yml`, fallback path only:
+- Captures the issue number from both branches (created and updated).
+- Writes a run summary naming the branch, the tracking issue, and a one-click compare link.
+- Calls `core.setFailed` **after** the issue is created or updated, so the record is filed before the run goes red.
+
+A red run puts an X in the Actions list and triggers GitHub's scheduled-workflow failure notification — the signal that was missing for three weeks. It is self-unwinding in both directions: enabling the toggle makes `pulls.create` succeed so the fallback never runs and the job stays green; revoking it later brings the signal back with no further edits. The user plans to flip the toggle eventually, so this had to stay useful on both sides of that change.
+
+The `permissions:` comment was reworded from "this repository has [the setting] disabled" to a state-neutral description, since it would otherwise be stale the moment the toggle flips.
+
+### Verification
+No source code changed, so the usual gates say nothing about this. Verified the way the previous session verified the same block: YAML parsed with `yaml.safe_load`, the `github-script` body extracted and syntax-checked as an async function body (top-level `await`/`return` are legal there but not in a standalone CJS file), then driven through a stub harness over six paths.
+
+| Path | Expected | Result |
+|------|----------|--------|
+| Existing PR found | update, stay green | pass |
+| PR created | stay green | pass |
+| 403, no existing issue | create issue, summary, fail | pass |
+| 403, existing issue | update issue, summary, fail | pass |
+| 403, only a *pull request* matches the issue title | must not reuse it — create a new issue | pass |
+| Non-403 error (500) | rethrow, no `setFailed` | pass |
+
+The fifth case guards the `!i.pull_request` filter, since `issues.listForRepo` returns pull requests too. The sixth confirms the narrow recovery did not become a blanket swallow.
+
+### Notes
+- A fine-grained PAT in `AUDIT_FIX_TOKEN` (already wired into the checkout step as `secrets.AUDIT_FIX_TOKEN || secrets.GITHUB_TOKEN`) remains the middle option: narrower than the repo-wide toggle since it never grants approve, but it is a long-lived credential to rotate. A trade, not a free win.
+- Repeated scheduled failures do not cause GitHub to disable the workflow; only 60 days of repository inactivity does.
+- Dependabot never acted on an `@dependabot rebase` comment on #201 within ~15 minutes, so that PR was left open to be rebased on Dependabot's own schedule.
