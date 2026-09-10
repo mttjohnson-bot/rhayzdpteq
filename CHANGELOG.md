@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-09-10
+
+Audit the repository's red checks and the open Dependabot PRs. The Audit Fix workflow's weekly failure is its intended signal, not a regression; the real finding is five moderate advisories sitting on `main` below the audit gate's threshold, cleared by the two changes already waiting.
+
+- **Stopped `@types/three` from being claimed by two Dependabot groups at once** — The `dev-dependencies` group now carries an explicit `exclude-patterns` entry for it. The `three` group is declared first and should have claimed the package on ordering alone, but it did not: #201 bumps `@types/three` 0.185.1 → 0.185.4 on its own in the `three` group, and #207 bumps the same package to the same version again inside the `dev-dependencies` group. Two open PRs were racing to make one change. The exclusion keeps `three` and its type definitions moving together in a single PR, which is the reason the `three` group exists.
+- **Identified five moderate advisories on `main` that the Security workflow does not catch** — `npm audit --audit-level=high` reports zero and passes, but plain `npm audit` reports five moderate issues: a path traversal in `@vitest/mocker` affecting `vitest` and `@vitest/coverage-v8` (GHSA-82fw-gwwq-j7x9, four of the five), and an infinite loop in `fflate` on malformed ZIP64 archives (GHSA-px8p-9vwx-vf98). Both are dev-tree only.
+- **Confirmed the two pending changes clear all five between them** — Dependabot PR #207 moves the `vitest` family 4.1.10 → 4.1.11, which is the fixed version for the vitest advisory; the `chore/npm-audit-fix` branch moves `fflate` 0.8.2 → 0.8.3. Neither covers the other, so both are needed to reach zero.
+
 ## 2026-08-17
 
 Clear the two high-severity advisories failing the Security workflow's npm audit gate, unblock and merge the open Dependabot PRs, and make the Audit Fix workflow fail visibly when it cannot open its own pull request.

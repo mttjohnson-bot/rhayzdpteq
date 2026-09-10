@@ -1738,3 +1738,52 @@ The fifth case guards the `!i.pull_request` filter, since `issues.listForRepo` r
 - A fine-grained PAT in `AUDIT_FIX_TOKEN` (already wired into the checkout step as `secrets.AUDIT_FIX_TOKEN || secrets.GITHUB_TOKEN`) remains the middle option: narrower than the repo-wide toggle since it never grants approve, but it is a long-lived credential to rotate. A trade, not a free win.
 - Repeated scheduled failures do not cause GitHub to disable the workflow; only 60 days of repository inactivity does.
 - Dependabot never acted on an `@dependabot rebase` comment on #201 within ~15 minutes, so that PR was left open to be rebased on Dependabot's own schedule.
+
+## 2026-09-10 — Repository audit: red checks and open Dependabot PRs
+
+### Prompt
+> I think the repo may be failing some kind of action or audit check, and you look into that. There are also some dependabot pull requests that have been opened, please look into those as well to see what is needed.
+
+An open-ended diagnostic prompt rather than a change request, so most of the session was investigation. One code change came out of it.
+
+### What was actually red
+
+| Check | State | Cause |
+|-------|-------|-------|
+| Audit Fix (weekly) | failing, runs 4/5/6 | Working as designed — `pulls.create` returns 403, falls back to issue #200, then `core.setFailed` |
+| Deploy to GitHub Pages | failing, run 189 | Transient Pages 503 on 2026-08-17; `main` has not been pushed since, so the red run is still the latest |
+| Security (`npm audit`) | passing | `--audit-level=high`; the five open advisories are all moderate |
+| Quality | passing | — |
+| Dependabot #201, #207 | all checks green | — |
+
+The Audit Fix failure is the signal the 2026-08-17 session deliberately added, not a regression. It clears itself only when someone enables **Settings → Actions → General → Workflow permissions → "Allow GitHub Actions to create and approve pull requests"** or sets `AUDIT_FIX_TOKEN`. Neither is reachable from a session — both are repository settings.
+
+### The finding the red checks were hiding
+
+`npm audit --audit-level=high` reports 0 and the gate passes, but plain `npm audit` reports 5 moderate advisories on `main`:
+
+- GHSA-82fw-gwwq-j7x9 — path traversal via `@vitest/mocker`, pulling in `vitest` and `@vitest/coverage-v8` (4 of the 5)
+- GHSA-px8p-9vwx-vf98 — `fflate` `unzipSync` infinite loop on malformed ZIP64
+
+Verified which pending change clears which, by reading each branch's lockfile rather than trusting the PR titles:
+
+| Branch | vitest family | fflate |
+|--------|---------------|--------|
+| `main` | 4.1.10 | 0.8.2 |
+| #207 `dev-dependencies` | 4.1.11 | 0.8.2 |
+| `chore/npm-audit-fix` | 4.1.10 | 0.8.3 |
+
+They are complementary — neither covers the other, and both are needed to reach zero. Worth noting the Sep 7 Audit Fix run did *not* bump vitest even though `^4.1.5` admits 4.1.11; the advisory appears to have been published after that run.
+
+### Change made
+
+`.github/dependabot.yml` — added `exclude-patterns: ["@types/three"]` to the `dev-dependencies` group. #201 (`three` group) and #207 (`dev-dependencies` group) both bump `@types/three` 0.185.1 → 0.185.4, so two open PRs were racing to make the same change. The existing comment assumed first-matching-group ordering would keep the pair together; empirically it did not. The exclusion states the intent instead of relying on ordering.
+
+### Verification
+`npm install`, then lint (0 errors), `tsc --noEmit` (clean), 496 unit tests passing — the baseline, since a `dependabot.yml` edit cannot move any of them. YAML re-parsed with `yaml.safe_load` and the resulting group config asserted.
+
+### Notes and gaps
+- #201 is behind `main` and fully superseded by #207. Merging #207 should make Dependabot close #201 on its own.
+- Nothing here fixes the weekly Audit Fix failure. It is a repository setting, and it will keep going red every Monday until that toggle is flipped or a PAT is supplied.
+- The deploy failure is a stale transient. Re-running the workflow, or any push to `main`, clears it — a merge of #207 would do it as a side effect.
+- Left open for the user: whether the Security gate should drop to `--audit-level=moderate`. It would have surfaced these five immediately, but it turns `main` red until both pending changes land, so it is a deliberate trade rather than an obvious win.
