@@ -36,7 +36,7 @@
     "@gltf-transform/core": "^4.4.2",
     "@playwright/test": "^1.62.1",
     "@types/three": "^0.185.4",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.0",
     "eslint": "^10.9.1",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
