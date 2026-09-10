@@ -32,8 +32,19 @@ updates:
       # cutting PR churn, the grouped update regenerates a larger slice of the
       # lockfile at once, which pulls transitive packages forward more often —
       # transitives are where the recurring npm audit failures come from.
+      #
+      # `@types/three` is excluded explicitly rather than left to group
+      # ordering. The `three` group above is declared first, which should be
+      # enough to claim it, but in practice it was not: #201 bumped
+      # `@types/three` on its own in the `three` group while #207 bumped the
+      # same package again inside this group, leaving two open PRs racing to
+      # make the same change. An explicit exclusion keeps the library and its
+      # type definitions moving together in one PR, which is the whole point
+      # of the `three` group.
       dev-dependencies:
         dependency-type: development
+        exclude-patterns:
+          - "@types/three"
         update-types:
           - minor
           - patch
