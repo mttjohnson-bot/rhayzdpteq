@@ -28,6 +28,27 @@ updates:
           - "three"
           - "@types/three"
 
+      # vitest and @vitest/coverage-v8 must always move together. The coverage
+      # reporter declares an *exact* peer on the test runner
+      # (peerDependencies.vitest "5.0.0", not a range), so a PR that bumps one
+      # without the other cannot resolve and `npm ci` fails with ERESOLVE
+      # before any check runs. That is what happened to #211 and #212: the
+      # vitest 5 major arrived as two separate PRs, and neither could pass CI
+      # on its own no matter how many times it was re-run.
+      #
+      # Unlike the dev-dependencies group below, this group deliberately sets
+      # no `update-types` filter, so it claims majors too. The "majors stay
+      # ungrouped" convention noted at the bottom of this file is what split
+      # the pair in the first place; for an exact-peer pair the convention has
+      # to yield, because an unmergeable PR cannot be reviewed on its own
+      # merits anyway. Like the `three` group, this must stay above the
+      # dev/production groups, which would otherwise claim these packages
+      # first.
+      vitest:
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+
       # Minor and patch bumps to the dev toolchain land as a single PR. Beyond
       # cutting PR churn, the grouped update regenerates a larger slice of the
       # lockfile at once, which pulls transitive packages forward more often —
@@ -77,4 +98,8 @@ updates:
 
 # Major version bumps are deliberately left ungrouped in both ecosystems, so
 # each one arrives as its own PR with its own CI run and can be reviewed and
-# reverted on its own.
+# reverted on its own. The exception is a group above that sets no
+# `update-types` filter (currently `three` and `vitest`): those packages are
+# bound by exact or lockstep peer dependencies and cannot install apart, so
+# their majors are grouped too. Splitting them does not produce two reviewable
+# PRs, it produces two unmergeable ones.
