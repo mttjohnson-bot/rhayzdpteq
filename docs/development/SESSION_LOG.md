@@ -1787,3 +1787,37 @@ They are complementary — neither covers the other, and both are needed to reac
 - Nothing here fixes the weekly Audit Fix failure. It is a repository setting, and it will keep going red every Monday until that toggle is flipped or a PAT is supplied.
 - The deploy failure is a stale transient. Re-running the workflow, or any push to `main`, clears it — a merge of #207 would do it as a side effect.
 - Left open for the user: whether the Security gate should drop to `--audit-level=moderate`. It would have surfaced these five immediately, but it turns `main` red until both pending changes land, so it is a deliberate trade rather than an obvious win.
+
+---
+
+## 2026-09-21 — Resolve the open Dependabot PRs
+
+### Prompt
+> There are several new PRs opened by dependabot, please check those out and see if they can be resolved
+
+### Plan
+Read all four open Dependabot PRs, check each one's CI state, and separate the ones that are already mergeable from the ones that are actually blocked. For anything blocked, find the root cause from the CI logs rather than re-running, fix it here, and correct whatever configuration produced the blockage.
+
+### Outcome
+Four PRs open. Two were already green and needed nothing: #214 (`three` 0.185.1 → 0.186.0, with `@types/three` moving alongside it in the same PR — the `three` group working as designed) and #215 (the grouped dev-dependency PR, six packages). All nine checks pass on both.
+
+The other two, #211 (`vitest` → 5.0.0) and #212 (`@vitest/coverage-v8` → 5.0.0), are two halves of one major bump. `@vitest/coverage-v8` declares an exact peer on the runner rather than a range, so each PR fails `npm ci` with `ERESOLVE` before any check body runs — the mirror image of each other:
+
+| PR | Found | Wanted by peer |
+|----|-------|----------------|
+| #211 | `vitest@5.0.0` from root | `vitest@4.1.11` from `@vitest/coverage-v8@4.1.11` |
+| #212 | `vitest@4.1.11` from root | `vitest@5.0.0` from `@vitest/coverage-v8@5.0.0` |
+
+That is why Lint & Format, Type Check, and npm audit are red on both while Unit Tests, Bundle Size, E2E, and Visual Regression all report `skipped` — nothing ever got as far as running. Neither PR is fixable on its own terms.
+
+Applied the bump as a single change instead, landing both on 5.0.1, and added a `vitest` group to `.github/dependabot.yml` so the pair is never offered separately again. See CHANGELOG.md for details.
+
+### Verification
+`npm ci` from a clean `node_modules` — the step that was failing on both PRs — then lint (0 errors), Prettier (no files changed), `tsc --noEmit` (clean), production build (153 kB gzipped `three` chunk, unchanged), 496 unit tests passing, `npm run test:coverage` passing at 86.5% lines to exercise the coverage reporter itself, and `npm audit` at zero vulnerabilities. No source file needed changing. `dependabot.yml` re-parsed with `yaml.safe_load` and the group ordering asserted, since the ordering is what the fix depends on.
+
+### Notes
+- The `dev-dependencies` group's `update-types: [minor, patch]` filter meant no group claimed the vitest majors, so the file's "majors stay ungrouped" convention applied by default and split them. The convention is sound for independent packages and wrong for exact-peer pairs; the closing comment now says so rather than leaving the next reader to rediscover it through a failed CI run.
+- The `three` group is the precedent this follows, and it is now confirmed working end to end: #214 carries both `three` and `@types/three`, which is what the 2026-09-10 `exclude-patterns` fix was for.
+- Dependabot should close #211 and #212 on its own once this reaches `main`, since the dependency it wants will already be satisfied. Worth confirming rather than assuming.
+- #214 and #215 are the user's to merge — both are green and nothing in this branch touches them. This branch is based on the same `main` commit they are, so whichever lands first, the other will need a lockfile rebase.
+- Not addressed, and unchanged from the previous session: the weekly Audit Fix workflow failure is a repository setting (Actions → "Allow GitHub Actions to create and approve pull requests"), not reachable from a session.
