@@ -1850,5 +1850,5 @@ The updater log showed two things the PRs alone do not:
 ### Notes
 - Gap in the previous session: its verification asserted "the group ordering is what the fix depends on". The updater log is the authoritative source for how groups resolve, and it was not checked at the time. Future Dependabot config changes should be confirmed against the next run's `Checking specificity for …` lines, not against the YAML.
 - The real confirmation is the next weekly run (vitest 5.0.2 is eligible after the cooldown). It should open one `vitest` group PR carrying both packages, and no `@vitest/coverage-v8` entry should appear in the dev-dependencies PR.
-- #218 was not merged in this session. That is left to the user.
+- Follow-up prompt: *"merge 218 and open the PR for this branch"*. Merged #218, then rebased this branch onto the new `main`. It touches none of the same files, so the rebase was clean. The gates were re-run on the combined tree before pushing.
 
