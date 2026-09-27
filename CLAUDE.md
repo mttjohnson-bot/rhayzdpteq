@@ -26,10 +26,10 @@ See `GAME_PLAN.md` for the full game design document including milestones, archi
 ├── docs/            # Organized documentation
 │   ├── player/      # Player-facing guides (also useful for test agents)
 │   └── development/ # Developer-facing architecture, roadmap, plans, session log
-├── package.json     # Dependencies and scripts (once scaffolded)
-├── vite.config.ts   # Vite configuration (once scaffolded)
-├── tsconfig.json    # TypeScript configuration (once scaffolded)
-├── index.html       # Entry point (once scaffolded)
+├── package.json     # Dependencies and scripts
+├── vite.config.ts   # Vite configuration
+├── tsconfig.json    # TypeScript configuration
+├── index.html       # Entry point
 ├── src/             # Source code
 │   ├── main.ts      # App entry point
 │   ├── game/        # Core game loop, player, camera, input, saves
@@ -91,8 +91,6 @@ To generate `.glb` files locally, run `node scripts/convert-models.mjs` (require
 
 ## Development Setup
 
-Once the project is scaffolded:
-
 - **Package manager:** npm
 - **Install dependencies:** `npm install`
 - **Dev server:** `npm run dev`
@@ -101,31 +99,39 @@ Once the project is scaffolded:
 
 ## Claude Code Web Session Environment
 
-**IMPORTANT: You are running in a Claude Code web session right now.** All development on this project is done exclusively from Claude Code web sessions — there is no local dev environment. Every session you operate in has the limitations described below. These are not hypothetical — they apply to *this* session and every future session on this project. Do not waste effort working around them — they are hard constraints that cannot be bypassed.
+**IMPORTANT: You are running in a Claude Code web session right now.** All development on this project is done exclusively from Claude Code web sessions — there is no local dev environment. The notes below describe what this environment can and cannot do. They were last verified on 2026-09-27; if something here turns out to be wrong, fix this section in the same session rather than working around it silently.
 
-### What does NOT work in web sessions
+### GitHub: use the GitHub MCP tools, not `gh`
 
-1. **`gh` CLI is not available.** Do not attempt to install it (the npm `gh` package is not the GitHub CLI), authenticate it, or use `curl` workarounds against the GitHub API. Git operations (push, fetch, pull) work via the configured proxy remote, but `gh pr create`, `gh pr merge`, `gh pr view`, and other GitHub API commands cannot run.
+The `gh` CLI is not installed. Do not install it (the npm `gh` package is not the GitHub CLI), authenticate it, or `curl` the GitHub API. Everything it would be used for is available through the GitHub MCP tools (`mcp__github__*`; load their schemas with ToolSearch first):
 
-2. **Dependencies are not pre-installed.** Web sessions start with a clean environment — `node_modules/` does not exist. **Always run `npm install` before any quality gate** (lint, format, typecheck, build, test). Without this, you will see hundreds of "Cannot find module 'three'" and "Cannot find module 'vitest'" errors. These are not real issues — they are just missing dependencies.
+| Task | Tool |
+|------|------|
+| Open a PR | `create_pull_request` |
+| Read a PR, its diff, check runs, reviews, comments | `pull_request_read` (`get`, `get_diff`, `get_check_runs`, `get_review_comments`, …) |
+| Read CI logs to root-cause a failure | `actions_list` → `get_job_logs` |
+| Merge a PR | `merge_pull_request` |
+| Comment / reply on a PR | `add_issue_comment`, `add_reply_to_pull_request_comment` |
+| Run a `workflow_dispatch` workflow (e.g. Update Visual Snapshots) | `actions_run_trigger` |
+| Watch a PR for CI results and review comments | `subscribe_pr_activity` |
 
-3. **E2E tests cannot run.** Playwright requires a Chrome/Chromium binary. Web sessions do not have one, and Playwright's CDN download is blocked. Skip E2E tests entirely — they run in CI after the branch is pushed. Unit tests (`npm test`) work fine after `npm install`.
+`git push`, `fetch`, and `pull` work through the configured proxy remote.
 
-4. **No interactive terminal input.** Commands requiring interactive input (e.g., `gh auth login`, `git rebase -i`, `git add -i`) will hang or fail. Use non-interactive alternatives.
+### Environment facts
 
-### What DOES work
-
-- `git push`, `git fetch`, `git pull` — via the configured proxy remote
-- `npm install`, `npm run lint`, `npm run format`, `npm run build`, `npm test`
-- `npx tsc --noEmit` — type checking
-- All file reading, writing, and editing
-- Standard Unix tools (ls, find, etc.)
+1. **Dependencies are not pre-installed.** `node_modules/` does not exist at session start. Run `npm ci` before any quality gate. Without it you will see hundreds of "Cannot find module 'three'" / "'vitest'" errors that are not real issues.
+2. **E2E tests can run, with one environment variable.** Chromium is pre-installed at `/opt/pw-browsers`, but it is an older build than the one `@playwright/test` expects, so a bare `npm run test:e2e` fails with `Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-…`. Point Playwright at the installed binary instead:
+   ```
+   npm run build && PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:e2e:functional
+   ```
+   Never run `npx playwright install`; the download CDN is blocked. Visual tests will run too, but their baselines come from CI's renderer, so local results are advisory only (see "Visual regression baselines").
+3. **No interactive terminal input.** Commands that prompt (`git rebase -i`, `git add -i`, anything waiting on a TTY) hang or fail. Use non-interactive alternatives.
 
 ### Session startup checklist
 
 Run these at the start of every session before doing any other work:
 
-1. `npm install` — populate dependencies
+1. `npm ci` — populate dependencies from the lockfile
 2. `npm run build` — verify the project builds cleanly before making changes
 
 ## Common Commands
@@ -157,11 +163,9 @@ The project uses Playwright for end-to-end browser testing. Tests live in `tests
 
 ### Running E2E tests locally
 
-**E2E tests cannot run in this environment** — no browser binary is available and Playwright's CDN is blocked. Do not attempt to run them. They will be validated by CI after the branch is pushed.
+E2E tests run in web sessions with `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium` set (see "Environment facts" above). All 21 functional tests passed this way on 2026-09-27.
 
-In local development environments with a browser available, run `npx playwright install chromium` first, or set `PLAYWRIGHT_CHROMIUM_PATH` to a local Chrome/Chromium path.
-
-**You do not need to run E2E tests every session.** They are primarily a CI concern. Even in local environments, only run them when your changes affect:
+**You do not need to run E2E tests every session.** CI runs them on every PR. Run them locally when your changes affect:
 - Game state transitions (menu → hub → dungeon)
 - UI overlay code (HUD, menus, inventory, skill tree)
 - Save/load logic
@@ -178,11 +182,7 @@ Screenshot baselines are stored in `tests/e2e/__snapshots__/`. **Baselines must 
 - After Playwright or Chrome version upgrades that change rendering
 - When the Visual Regression CI job fails on a PR and the diff shows an expected change
 
-**How to update baselines:**
-1. Go to the repository's Actions tab on GitHub
-2. Select the "Update Visual Snapshots" workflow
-3. Click "Run workflow" and enter the branch name
-4. The workflow regenerates baselines in CI and commits them to the branch
+**How to update baselines:** run the "Update Visual Snapshots" workflow (`update-snapshots.yml`) with the `branch` input set to the PR's branch, via `actions_run_trigger` or from the Actions tab. It regenerates baselines in CI and commits them to that branch; pull before pushing anything else to it.
 
 Do **not** commit locally-generated baselines — they will mismatch CI's rendering environment and cause false failures.
 
@@ -217,7 +217,7 @@ A Husky pre-commit hook runs `npx lint-staged` on every `git commit`. It automat
 
 ### Before committing, always run:
 
-0. `npm install` — ensure dependencies are installed (`node_modules/` starts empty in every session)
+0. `npm ci` — ensure dependencies are installed (`node_modules/` starts empty in every session)
 1. `npm run lint` — check for lint errors across the entire project (not just staged files)
 2. `npm run format` — format all source files with Prettier
 3. `npx tsc --noEmit` — verify the project type-checks cleanly
@@ -403,29 +403,24 @@ To minimize merge pain:
 
 ## Session Completion
 
-**IMPORTANT: Every session that produces code changes MUST end by pushing the branch and opening a pull request.** Do not wait to be asked — this is a standing requirement, just like the changelog.
+**IMPORTANT: Every session that produces code changes MUST end with the branch pushed and a pull request open.** Do not wait to be asked — this is a standing requirement, just like the changelog.
 
 ### Steps
 
-At the end of every session where you have committed changes to a feature branch:
-
-1. **Rebase onto the latest `main`** before pushing: `git fetch origin main && git rebase origin/main`. Resolve any conflicts (see "Concurrent Sessions and Rebase Before Push" above).
-2. **Push your branch** to the remote.
-3. **Report the branch to the user for PR creation.** Since all sessions run in Claude Code web environments where `gh` CLI is not available (see "Claude Code Web Session Environment" above), **do not attempt to use `gh`, install it, or use curl workarounds**. Instead, tell the user the branch has been pushed and provide the branch name so they can create the PR from GitHub. Include the PR body template (below) so they can paste it into the PR description.
-4. **If `gh` ever becomes available in the environment**, use `gh pr create` and then enable auto-merge with `gh pr merge --auto --squash <pr-number>`.
-
-### Why
-
-This ensures the reviewer can see the PR description and CI results at the same time, rather than having to wait for CI after discovering the PR. By the time a human reviews, checks are already running (or already green), and auto-merge eliminates the need for a second interaction to click "merge."
+1. **Rebase onto the latest `main`**: `git fetch origin main && git rebase origin/main`. Resolve conflicts per "Concurrent Sessions and Rebase Before Push" above.
+2. **Push the branch.** After a rebase of a branch that is already on the remote, use `git push --force-with-lease`.
+3. **Open the PR yourself** with `create_pull_request`, base `main`, using the title and body format below. Do not hand the user a body to paste.
+4. **Report the PR link to the user**, and offer to watch it (`subscribe_pr_activity`) so CI failures and review comments get handled.
+5. **Merge only when the user asks.** Before merging, confirm on the current head that CI is green and the PR is mergeable. Merge with `merge_pull_request`, `merge_method: "merge"` (the repo's history uses merge commits, not squash), and pass `expectedHeadSha` so a late push cannot be merged unseen. The same applies to Dependabot PRs.
 
 ### Rules
 
-1. **Always push the branch before the session ends.** Do not leave committed changes unpushed.
-2. **Always tell the user the branch name and provide the PR body template** so they can create the PR from GitHub. Do not attempt to use `gh` — it is not available.
-3. **Do not merge manually.** Let auto-merge handle it after CI passes and the PR is approved. This avoids merging before checks complete.
-4. **If the push fails** (e.g., no commits ahead of base, or network issues), report the error clearly so it can be resolved.
+1. **Always push before the session ends.** Do not leave committed changes unpushed.
+2. **One PR per change.** A merged PR is finished. If follow-up work lands on the same branch name after its PR merged, restart the branch from `origin/main` and open a new PR; never stack new commits on merged history.
+3. **Docs-only PRs get no CI.** The Quality and Security workflows ignore `*.md`, `docs/**`, and `LICENSE`, so a PR touching only those shows no checks. That is expected, not a stuck pipeline. Say so when reporting the PR.
+4. **If the push or PR creation fails**, report the exact error. Do not retry with a different mechanism.
 5. **The PR title** should be concise (under 70 characters) and describe the change, not the session.
-6. **The PR body** should follow this standard format (provide this to the user for their PR):
+6. **The PR body** follows this format. Tick only the gates you actually ran:
    ```
    ## Summary
    - <bullet points describing changes>
@@ -436,11 +431,29 @@ This ensures the reviewer can see the PR description and CI results at the same 
    - [ ] Type check (`npx tsc --noEmit`)
    - [ ] Build (`npm run build`)
    - [ ] Unit tests (`npm test`) — if applicable
+   - [ ] E2E functional (`npm run test:e2e:functional`) — if applicable
 
    ## Follow-up
    - <any known issues or next steps, or "None">
    ```
 
+## Dependency Updates (Dependabot)
+
+Reviewing Dependabot PRs is a recurring task. Lessons from past sessions:
+
+- **Read the updater log, not just the PR.** Each Dependabot run is a job in the "Dependabot Updates" workflow in Actions. Its log records group assignment (`Checking specificity for … in group …`, `Skipping … belongs to more specific group …`), cooldown filtering (`Filtered out N versions due to cooldown`), and ignore rules. That is the only reliable way to tell whether `.github/dependabot.yml` is doing what its comments say.
+- **Groups resolve by specificity, not by order.** A package that must move with another (an exact or lockstep peer, like `three`/`@types/three` or `vitest`/`@vitest/coverage-v8`) needs its own group *and* an `exclude-patterns` entry in `dev-dependencies`. The comments in `dependabot.yml` explain why.
+- **Recently published releases are skipped on purpose.** Dependabot waits 3 days before offering a new release, so a version published just before the weekly run appears the week after.
+- **Fix a red Dependabot PR from its logs.** An `ERESOLVE` at `npm ci` means a peer-dependency split. No number of re-runs fixes it; apply the paired bump as one change instead.
+- **Never hand-merge a lockfile.** When one merge puts another Dependabot PR into conflict, comment `@dependabot rebase` so it regenerates the lockfile against the new base. On your own branches, reset `package.json`/`package-lock.json` to `main`, re-apply your edits, and let `npm install` regenerate the lock.
+
 ## CI/CD
 
-GitHub Pages deployment from the production build output. Pipeline to be configured once the project is scaffolded.
+| Workflow | Runs on | What it does |
+|----------|---------|--------------|
+| Quality (`quality.yml`) | PRs and pushes to `main` (not docs-only) | Lint & Format, Type Check, Unit Tests, Bundle Size Check, E2E Tests (Functional), Visual Regression |
+| Security (`security.yml`) | PRs and pushes to `main` (not docs-only), weekly schedule | `npm audit --audit-level=high`, CodeQL |
+| Deploy to GitHub Pages (`deploy.yml`) | Push to `main` | Converts `.vox` → `.glb`, verifies assets, builds, deploys |
+| Audit Fix (`audit-fix.yml`) | Weekly (Mon 06:00 UTC), manual | Runs `npm audit fix` and proposes the result. Actions is not permitted to open PRs in this repository, so it opens an issue and goes red instead. A red run is a request for action, not a broken workflow |
+| Update Visual Snapshots (`update-snapshots.yml`) | Manual (`branch` input) | Regenerates visual baselines in CI and commits them |
+| Convert Character Models (`convert-models.yml`) | Manual (`branch` input) | Runs the `.vox` → `.glb` conversion on a branch |

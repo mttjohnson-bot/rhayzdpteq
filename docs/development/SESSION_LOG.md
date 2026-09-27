@@ -1852,3 +1852,31 @@ The updater log showed two things the PRs alone do not:
 - The real confirmation is the next weekly run (vitest 5.0.2 is eligible after the cooldown). It should open one `vitest` group PR carrying both packages, and no `@vitest/coverage-v8` entry should appear in the dev-dependencies PR.
 - Follow-up prompt: *"merge 218 and open the PR for this branch"*. Merged #218, then rebased this branch onto the new `main`. It touches none of the same files, so the rebase was clean. The gates were re-run on the combined tree before pushing.
 
+---
+
+## 2026-09-27 — Update agent guidance for current web-session capabilities
+
+### Prompt
+> I think we've had something saved in some agent file somewhere about generating some PR details so that I could manually create a PR, and I think that was back when there was some limitation for Claude Code on Web from being able to create a PR by itself, and that no longer seems to be a limitation, and I think that agent guidance needs to be updated because I can have you review, create, and merge a PR now without technical limitations.
+>
+> Let me know if there are any other improvements we should make to agent guidance for maintaining the repo and software. I'm exclusively using Claude Code on Web for developing and maintaining this project.
+
+### Plan
+Find every place the old "no `gh`, give the user a PR body" guidance lives. Then check each environment claim in `CLAUDE.md` against this session before rewriting, rather than swapping one assumption for another.
+
+### Outcome
+The guidance lived in `CLAUDE.md` ("Claude Code Web Session Environment" and "Session Completion"). It originally came from `docs/development/plans/session-planning-improvements.md`. Checked against this session:
+
+| Claim in CLAUDE.md | Reality |
+|---|---|
+| `gh` not available | Still true, but the GitHub MCP tools replace it: this session opened #219, merged #218 and #219, read Dependabot job logs, and watched a PR |
+| E2E cannot run, no browser | False. Chromium is at `/opt/pw-browsers`. It works with `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium` (21/21 functional tests pass) and fails without it |
+| Use squash auto-merge | Never matched practice: every merge in history is a merge commit |
+| CI/CD "to be configured" | Six workflows exist |
+
+Rewrote those sections, added a Dependabot section distilled from the 2026-08-17, 09-10, 09-21, and 09-27 sessions, and marked the old plan as partly superseded.
+
+### Notes
+- Merge policy is set to merge only when the user asks. The user said Claude *can* merge; they did not say every PR should merge automatically. Easy to flip if they want merge-when-green.
+- This PR is docs-only, so no Quality or Security checks will run on it. That is expected, and it is now written down.
+

@@ -1,7 +1,9 @@
 # Plan: Improve Session Planning for Claude Code Web Sessions
 
-**Status:** Ready to implement
+**Status:** Completed, then partly superseded (2026-09-27)
 **Date:** 2026-03-14
+
+> **Superseded in part (2026-09-27):** Two of the three constraints below no longer hold. PRs are now created, read, and merged through the GitHub MCP tools, and E2E tests run against the pre-installed Chromium with `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium`. The dependencies point still applies. `CLAUDE.md` ("Claude Code Web Session Environment" and "Session Completion") is the current source of truth; this plan is kept as history.
 
 ## Problem
 
