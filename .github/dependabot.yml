@@ -4,12 +4,18 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+    # No `cooldown` is set here, but Dependabot still applies a 3-day minimum
+    # release age by default (its logs show "Filtered out 1 versions due to
+    # cooldown" and `npm install ... --min-release-age=3`). A release published
+    # in the days before the weekly run is skipped and picked up the week
+    # after: that is why three 0.186.1 and vite 8.3.1 were missing from the
+    # 2026-09-24 run. This is intended supply-chain protection, not a fault.
     target-branch: main
     labels: ["dependencies"]
     open-pull-requests-limit: 5
     ignore:
       # TypeScript 7 is blocked by typescript-eslint, which still declares
-      # peerDependencies.typescript ">=4.8.4 <6.1.0" as of 8.65.0. Installing
+      # peerDependencies.typescript ">=4.8.4 <6.1.0" as of 8.70.1. Installing
       # TS 7 alongside it fails `npm ci` with ERESOLVE, so the update cannot
       # pass CI (see #192). Scoped to the 7.x line only — 6.x minor and patch
       # updates still come through, and TS 8 will be offered when it lands.
@@ -20,9 +26,9 @@ updates:
       # three and @types/three must always move together — a version mismatch
       # between the library and its type definitions breaks the type check.
       # They live in different dependency types (three is the only production
-      # dependency, @types/three is dev), so this group must come first:
-      # Dependabot assigns each update to the first group it matches, and the
-      # dev/production groups below would otherwise split the pair apart.
+      # dependency, @types/three is dev), so the dev/production groups below
+      # also match them. Declaring this group first is NOT enough to keep the
+      # pair together: see "How Dependabot picks a group" below.
       three:
         patterns:
           - "three"
@@ -41,9 +47,8 @@ updates:
       # ungrouped" convention noted at the bottom of this file is what split
       # the pair in the first place; for an exact-peer pair the convention has
       # to yield, because an unmergeable PR cannot be reviewed on its own
-      # merits anyway. Like the `three` group, this must stay above the
-      # dev/production groups, which would otherwise claim these packages
-      # first.
+      # merits anyway. Both packages are also excluded from `dev-dependencies`
+      # below; without that exclusion this group only ever held `vitest`.
       vitest:
         patterns:
           - "vitest"
@@ -54,18 +59,32 @@ updates:
       # lockfile at once, which pulls transitive packages forward more often —
       # transitives are where the recurring npm audit failures come from.
       #
-      # `@types/three` is excluded explicitly rather than left to group
-      # ordering. The `three` group above is declared first, which should be
-      # enough to claim it, but in practice it was not: #201 bumped
-      # `@types/three` on its own in the `three` group while #207 bumped the
-      # same package again inside this group, leaving two open PRs racing to
-      # make the same change. An explicit exclusion keeps the library and its
-      # type definitions moving together in one PR, which is the whole point
-      # of the `three` group.
+      # How Dependabot picks a group: when a dependency matches more than one
+      # group, it is NOT assigned to the first one declared. The updater runs
+      # a "specificity" check and hands the dependency to whichever group it
+      # ranks as more specific, and it ranked this dependency-type group above
+      # the `@vitest/*` wildcard. The 2026-09-24 run logged:
+      #
+      #   Skipping @vitest/coverage-v8 for group 'vitest' - belongs to more
+      #   specific group 'dev-dependencies'
+      #
+      # so the `vitest` group held only `vitest` itself, and the pair was split
+      # again. For patches that means two PRs racing the same change; for the
+      # next major, `vitest` would arrive grouped while `@vitest/coverage-v8`
+      # (a major, so outside this group's update-types) arrived as its own
+      # PR, and neither would install. That is #211/#212 exactly. #201 and
+      # #207 double-claiming `@types/three` was most likely the same thing.
+      #
+      # So every package owned by a lockstep group above is excluded here by
+      # name. With the exclusion in place the updater only checks the
+      # intended group (the same log shows `@types/three` checked against
+      # 'three' alone). Any new lockstep group needs a matching entry here.
       dev-dependencies:
         dependency-type: development
         exclude-patterns:
           - "@types/three"
+          - "vitest"
+          - "@vitest/*"
         update-types:
           - minor
           - patch

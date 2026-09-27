@@ -1823,3 +1823,32 @@ Applied the bump as a single change instead, landing both on 5.0.1, and added a 
 - This branch hit the same conflict on rebase and was resolved the same way: reset `package.json` and `package-lock.json` to `main`, re-apply the two vitest version edits, and let `npm install` regenerate the lockfile. Hand-merging a lockfile produces a tree that was never resolved as a whole, which is the failure mode this session exists to fix.
 - Re-ran the full suite after the rebase rather than trusting the pre-rebase run: three 0.186.0 and vitest 5.0.1 had not been exercised together before. Clean `npm ci`, lint, `tsc`, 496 tests, build — all green, `three` chunk 155.36 kB gzipped.
 - Not addressed, and unchanged from the previous session: the weekly Audit Fix workflow failure is a repository setting (Actions → "Allow GitHub Actions to create and approve pull requests"), not reachable from a session.
+
+---
+
+## 2026-09-27 — Review Dependabot #218 and the grouping it came from
+
+### Prompt
+> Looks like there is another new PR by dependabot, go check it out, review the changes and any impacts, then try to figure out if dependabot is providing a good solution or if we still need adjustments to what it is detecting and how
+
+### Plan
+Review #218's diff, release notes and CI, and re-run the gates locally on its head. Then look past the PR at what Dependabot *decided* on that run, using the updater's own log from the "Dependabot Updates" dynamic workflow rather than inferring it from the PRs. The goal was to confirm whether the 2026-09-21 `vitest` group and the TS 7 ignore were doing their jobs, and why some newer releases were missing.
+
+### Outcome
+#218 is a clean minor/patch bump of the lint toolchain (`eslint` 10.11.0, `typescript-eslint` 8.70.1). Nine of nine checks are green, and it reproduced cleanly locally. It can be merged unchanged.
+
+The updater log showed two things the PRs alone do not:
+
+1. **The `vitest` group was not working.** The log records `Skipping @vitest/coverage-v8 for group 'vitest' - belongs to more specific group 'dev-dependencies'`. Dependabot resolves multi-group matches by a specificity ranking, not by declaration order, and it preferred the dependency-type group over the `@vitest/*` wildcard. The 2026-09-21 fix and its verification both relied on ordering, so it only looked correct. Fixed by excluding `vitest` and `@vitest/*` from `dev-dependencies`, the same approach that already works for `@types/three`.
+2. **A default 3-day cooldown is active.** `three` 0.186.1 and `vite` 8.3.1 were filtered with "due to cooldown" and `--min-release-age=3`. This is desirable, so it is documented in the config rather than changed.
+
+### Verification
+- #218 head: clean `npm ci`, lint (0 warnings), Prettier, `tsc --noEmit`, 496 tests, build, and `npm audit` at 0.
+- Simulated the split this fix prevents. Dependabot's exact lockfile-only command, `npm install vitest@5.0.2 --force --package-lock-only`, drags `@vitest/coverage-v8` to 5.0.2 as well inside the `^5` range. So a split *patch* still installs, but as two duplicate, conflicting PRs. A split *major* cannot install either way, because the other package's range will not admit it.
+- `dependabot.yml` re-parsed with `yaml.safe_load`. The group sets were checked so that `vitest` and `@vitest/coverage-v8` now match only the `vitest` group.
+
+### Notes
+- Gap in the previous session: its verification asserted "the group ordering is what the fix depends on". The updater log is the authoritative source for how groups resolve, and it was not checked at the time. Future Dependabot config changes should be confirmed against the next run's `Checking specificity for …` lines, not against the YAML.
+- The real confirmation is the next weekly run (vitest 5.0.2 is eligible after the cooldown). It should open one `vitest` group PR carrying both packages, and no `@vitest/coverage-v8` entry should appear in the dev-dependencies PR.
+- #218 was not merged in this session. That is left to the user.
+
