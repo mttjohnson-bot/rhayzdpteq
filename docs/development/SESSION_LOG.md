@@ -1880,3 +1880,26 @@ Rewrote those sections, added a Dependabot section distilled from the 2026-08-17
 - Merge policy is set to merge only when the user asks. The user said Claude *can* merge; they did not say every PR should merge automatically. Easy to flip if they want merge-when-green.
 - This PR is docs-only, so no Quality or Security checks will run on it. That is expected, and it is now written down.
 
+---
+
+## 2026-09-27 — Merge the guidance update and add a SessionStart hook
+
+### Prompt
+> merge 222 and set up the startup hook
+
+### Plan
+Merge #222 (docs-only, so no CI checks exist; confirmed mergeable with a pinned head SHA). Then restart the branch from the new `main` and add a SessionStart hook covering the two manual steps the updated `CLAUDE.md` still required: installing dependencies and setting `PLAYWRIGHT_CHROMIUM_PATH`.
+
+### Outcome
+Merged #222. Added `.claude/hooks/session-start.sh` and `.claude/settings.json`. The hook is synchronous and web-only, runs `npm ci` unless `node_modules/.package-lock.json` is newer than `package-lock.json`, and writes the Playwright export to `$CLAUDE_ENV_FILE` once. `CLAUDE.md` now describes the hook and keeps the manual fallback.
+
+### Verification
+- Cold run: `npm ci` in about 4 s, exit 0. Warm run: skipped in about 3 ms. Lockfile touched: reinstalled. `CLAUDE_CODE_REMOTE` unset: no-op, env file untouched. Two runs: one export line.
+- `git status` clean after every run, apart from the new `.claude/` files.
+- With only the hook's env file sourced: `eslint` on `src/main.ts` clean, `DungeonGenerator.test.ts` 23/23, E2E `menu.test.ts` 8/8.
+
+### Notes
+- The hook skill recommends `npm install` so the cached container reuses it. Tested first: with this container's npm 10.9.7 it strips 18 lines of `libc` metadata from the npm 11-written lockfile, the same churn recorded on 2026-08-17. So the hook uses `npm ci` with a freshness check instead. A 4 s cold install makes the caching trade-off negligible.
+- First "local" validation run was invalid, because the session itself has `CLAUDE_CODE_REMOTE=true`. It was re-run with the variable unset.
+- The hook only takes effect in sessions started after this reaches `main`.
+

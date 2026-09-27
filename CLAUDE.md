@@ -22,6 +22,7 @@ See `GAME_PLAN.md` for the full game design document including milestones, archi
 /
 ├── LICENSE          # MIT License (2026)
 ├── CLAUDE.md        # AI assistant guidance (this file)
+├── .claude/         # Claude Code settings + SessionStart hook (web sessions)
 ├── GAME_PLAN.md     # Game design document and project plan
 ├── docs/            # Organized documentation
 │   ├── player/      # Player-facing guides (also useful for test agents)
@@ -119,8 +120,10 @@ The `gh` CLI is not installed. Do not install it (the npm `gh` package is not th
 
 ### Environment facts
 
-1. **Dependencies are not pre-installed.** `node_modules/` does not exist at session start. Run `npm ci` before any quality gate. Without it you will see hundreds of "Cannot find module 'three'" / "'vitest'" errors that are not real issues.
-2. **E2E tests can run, with one environment variable.** Chromium is pre-installed at `/opt/pw-browsers`, but it is an older build than the one `@playwright/test` expects, so a bare `npm run test:e2e` fails with `Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-…`. Point Playwright at the installed binary instead:
+A SessionStart hook (`.claude/hooks/session-start.sh`, registered in `.claude/settings.json`) handles the first two items automatically in web sessions. If it did not run, or failed, do them by hand.
+
+1. **Dependencies are not pre-installed.** The hook runs `npm ci` (skipped when `node_modules` is already current). Without it you will see hundreds of "Cannot find module 'three'" / "'vitest'" errors that are not real issues. Use `npm ci`, not `npm install`: the container's npm 10 rewrites the npm 11 lockfile on install, stripping `libc` fields and leaving `package-lock.json` modified. Only use `npm install` when you intend to change dependencies.
+2. **E2E tests need one environment variable, which the hook sets.** Chromium is pre-installed at `/opt/pw-browsers`, but it is an older build than the one `@playwright/test` expects, so without `PLAYWRIGHT_CHROMIUM_PATH` a bare `npm run test:e2e` fails with `Executable doesn't exist at /opt/pw-browsers/chromium_headless_shell-…`. The hook exports `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium` for the session. If `echo $PLAYWRIGHT_CHROMIUM_PATH` is empty, prefix the command with it:
    ```
    npm run build && PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:e2e:functional
    ```
@@ -129,9 +132,7 @@ The `gh` CLI is not installed. Do not install it (the npm `gh` package is not th
 
 ### Session startup checklist
 
-Run these at the start of every session before doing any other work:
-
-1. `npm ci` — populate dependencies from the lockfile
+1. Confirm the hook ran: `node_modules/` exists and `echo $PLAYWRIGHT_CHROMIUM_PATH` is set. If not, run `npm ci` yourself.
 2. `npm run build` — verify the project builds cleanly before making changes
 
 ## Common Commands
@@ -163,7 +164,7 @@ The project uses Playwright for end-to-end browser testing. Tests live in `tests
 
 ### Running E2E tests locally
 
-E2E tests run in web sessions with `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium` set (see "Environment facts" above). All 21 functional tests passed this way on 2026-09-27.
+E2E tests run in web sessions with `PLAYWRIGHT_CHROMIUM_PATH=/opt/pw-browsers/chromium` set, which the SessionStart hook does (see "Environment facts" above). All 21 functional tests passed this way on 2026-09-27.
 
 **You do not need to run E2E tests every session.** CI runs them on every PR. Run them locally when your changes affect:
 - Game state transitions (menu → hub → dungeon)
