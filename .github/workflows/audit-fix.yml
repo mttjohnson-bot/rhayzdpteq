@@ -49,44 +49,38 @@ jobs:
         run: |
           # npm audit fix exits non-zero when vulnerabilities remain that it
           # cannot resolve within the existing semver ranges. That is not a
-          # failure for this workflow — the lockfile diff below is what decides
-          # whether there is anything to propose.
+          # failure for this workflow — the version comparison below is what
+          # decides whether there is anything to propose.
           #
           # --force is deliberately never used. It performs breaking major
           # version bumps, which is not something to open unattended.
-          npm audit fix || true
+          #
+          # npm 11 wrote package-lock.json, so npm 11 rewrites it. Node 22's
+          # bundled npm 10 strips the `libc` fields from every platform
+          # binary entry, which is a lockfile diff with no version change.
+          npx -y npm@11 audit fix || true
 
-          if git diff --quiet -- package.json package-lock.json; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "No dependency changes were needed."
-          else
+          # Decide on package versions, not on `git diff`. Formatting or
+          # metadata churn is not a fix and must not open an issue or a PR.
+          # This false positive raised issue #224 with an empty version table.
+          node scripts/lockfile-version-diff.mjs \
+            "$RUNNER_TEMP/lock.before.json" package-lock.json > "$RUNNER_TEMP/versions.md"
+
+          if [ -s "$RUNNER_TEMP/versions.md" ] || ! git diff --quiet -- package.json; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
+            cat "$RUNNER_TEMP/versions.md"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            if ! git diff --quiet -- package-lock.json; then
+              echo "Lockfile metadata changed but no package version did; ignoring it:"
+              git diff --stat -- package-lock.json
+            fi
+            echo "No dependency changes were needed."
           fi
 
-      - name: Summarise what changed
+      - name: Check what remains
         if: steps.fix.outputs.changed == 'true'
         run: |
-          node - "$RUNNER_TEMP/lock.before.json" package-lock.json > "$RUNNER_TEMP/versions.md" <<'NODE'
-          const fs = require('fs');
-          const [, , beforePath, afterPath] = process.argv;
-          const pkgs = (p) => JSON.parse(fs.readFileSync(p, 'utf8')).packages ?? {};
-          const before = pkgs(beforePath);
-          const after = pkgs(afterPath);
-          const rows = [];
-          for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
-            const from = before[key]?.version;
-            const to = after[key]?.version;
-            if (from === to) continue;
-            const name = key.replace(/^node_modules\//, '') || '(root)';
-            rows.push(`| \`${name}\` | ${from ?? '—'} | ${to ?? '—'} |`);
-          }
-          rows.sort();
-          console.log('| Package | From | To |');
-          console.log('| --- | --- | --- |');
-          console.log(rows.join('\n'));
-          NODE
-          cat "$RUNNER_TEMP/versions.md"
-
           # Whatever npm could not fix in range is reported in the PR body so a
           # reviewer knows a manual major bump is still outstanding.
           npm audit --audit-level=high > "$RUNNER_TEMP/audit.after.txt" 2>&1 || true
@@ -155,7 +149,7 @@ jobs:
               '',
               '### Packages changed',
               '',
-              versions,
+              versions || '_No package versions changed; only `package.json` did._',
               '',
               '### Audit state after the fix',
               '',
@@ -320,3 +314,35 @@ jobs:
       - name: Report no-op
         if: steps.fix.outputs.changed == 'false'
         run: echo "::notice::npm audit fix made no changes — nothing to propose."
+
+      # A fallback issue left open from an earlier run is stale once a run finds
+      # nothing to fix: the advisory was resolved some other way, or the issue
+      # was a false positive. Close it so open issues mean outstanding work.
+      - name: Close stale fallback issue
+        if: steps.fix.outputs.changed == 'false'
+        uses: actions/github-script@v9
+        with:
+          github-token: ${{ secrets.AUDIT_FIX_TOKEN || secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const issueTitle = 'Automated npm audit fix is waiting for a pull request';
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${context.runId}`;
+
+            const { data: openIssues } = await github.rest.issues.listForRepo({
+              owner, repo, state: 'open', per_page: 100,
+            });
+            const stale = openIssues.filter(
+              (i) => !i.pull_request && i.title === issueTitle,
+            );
+
+            for (const issue of stale) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issue.number,
+                body: `This [Audit Fix run](${runUrl}) found nothing to fix, so this is no longer needed.`,
+              });
+              await github.rest.issues.update({
+                owner, repo, issue_number: issue.number,
+                state: 'closed', state_reason: 'completed',
+              });
+              core.notice(`Closed stale issue #${issue.number}`);
+            }
