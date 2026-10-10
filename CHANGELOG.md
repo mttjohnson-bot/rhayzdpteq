@@ -4,8 +4,12 @@ All notable changes to this project are documented in this file, grouped by the 
 
 ## 2026-10-10
 
-Clear two new `npm audit` advisories that turned the Security check red on `main` and on every open Dependabot PR (#220, #225, #227). Both are in build and test tooling only; nothing that ships to players was affected.
+Clear two new `npm audit` advisories that turned the Security check red on `main` and on every open Dependabot PR (#220, #225, #227). Both are in build and test tooling only; nothing that ships to players was affected. With main green again, the rebased Dependabot PRs for `three` and vitest were merged.
 
+- **Merged Dependabot #220, bumping `three` 0.186.0 → 0.186.1** — The only production dependency. All checks green after the rebase, including E2E and visual regression.
+- **Merged Dependabot #225, bumping `vitest` and `@vitest/coverage-v8` to 5.0.3 together** — The rebase picked up 5.0.3 rather than the 5.0.2 the PR first offered. The exact-peer pair stayed in lockstep.
+- **Dependabot closed #227 (seven dev-tool bumps) on rebase** — It reported the dependencies as "updatable in another way". They will be offered again in a later run.
+- **`CLAUDE.md`: agents hand `@dependabot` commands to the user** — The GitHub MCP tools rewrite `@dependabot rebase` so Dependabot ignores it, as happened on all three PRs here. The guidance also now says to regenerate lockfiles with npm 11 to avoid `libc` churn.
 - **Bumped `brace-expansion` 5.0.9 → 5.0.12** — Fixes three denial-of-service advisories (GHSA-q2hr-2g5m-vwhr, GHSA-qhr7-859c-m2p7, GHSA-6j4f-fj2g-mc7p). It reaches the project only through `eslint` → `minimatch`, and eslint only expands glob patterns from this repo's own config, so it was not exploitable here.
 - **Bumped `source-map-js` 1.2.1 → 1.2.2** — Fixes an event-loop denial of service from crafted source maps (GHSA-68fv-2mgg-jv7q). It is pulled in by `vite` (via `postcss`), `jsdom` and `@vitest/coverage-v8`, all of which are dev-only.
 - **Lockfile-only change** — `npm audit fix` without `--force`, run with npm 11 so the lockfile keeps its `libc` metadata. `package.json` is untouched, and `npm audit --omit=dev` was already clean before the fix.

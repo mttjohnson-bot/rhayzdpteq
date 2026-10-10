@@ -446,7 +446,8 @@ Reviewing Dependabot PRs is a recurring task. Lessons from past sessions:
 - **Groups resolve by specificity, not by order.** A package that must move with another (an exact or lockstep peer, like `three`/`@types/three` or `vitest`/`@vitest/coverage-v8`) needs its own group *and* an `exclude-patterns` entry in `dev-dependencies`. The comments in `dependabot.yml` explain why.
 - **Recently published releases are skipped on purpose.** Dependabot waits 3 days before offering a new release, so a version published just before the weekly run appears the week after.
 - **Fix a red Dependabot PR from its logs.** An `ERESOLVE` at `npm ci` means a peer-dependency split. No number of re-runs fixes it; apply the paired bump as one change instead.
-- **Never hand-merge a lockfile.** When one merge puts another Dependabot PR into conflict, comment `@dependabot rebase` so it regenerates the lockfile against the new base. On your own branches, reset `package.json`/`package-lock.json` to `main`, re-apply your edits, and let `npm install` regenerate the lock.
+- **Never hand-merge a lockfile.** When one merge puts another Dependabot PR into conflict, it needs a `@dependabot rebase` comment so Dependabot regenerates the lockfile against the new base (see the next point for who posts it). On your own branches, reset `package.json`/`package-lock.json` to `main`, re-apply your edits, and let npm regenerate the lock. Use npm 11 (`npx -y npm@11 install` or `npx -y npm@11 audit fix`): the container's npm 10 strips the `libc` fields from the lockfile.
+- **Agents cannot send Dependabot commands.** Comments posted through the GitHub MCP tools are rewritten before they reach GitHub: `@dependabot rebase` arrives as `·@·d·ependabot r·ebase` with a footer appended, and Dependabot ignores it (2026-10-10). Do not post `@dependabot` commands. Give the user the exact comment to paste on each PR, then watch the PRs for the rebased commits.
 
 ## CI/CD
 
