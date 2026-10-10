@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-10-10
+
+Clear two new `npm audit` advisories that turned the Security check red on `main` and on every open Dependabot PR (#220, #225, #227). Both are in build and test tooling only; nothing that ships to players was affected.
+
+- **Bumped `brace-expansion` 5.0.9 → 5.0.12** — Fixes three denial-of-service advisories (GHSA-q2hr-2g5m-vwhr, GHSA-qhr7-859c-m2p7, GHSA-6j4f-fj2g-mc7p). It reaches the project only through `eslint` → `minimatch`, and eslint only expands glob patterns from this repo's own config, so it was not exploitable here.
+- **Bumped `source-map-js` 1.2.1 → 1.2.2** — Fixes an event-loop denial of service from crafted source maps (GHSA-68fv-2mgg-jv7q). It is pulled in by `vite` (via `postcss`), `jsdom` and `@vitest/coverage-v8`, all of which are dev-only.
+- **Lockfile-only change** — `npm audit fix` without `--force`, run with npm 11 so the lockfile keeps its `libc` metadata. `package.json` is untouched, and `npm audit --omit=dev` was already clean before the fix.
+
 ## 2026-09-27
 
 Review and merge Dependabot #218, and audit how Dependabot is sorting updates into groups. The PR itself is sound. The run that produced it shows the `vitest` group added on 2026-09-21 was never holding both packages, so that is fixed here. Separately, the agent guidance in `CLAUDE.md` is brought up to date with what web sessions can now do, and a SessionStart hook now prepares each web session automatically.

@@ -1903,3 +1903,27 @@ Merged #222. Added `.claude/hooks/session-start.sh` and `.claude/settings.json`.
 - First "local" validation run was invalid, because the session itself has `CLAUDE_CODE_REMOTE=true`. It was re-run with the variable unset.
 - The hook only takes effect in sessions started after this reaches `main`.
 
+---
+
+## 2026-10-10 — Clear the audit advisories blocking the Dependabot PRs
+
+### Prompts
+> New pull requests by dependabot to look into. Is it common to get things like this on a weekly basis, and is there some way to reduce the requirement for resolving potential security issues on the software when the software itself has not been changing for months […]?
+
+> it has been a bit since this was last checked […] Each of the three PRs appear to be failing recent checks
+
+> yes, open the audit fix PR
+
+### Plan
+Re-check PR and CI state, then fix the shared failure on `main` rather than on each Dependabot PR.
+
+### Outcome
+- All three open Dependabot PRs (#220 `three`, #225 vitest, #227 dev group, which replaced #226 on 2026-10-08) passed every Quality check and failed only `npm audit`. The cause was two advisories published after 2026-09-28, against `brace-expansion` and `source-map-js`. `main`'s scheduled Security run had been red since 2026-10-05 for the same reason.
+- `npm audit --omit=dev` reported 0 vulnerabilities throughout, so this was dev-tooling only.
+- Ran `npm audit fix` with npm 11 (`npx npm@11`). The result is a 12-line lockfile diff: two patch bumps and no `libc` churn.
+
+### Notes
+- **Maintenance-burden question (answered in chat; nothing implemented yet).** Proposed: gate PRs on `npm audit --omit=dev --audit-level=high` plus a full-tree `--audit-level=critical`; monthly Dependabot schedule with one catch-all minor/patch group; a longer cooldown; auto-merge of green Dependabot PRs; and Dependabot security updates. These wait on the user's decision, especially on auto-merge.
+- **Audit Fix workflow false positive.** Issue #224 (2026-09-28) reported a fix with an empty package table. Its branch only strips 18 `libc` lines, because the workflow runs Node 22 / npm 10. It will keep opening or updating the issue and going red weekly until it runs npm 11 or compares actual versions. Not fixed here, to keep this PR lockfile-only.
+- The first reply in this session was too long for the user to read in the time they had. Keep status updates short.
+
