@@ -1931,6 +1931,6 @@ Re-check PR and CI state, then fix the shared failure on `main` rather than on e
 > go ahead and merge it · merge both of them · yes, add that to CLAUDE.md
 
 - Merged #228. Posted `@dependabot rebase` on #220, #225 and #227 through the GitHub MCP tool, but the tool rewrote it to `·@·d·ependabot r·ebase` and Dependabot ignored it. The user posted the real comments about six minutes later. **Gap:** I reported the rebase comments as done without checking that Dependabot had reacted.
-- After the rebase, #220 and #225 were green on every check, including `npm audit`. Both were merged. The combined `main` was re-verified locally: `npm ci`, audit at 0, `tsc`, 496 unit tests, build. Dependabot closed #227 instead of rebasing it.
+- After the rebase, #220 and #225 were green on every check, including `npm audit`. Both were merged. The combined `main` was re-verified locally: `npm ci`, audit at 0, `tsc`, 496 unit tests, build. Dependabot closed #227 instead of rebasing it and opened #229, the same group with eight updates. #229 was green but conflicted once #220 and #225 merged, so the user was given the rebase comment to post, following the new rule.
 - Added the "agents cannot send Dependabot commands" rule and the npm 11 lockfile note to `CLAUDE.md`.
 
