@@ -456,6 +456,6 @@ Reviewing Dependabot PRs is a recurring task. Lessons from past sessions:
 | Quality (`quality.yml`) | PRs and pushes to `main` (not docs-only) | Lint & Format, Type Check, Unit Tests, Bundle Size Check, E2E Tests (Functional), Visual Regression |
 | Security (`security.yml`) | PRs and pushes to `main` (not docs-only), weekly schedule | `npm audit --audit-level=high`, CodeQL |
 | Deploy to GitHub Pages (`deploy.yml`) | Push to `main` | Converts `.vox` → `.glb`, verifies assets, builds, deploys |
-| Audit Fix (`audit-fix.yml`) | Weekly (Mon 06:00 UTC), manual | Runs `npm audit fix` and proposes the result. Actions is not permitted to open PRs in this repository, so it opens an issue and goes red instead. A red run is a request for action, not a broken workflow |
+| Audit Fix (`audit-fix.yml`) | Weekly (Mon 06:00 UTC), manual | Runs `npm audit fix` with npm 11 and proposes the result only when a package version changed (`scripts/lockfile-version-diff.mjs`). Actions is not permitted to open PRs in this repository, so it opens an issue and goes red instead. A red run is a request for action, not a broken workflow. A run with nothing to fix closes that issue if it is still open |
 | Update Visual Snapshots (`update-snapshots.yml`) | Manual (`branch` input) | Regenerates visual baselines in CI and commits them |
 | Convert Character Models (`convert-models.yml`) | Manual (`branch` input) | Runs the `.vox` → `.glb` conversion on a branch |

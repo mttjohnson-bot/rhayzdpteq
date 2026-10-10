@@ -1934,3 +1934,19 @@ Re-check PR and CI state, then fix the shared failure on `main` rather than on e
 - After the rebase, #220 and #225 were green on every check, including `npm audit`. Both were merged. The combined `main` was re-verified locally: `npm ci`, audit at 0, `tsc`, 496 unit tests, build. Dependabot closed #227 instead of rebasing it and opened #229, the same group with eight updates. #229 was green but conflicted once #220 and #225 merged, so the user was given the rebase comment to post, following the new rule.
 - Added the "agents cannot send Dependabot commands" rule and the npm 11 lockfile note to `CLAUDE.md`.
 
+### Audit Fix false positive (same session)
+> fix the audit fix workflow false positive
+
+- **Root cause.** `audit-fix.yml` treated any `git diff` on the lockfile as a fix. On Node 22 (npm 10), `npm audit fix` strips 18 lines of `libc` metadata from the npm 11 lockfile even when nothing is vulnerable. Every weekly run therefore pushed `chore/npm-audit-fix`, updated issue #224 with an empty version table, and failed.
+- **Fix.** Run `npx -y npm@11 audit fix`, and set `changed` from a version comparison (`scripts/lockfile-version-diff.mjs`, extracted from the inline summary script) or a `package.json` change. A no-op run now closes the stale fallback issue.
+- **Verified locally** by running the step logic on scratch copies:
+
+  | Lockfile | npm | `git diff` | Old result | New result |
+  |---|---|---|---|---|
+  | `main` | 10 | 18 deletions | changed | no-op |
+  | `main` | 11 | none | no-op | no-op |
+  | pre-#228 (`d8a3c03`) | 11 | 12 lines | changed | changed: `brace-expansion`, `source-map-js` |
+  | pre-#228 (`d8a3c03`) | 10 | 30 lines | changed | changed: same two |
+
+- **Not verified:** the workflow itself has not run yet. The next scheduled run (Monday) or a manual dispatch should go green and close #224.
+
