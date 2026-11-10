@@ -41,15 +41,20 @@ jobs:
 
       - run: npm ci
 
-      - name: Snapshot lockfile before fixing
-        run: cp package-lock.json "$RUNNER_TEMP/lock.before.json"
+      - name: Snapshot lockfile and audit report before fixing
+        run: |
+          cp package-lock.json "$RUNNER_TEMP/lock.before.json"
+          # npm audit exits non-zero whenever any vulnerability is reported, so
+          # the exit code says nothing here. A report that failed to generate
+          # is caught by audit-resolved-advisories.mjs, which rejects it.
+          npx -y npm@11 audit --json > "$RUNNER_TEMP/audit.before.json" || true
 
       - name: Run npm audit fix
         id: fix
         run: |
           # npm audit fix exits non-zero when vulnerabilities remain that it
           # cannot resolve within the existing semver ranges. That is not a
-          # failure for this workflow — the version comparison below is what
+          # failure for this workflow — the advisory comparison below is what
           # decides whether there is anything to propose.
           #
           # --force is deliberately never used. It performs breaking major
@@ -60,22 +65,37 @@ jobs:
           # binary entry, which is a lockfile diff with no version change.
           npx -y npm@11 audit fix || true
 
-          # Decide on package versions, not on `git diff`. Formatting or
-          # metadata churn is not a fix and must not open an issue or a PR.
-          # This false positive raised issue #224 with an empty version table.
+          npx -y npm@11 audit --json > "$RUNNER_TEMP/audit.after-fix.json" || true
+
+          # The versions table goes in the PR body so a reviewer sees what moved.
+          # It is not what decides: formatting or metadata churn changes the
+          # lockfile without changing a version (issue #224), and an advisory
+          # that has no in-range fix still makes npm move every package on its
+          # path to the newest in-range release. Both are churn, not a fix.
           node scripts/lockfile-version-diff.mjs \
             "$RUNNER_TEMP/lock.before.json" package-lock.json > "$RUNNER_TEMP/versions.md"
 
-          if [ -s "$RUNNER_TEMP/versions.md" ] || ! git diff --quiet -- package.json; then
+          # Decide on advisories. Only a run that makes at least one advisory
+          # go away is a fix worth a PR, an issue and a red run. Without this,
+          # an unfixable moderate advisory under eslint turned every eslint or
+          # typescript-eslint patch release into a weekly false alarm.
+          node scripts/audit-resolved-advisories.mjs \
+            "$RUNNER_TEMP/audit.before.json" "$RUNNER_TEMP/audit.after-fix.json" \
+            > "$RUNNER_TEMP/resolved.md"
+
+          if [ -s "$RUNNER_TEMP/resolved.md" ]; then
             echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Advisories resolved:"
+            cat "$RUNNER_TEMP/resolved.md"
             cat "$RUNNER_TEMP/versions.md"
           else
             echo "changed=false" >> "$GITHUB_OUTPUT"
-            if ! git diff --quiet -- package-lock.json; then
-              echo "Lockfile metadata changed but no package version did; ignoring it:"
-              git diff --stat -- package-lock.json
+            if [ -s "$RUNNER_TEMP/versions.md" ] || ! git diff --quiet -- package.json package-lock.json; then
+              echo "npm audit fix changed dependencies but resolved no advisory; ignoring it:"
+              cat "$RUNNER_TEMP/versions.md"
+              git diff --stat -- package.json package-lock.json
             fi
-            echo "No dependency changes were needed."
+            echo "No advisory can be fixed within the existing semver ranges."
           fi
 
       - name: Check what remains
@@ -136,6 +156,7 @@ jobs:
             const fs = require('fs');
             const branch = process.env.FIX_BRANCH;
             const versions = fs.readFileSync(`${process.env.RUNNER_TEMP}/versions.md`, 'utf8').trim();
+            const resolved = fs.readFileSync(`${process.env.RUNNER_TEMP}/resolved.md`, 'utf8').trim();
             const auditAfter = fs.readFileSync(`${process.env.RUNNER_TEMP}/audit.after.txt`, 'utf8').trim();
             const clean = auditAfter.includes('found 0 vulnerabilities');
             const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
@@ -146,6 +167,10 @@ jobs:
               'Automated `npm audit fix` from the scheduled **Audit Fix** workflow.',
               'Run without `--force`, so every change sits inside the existing semver',
               'ranges — no major version bumps.',
+              '',
+              '### Advisories resolved',
+              '',
+              resolved,
               '',
               '### Packages changed',
               '',
@@ -313,7 +338,7 @@ jobs:
 
       - name: Report no-op
         if: steps.fix.outputs.changed == 'false'
-        run: echo "::notice::npm audit fix made no changes — nothing to propose."
+        run: echo "::notice::npm audit fix resolved no advisory — nothing to propose."
 
       # A fallback issue left open from an earlier run is stale once a run finds
       # nothing to fix: the advisory was resolved some other way, or the issue
