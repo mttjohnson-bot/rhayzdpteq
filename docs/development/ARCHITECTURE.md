@@ -239,30 +239,45 @@ Push/PR
   ├── lint + typecheck (parallel)
   │     └── unit-test + bundle-size (after both pass)
   │           └── e2e-functional + e2e-visual (after unit tests pass)
-  └── security (independent: npm audit + CodeQL)
+  └── security (independent: npm audit of shipped deps + critical-only tooling audit, CodeQL)
 
 Merge to main
   └── Build + Deploy to GitHub Pages
 
 Weekly schedule (Monday)
-  ├── 06:00 UTC  audit-fix  (npm audit fix → opens/updates a PR if anything changed)
+  ├── 06:00 UTC  audit-fix  (npm audit fix → PR/issue only if a shipped-dependency advisory is resolved)
   └── 08:00 UTC  security   (npm audit + CodeQL)
+
+Monthly (1st of the month)
+  └── Dependabot version updates (npm + GitHub Actions)
 ```
 
 All required jobs must pass before PR merge. Visual regression is non-blocking.
 
 ### Dependency hygiene
 
-`npm audit --audit-level=high` in `security.yml` gates every PR, and it audits dev
-dependencies too — the dev toolchain is part of the build supply chain. Historically
-every vulnerability it has caught came from a *transitive* dev package (postcss,
-brace-expansion, nanoid, undici), not from anything declared in `package.json`.
+What reaches browsers is the bundled app code plus its production dependencies, which
+today is only `three`. Everything else in `package.json` is build, test or lint tooling.
+`security.yml` gates on that split:
+
+- **Shipped dependencies:** `npm audit --omit=dev --audit-level=high` fails the check.
+- **Build and test tooling:** a full-tree `npm audit --audit-level=critical` fails the check.
+  Lower severities only go to the run summary. The tooling runs in CI, where some jobs hold
+  write tokens, so a critical advisory still matters there.
+
+Until 2026-11-10 the gate audited the whole tree at `high`. Every vulnerability it caught
+came from a *transitive* dev package (postcss, brace-expansion, nanoid, undici). On both
+occasions where it was checked (2026-10-10 and 2026-11-10), `npm audit --omit=dev` was clean,
+so nothing at risk could reach players. Dependabot
+version updates are monthly for the same reason. When development resumes after a quiet
+period, refresh the tooling as part of that work.
 
 Dependabot version updates never open PRs for transitive packages, so those advisories
 accumulate silently until the gate goes red and blocks every open PR at once. The
-`audit-fix.yml` workflow closes that loop: it runs `npm audit fix` weekly (never
-`--force`, so no major bumps), verifies the result against lint, format, typecheck,
-build, and unit tests, then opens or refreshes a PR on the `chore/npm-audit-fix` branch.
+`audit-fix.yml` workflow closes that loop for shipped dependencies: it runs `npm audit fix`
+weekly (never `--force`, so no major bumps) and acts only when an `npm audit --omit=dev`
+advisory goes away. It verifies the result against lint, format, typecheck, build, and
+unit tests, then opens or refreshes a PR on the `chore/npm-audit-fix` branch.
 
 Because a PR opened with the default `GITHUB_TOKEN` does not trigger other workflows,
 `audit-fix.yml` runs those gates inline and records the result in the PR body. Setting

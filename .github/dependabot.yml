@@ -2,13 +2,21 @@ version: 2
 updates:
   - package-ecosystem: npm
     directory: "/"
+    # Monthly, not weekly. Only `three` ships to browsers; every other package
+    # is build, test or lint tooling, and weekly bumps to it changed nothing
+    # players load while costing a review and a redeploy each time. The
+    # schedule belongs to the update entry, not to a group, so `three` moves
+    # to monthly along with the tooling. Urgent
+    # fixes for `three` do not wait for it: the Security workflow's weekly
+    # audit of shipped dependencies goes red, and Audit Fix proposes the fix.
+    # When development resumes, refresh the tooling as part of that work.
     schedule:
-      interval: weekly
+      interval: monthly
     # No `cooldown` is set here, but Dependabot still applies a 3-day minimum
     # release age by default (its logs show "Filtered out 1 versions due to
     # cooldown" and `npm install ... --min-release-age=3`). A release published
-    # in the days before the weekly run is skipped and picked up the week
-    # after: that is why three 0.186.1 and vite 8.3.1 were missing from the
+    # in the days before a scheduled run is skipped and picked up by the next
+    # one: that is why three 0.186.1 and vite 8.3.1 were missing from the
     # 2026-09-24 run. This is intended supply-chain protection, not a fault.
     target-branch: main
     labels: ["dependencies"]
@@ -106,8 +114,9 @@ updates:
 
   - package-ecosystem: github-actions
     directory: "/"
+    # Monthly for the same reason as npm: these only change CI, never the site.
     schedule:
-      interval: weekly
+      interval: monthly
     labels: ["dependencies", "github-actions"]
     groups:
       github-actions:

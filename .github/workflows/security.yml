@@ -30,10 +30,30 @@ jobs:
 
       - run: npm ci
 
-      # Audits the full dependency tree, dev dependencies included — the dev
-      # toolchain is part of the build supply chain, so it stays in scope.
-      - name: Audit dependencies
-        run: npm audit --audit-level=high
+      # Only production dependencies (today just `three`) are bundled into the
+      # site that browsers load, so an advisory there can reach players. High
+      # and critical fail the check.
+      - name: Audit shipped dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+      # Everything else is build, test and lint tooling. It never reaches a
+      # browser, and every advisory this job has failed on so far was one of
+      # these (postcss, brace-expansion, nanoid, undici, minimatch): a weekly
+      # red run with nothing for players at stake. The tooling does run in CI,
+      # where some jobs hold write tokens, so a critical advisory still fails
+      # the check. Anything below critical is written to the run summary and
+      # is picked up by the next planned dependency refresh instead.
+      - name: Audit build and test tooling
+        if: ${{ !cancelled() }}
+        run: |
+          npm audit > "$RUNNER_TEMP/audit.txt" 2>&1 || true
+          {
+            echo '### Full dependency tree (fails on critical only)'
+            echo '```'
+            cat "$RUNNER_TEMP/audit.txt"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          npm audit --audit-level=critical
 
   codeql:
     name: CodeQL

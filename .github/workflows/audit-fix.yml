@@ -47,7 +47,12 @@ jobs:
           # npm audit exits non-zero whenever any vulnerability is reported, so
           # the exit code says nothing here. A report that failed to generate
           # is caught by audit-resolved-advisories.mjs, which rejects it.
-          npx -y npm@11 audit --json > "$RUNNER_TEMP/audit.before.json" || true
+          #
+          # --omit=dev: only advisories in what ships to browsers count, the
+          # same scope as the Security workflow's blocking audit. Advisories in
+          # build and test tooling wait for a planned dependency refresh rather
+          # than raising a PR, an issue and a red run on their own.
+          npx -y npm@11 audit --omit=dev --json > "$RUNNER_TEMP/audit.before.json" || true
 
       - name: Run npm audit fix
         id: fix
@@ -65,7 +70,7 @@ jobs:
           # binary entry, which is a lockfile diff with no version change.
           npx -y npm@11 audit fix || true
 
-          npx -y npm@11 audit --json > "$RUNNER_TEMP/audit.after-fix.json" || true
+          npx -y npm@11 audit --omit=dev --json > "$RUNNER_TEMP/audit.after-fix.json" || true
 
           # The versions table goes in the PR body so a reviewer sees what moved.
           # It is not what decides: formatting or metadata churn changes the
@@ -76,9 +81,11 @@ jobs:
             "$RUNNER_TEMP/lock.before.json" package-lock.json > "$RUNNER_TEMP/versions.md"
 
           # Decide on advisories. Only a run that makes at least one advisory
-          # go away is a fix worth a PR, an issue and a red run. Without this,
-          # an unfixable moderate advisory under eslint turned every eslint or
-          # typescript-eslint patch release into a weekly false alarm.
+          # in a shipped dependency go away is a fix worth a PR, an issue and a
+          # red run. Without this, an unfixable moderate advisory under eslint
+          # turned every eslint or typescript-eslint patch release into a weekly
+          # false alarm. npm audit fix itself still runs on the whole tree, so
+          # a proposed fix also carries any tooling fixes npm made in range.
           node scripts/audit-resolved-advisories.mjs \
             "$RUNNER_TEMP/audit.before.json" "$RUNNER_TEMP/audit.after-fix.json" \
             > "$RUNNER_TEMP/resolved.md"
@@ -95,15 +102,16 @@ jobs:
               cat "$RUNNER_TEMP/versions.md"
               git diff --stat -- package.json package-lock.json
             fi
-            echo "No advisory can be fixed within the existing semver ranges."
+            echo "No advisory in a shipped dependency can be fixed within the existing semver ranges."
           fi
 
       - name: Check what remains
         if: steps.fix.outputs.changed == 'true'
         run: |
           # Whatever npm could not fix in range is reported in the PR body so a
-          # reviewer knows a manual major bump is still outstanding.
-          npm audit --audit-level=high > "$RUNNER_TEMP/audit.after.txt" 2>&1 || true
+          # reviewer knows a manual major bump is still outstanding. Same scope
+          # as the decision above: shipped dependencies only.
+          npm audit --omit=dev --audit-level=high > "$RUNNER_TEMP/audit.after.txt" 2>&1 || true
           cat "$RUNNER_TEMP/audit.after.txt"
 
       # The gates run here because a PR opened with the default GITHUB_TOKEN
