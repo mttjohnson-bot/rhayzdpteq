@@ -1950,3 +1950,26 @@ Re-check PR and CI state, then fix the shared failure on `main` rather than on e
 
 - **Not verified:** the workflow itself has not run yet. The next scheduled run (Monday) or a manual dispatch should go green and close #224.
 
+
+## 2026-11-10 — Fix the red Security and Audit Fix runs, and land the pending Dependabot PRs
+
+### Prompt
+> Looks like there are some failed actions that ran today. Security workflow run, Audit Fix workflow run. Can you look into fixing those and identify if there are any dependabot pull requests that also need to be reviewed.
+
+### Plan
+Read both failing jobs' logs, check whether the open Dependabot PRs fix the same thing, and fix the cause on one branch rather than on each PR.
+
+### Outcome
+- **Security (`npm audit`).** Red on every scheduled run since 2026-10-26. The cause was a high-severity `undici` 8.11.2 advisory, reached only through `jsdom`. The same failure showed on the PR checks of Dependabot #236.
+- **Audit Fix.** The 2026-11-09 run was a correct signal: it fixed `undici` on `chore/npm-audit-fix`, and Actions is not allowed to open the PR, so it updated issue #235 and went red as designed. Simulating the next run on top of the fix found a second problem. `npm audit fix` still bumped 13 eslint and typescript-eslint packages while all 10 moderate advisories stayed, because the `minimatch` advisory under eslint 10 has no in-range fix. The workflow would have gone red every week over that. It now decides from the advisories that went away (new `scripts/audit-resolved-advisories.mjs`), not from version changes.
+- **Dependabot.** Three PRs were open: #232 (vitest pair), #234 (six dev tools), #236 (`three`). Merging any one of them puts the other two into conflict, and agents cannot post `@dependabot rebase`. All three bumps are applied here instead, at exactly the versions Dependabot offered. Dependabot should close each PR as already up to date once this merges. #234 on its own would also have fixed `undici` (8.12.3).
+
+### Verification
+- `npm audit --audit-level=high` with npm 11: main fails (1 high), this branch passes (10 moderate, all `minimatch`).
+- Ran the workflow's two shell steps, extracted from the YAML, on scratch copies. `main` gives `changed=true` with the eight `undici` advisories listed. This branch gives `changed=false`, even though `npm audit fix` changes 13 versions. A failed audit report (`{"error": …}`) exits 1.
+- Lint, Prettier, `tsc --noEmit`, build, 496 unit tests, and 21 functional E2E tests all passed.
+
+### Notes
+- Not verified: the workflow itself has not run with the change. After merge, a manual dispatch or the next Monday run should go green and close #235.
+- The `chore/npm-audit-fix` branch, made by the workflow, is superseded by this PR. The next run that finds nothing to fix leaves it alone. It can be deleted by hand.
+- A plain `npm install` after editing ranges resolved past what Dependabot offered (vitest 5.1.0, Playwright 1.65.0). Install exact versions when applying Dependabot bumps by hand.

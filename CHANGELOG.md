@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file, grouped by the date they were made.
 
+## 2026-11-10
+
+Turn the Security check green again and stop the Audit Fix workflow raising a weekly false alarm. `main`'s scheduled `npm audit` has been red since 2026-10-26 on a high-severity `undici` advisory, and that one advisory also failed Security on every open Dependabot PR. The three pending Dependabot PRs (#232, #234, #236) are applied here as one change, because each conflicts with the next in `package.json` and the lockfile. Everything affected is dev and test tooling except `three`.
+
+- **Fixed the high-severity `undici` advisory: 8.11.2 → 8.12.4** — It covers eight advisories, four of them high (TLS certificate validation bypass, cross-origin redirect cache poisoning, and two denial-of-service bugs). `undici` comes in only through `jsdom`, the unit-test DOM, so nothing that ships to players was exposed. Moving `jsdom` to 30.1.3 picks up the fixed release. `npm audit --audit-level=high` now passes.
+- **Applied Dependabot #236: `three` and `@types/three` 0.186 → 0.187.0** — The only production dependency. #236 was green on every Quality check, including E2E and visual regression. It failed only `npm audit`, which was the `undici` advisory on `main`.
+- **Applied Dependabot #232: `vitest` and `@vitest/coverage-v8` 5.0.3 → 5.0.4 together** — The exact-peer pair stays in lockstep.
+- **Applied Dependabot #234: six dev-tool patch bumps** — `@playwright/test` 1.64.1, `eslint` 10.13.0, `jsdom` 30.1.3, `prettier` 3.9.10, `typescript-eslint` 8.72.0, `vite` 8.3.4. Versions are pinned to exactly what Dependabot offered. A plain re-resolve would have pulled in releases still inside Dependabot's 3-day cooldown (`vitest` 5.1.0, `@playwright/test` 1.65.0, `vite` 8.3.7).
+- **Audit Fix now proposes a fix only when an advisory actually goes away** — When an advisory has no fix within the existing semver ranges, `npm audit fix` still moves every package on its path to the newest in-range release. A moderate `minimatch` advisory sits under `eslint` 10 and can only be fixed by going back to `eslint` 9. Because of it, every `eslint` or `typescript-eslint` patch release looked like a fix: the workflow pushed a branch, updated issue #235, and went red, with the same 10 advisories before and after. The workflow now captures `npm audit --json` before and after the fix. New `scripts/audit-resolved-advisories.mjs` lists the advisories that disappeared, and only a non-empty list counts. Resolved advisories are listed in the PR or issue body. An audit report that failed to generate stops the run rather than making every advisory look resolved.
+- **The remaining moderate `minimatch` advisory is accepted for now** — GHSA-g3hv-75wg-m249 needs `minimatch` 11, which `eslint` 10 does not allow. It is dev-only lint tooling, and Security gates at `high`.
+
 ## 2026-10-10
 
 Clear two new `npm audit` advisories that turned the Security check red on `main` and on every open Dependabot PR (#220, #225, #227). Both are in build and test tooling only; nothing that ships to players was affected. With main green again, the rebased Dependabot PRs for `three` and vitest were merged, and the Audit Fix workflow's weekly false positive is fixed.

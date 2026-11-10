@@ -3,11 +3,11 @@
  * Compare the installed package versions recorded in two package-lock.json
  * files and print the differences as a Markdown table.
  *
- * Used by the Audit Fix workflow to decide whether `npm audit fix` changed
- * anything. A plain `git diff` is not enough: an npm major other than the
- * one that wrote the lockfile can rewrite metadata (npm 10 strips the `libc`
- * fields npm 11 writes) without changing a single version, which made the
- * workflow report a fix when there was none.
+ * Used by the Audit Fix workflow to list what `npm audit fix` changed in the
+ * PR body. A plain `git diff` is not enough: an npm major other than the one
+ * that wrote the lockfile can rewrite metadata (npm 10 strips the `libc`
+ * fields npm 11 writes) without changing a single version. Whether there is
+ * a fix at all is decided by audit-resolved-advisories.mjs instead.
  *
  * Usage: node scripts/lockfile-version-diff.mjs <before.json> <after.json>
  *
