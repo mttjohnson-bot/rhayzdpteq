@@ -1973,3 +1973,10 @@ Read both failing jobs' logs, check whether the open Dependabot PRs fix the same
 - Not verified: the workflow itself has not run with the change. After merge, a manual dispatch or the next Monday run should go green and close #235.
 - The `chore/npm-audit-fix` branch, made by the workflow, is superseded by this PR. The next run that finds nothing to fix leaves it alone. It can be deleted by hand.
 - A plain `npm install` after editing ranges resolved past what Dependabot offered (vitest 5.1.0, Playwright 1.65.0). Install exact versions when applying Dependabot bumps by hand.
+
+### Follow-up (same session)
+> Merge and watch 237 · I think the other PRs have been updated, might want to check them now · yes, merge 232 and open the docs fix
+
+- Merged #237 after all nine checks passed. `main`'s push runs (Quality, Security, Deploy) all passed, and Security's `npm audit` is green again. Dispatching Audit Fix through the GitHub MCP tool failed with `403 Resource not accessible by integration`, so the workflow change waits for a manual run or Monday's schedule.
+- Dependabot closed #236 as up to date. It replaced #234 with #238 (`@playwright/test` 1.65.0, `eslint` 10.14.0, `typescript-eslint` 8.72.1, `vite` 8.3.6, `rollup-plugin-visualizer` 7.1.2). It rebuilt #232 with vitest 5.1.0. Both were green on all nine checks. They conflict in `package.json`, as a local merge showed, so #232 was merged and #238 needs a `@dependabot rebase` from the user.
+- **Gap: a wrong claim in #237.** Its changelog entry and PR body said vitest 5.1.0 and Playwright 1.65.0 were held back by Dependabot's 3-day cooldown. That was inferred, not checked. The registry shows they were published on 2026-11-02 and 2026-11-05, well outside the window, and Dependabot offered them within minutes of the merge. Only `vite` 8.3.7 and `typescript-eslint` 8.72.2 (2026-11-09) were inside it. The changelog entry is corrected. Lesson: check publish dates with `npm view <pkg> time` before citing the cooldown.
