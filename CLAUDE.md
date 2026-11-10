@@ -133,7 +133,8 @@ A SessionStart hook (`.claude/hooks/session-start.sh`, registered in `.claude/se
 ### Session startup checklist
 
 1. Confirm the hook ran: `node_modules/` exists and `echo $PLAYWRIGHT_CHROMIUM_PATH` is set. If not, run `npm ci` yourself.
-2. `npm run build` — verify the project builds cleanly before making changes
+2. Read the hook's dependency report: a line starting `Dependency check:` or `DEPENDENCY REFRESH NEEDED`. If it says a refresh is needed and the task is development work, do "Dependency refresh before development" (below) first. If the report is missing, run `bash .claude/hooks/dependency-report.sh` yourself.
+3. `npm run build` — verify the project builds cleanly before making changes
 
 ## Common Commands
 
@@ -438,13 +439,28 @@ To minimize merge pain:
    - <any known issues or next steps, or "None">
    ```
 
+## Dependency refresh before development
+
+CI only fails on high advisories in what ships to browsers (`three`), or on critical ones anywhere. Dependabot proposes version updates only monthly. So when work resumes after a quiet period, the build and test tooling can be months behind, or carry known high advisories that CI lets through. `.claude/hooks/dependency-report.sh` runs at session start and asks for a refresh when the full-tree `npm audit` reports any high or critical advisory, or when `package-lock.json` has not changed in 45 days.
+
+Do the refresh **before** the feature work, as its own PR, and get it merged first. That way the feature PR's CI runs on refreshed tooling, and a dependency regression is not mixed in with game changes. If the user asked only a question or for a docs change, tell them a refresh is due instead of doing it.
+
+1. **Branch from the latest `main`.** Reset `package.json` and `package-lock.json` to it, and use npm 11 throughout (`npx -y npm@11 …`), never the container's npm 10 (see "Never hand-merge a lockfile" below).
+2. **Look at the open Dependabot PRs first** (`list_pull_requests`). Their checks have already been run on CI's renderer. Apply them in this refresh rather than merging them one by one, which puts each one into conflict with the next.
+3. **Fix advisories:** `npx -y npm@11 audit fix`, never `--force`.
+4. **Update within range:** `npx -y npm@11 outdated` lists what is behind. Bump in-range versions, keeping the lockstep pairs together (`three`/`@types/three`, `vitest`/`@vitest/coverage-v8`). Check a release date with `npm view <pkg> time` before saying anything about Dependabot's 3-day cooldown.
+5. **Majors:** take one only if it is needed to clear a high or critical advisory, and put it in its own commit. Otherwise list it in the PR's Follow-up. Known blockers live in the `ignore` rules of `.github/dependabot.yml` (TypeScript 7 is blocked by typescript-eslint's peer range).
+6. **Verify:** `npx -y npm@11 audit --audit-level=high` must pass on the full tree. If an advisory has no fix in range (as with `minimatch` under eslint 10 in 2026-11), name it and say why in the PR instead. Then run every quality gate plus `npm run test:e2e:functional`. If `@playwright/test` changed, run the "Update Visual Snapshots" workflow on the PR branch.
+7. **Report** the PR with a table of the versions that changed (`node scripts/lockfile-version-diff.mjs <old lockfile> package-lock.json`). Say which of them, if any, ship to browsers.
+
 ## Dependency Updates (Dependabot)
 
 Reviewing Dependabot PRs is a recurring task. Lessons from past sessions:
 
 - **Read the updater log, not just the PR.** Each Dependabot run is a job in the "Dependabot Updates" workflow in Actions. Its log records group assignment (`Checking specificity for … in group …`, `Skipping … belongs to more specific group …`), cooldown filtering (`Filtered out N versions due to cooldown`), and ignore rules. That is the only reliable way to tell whether `.github/dependabot.yml` is doing what its comments say.
 - **Groups resolve by specificity, not by order.** A package that must move with another (an exact or lockstep peer, like `three`/`@types/three` or `vitest`/`@vitest/coverage-v8`) needs its own group *and* an `exclude-patterns` entry in `dev-dependencies`. The comments in `dependabot.yml` explain why.
-- **Recently published releases are skipped on purpose.** Dependabot waits 3 days before offering a new release, so a version published just before the weekly run appears the week after.
+- **Version updates are monthly on purpose.** Only `three` ships to browsers, so weekly tooling bumps changed nothing players load. Security fixes for `three` do not wait: the weekly Security audit and Audit Fix cover them. When development resumes after a quiet period, follow "Dependency refresh before development" above rather than expecting Dependabot to have kept the tooling current.
+- **Recently published releases are skipped on purpose.** Dependabot waits 3 days before offering a new release, so a version published just before a scheduled run appears in the next one.
 - **Fix a red Dependabot PR from its logs.** An `ERESOLVE` at `npm ci` means a peer-dependency split. No number of re-runs fixes it; apply the paired bump as one change instead.
 - **Never hand-merge a lockfile.** When one merge puts another Dependabot PR into conflict, it needs a `@dependabot rebase` comment so Dependabot regenerates the lockfile against the new base (see the next point for who posts it). On your own branches, reset `package.json`/`package-lock.json` to `main`, re-apply your edits, and let npm regenerate the lock. Use npm 11 (`npx -y npm@11 install` or `npx -y npm@11 audit fix`): the container's npm 10 strips the `libc` fields from the lockfile.
 - **Agents cannot send Dependabot commands.** Comments posted through the GitHub MCP tools are rewritten before they reach GitHub: `@dependabot rebase` arrives as `·@·d·ependabot r·ebase` with a footer appended, and Dependabot ignores it (2026-10-10). Do not post `@dependabot` commands. Give the user the exact comment to paste on each PR, then watch the PRs for the rebased commits.
@@ -454,8 +470,8 @@ Reviewing Dependabot PRs is a recurring task. Lessons from past sessions:
 | Workflow | Runs on | What it does |
 |----------|---------|--------------|
 | Quality (`quality.yml`) | PRs and pushes to `main` (not docs-only) | Lint & Format, Type Check, Unit Tests, Bundle Size Check, E2E Tests (Functional), Visual Regression |
-| Security (`security.yml`) | PRs and pushes to `main` (not docs-only), weekly schedule | `npm audit --audit-level=high`, CodeQL |
+| Security (`security.yml`) | PRs and pushes to `main` (not docs-only), weekly schedule | `npm audit --omit=dev --audit-level=high` on what ships to browsers (only `three` today); a full-tree `npm audit --audit-level=critical` on build and test tooling, with lower severities in the run summary only; CodeQL |
 | Deploy to GitHub Pages (`deploy.yml`) | Push to `main` | Converts `.vox` → `.glb`, verifies assets, builds, deploys |
-| Audit Fix (`audit-fix.yml`) | Weekly (Mon 06:00 UTC), manual | Runs `npm audit fix` with npm 11 and proposes the result only when it makes an advisory go away (`scripts/audit-resolved-advisories.mjs`). Version bumps that leave every advisory in place, which npm makes for advisories with no in-range fix, are ignored. Actions is not permitted to open PRs in this repository, so it opens an issue and goes red instead. A red run is a request for action, not a broken workflow. A run with nothing to fix closes that issue if it is still open |
+| Audit Fix (`audit-fix.yml`) | Weekly (Mon 06:00 UTC), manual | Runs `npm audit fix` with npm 11 and proposes the result only when it makes an advisory in a shipped dependency go away (`npm audit --omit=dev`, compared by `scripts/audit-resolved-advisories.mjs`). Advisories in build and test tooling wait for a planned refresh. Version bumps that leave every advisory in place, which npm makes for advisories with no in-range fix, are ignored. Actions is not permitted to open PRs in this repository, so it opens an issue and goes red instead. A red run is a request for action, not a broken workflow. A run with nothing to fix closes that issue if it is still open |
 | Update Visual Snapshots (`update-snapshots.yml`) | Manual (`branch` input) | Regenerates visual baselines in CI and commits them |
 | Convert Character Models (`convert-models.yml`) | Manual (`branch` input) | Runs the `.vox` → `.glb` conversion on a branch |

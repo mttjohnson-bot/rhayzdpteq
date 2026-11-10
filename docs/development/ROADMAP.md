@@ -40,7 +40,7 @@ Everything below has been implemented, tested, and is live on the deployed game.
 - **Linting & Formatting** — ESLint v9 + Prettier, pre-commit hooks via Husky + lint-staged.
 - **Unit Testing** — Vitest with 451 tests, 98% coverage, coverage thresholds enforced (80% lines, 80% functions, 70% branches).
 - **E2E Testing** — Playwright with 23 tests, functional tests block merge, visual regression tests are non-blocking with diff artifact uploads.
-- **Security** — Dependabot weekly updates, CodeQL analysis, npm audit, error overlays, localStorage hardening, gamepad graceful degradation.
+- **Security** — Dependabot monthly updates, CodeQL analysis, npm audit, error overlays, localStorage hardening, gamepad graceful degradation.
 - **CI/CD** — Consolidated quality workflow with job dependency graph, bundle size gate (5 MB), GitHub Pages deployment.
 - Detailed plan: [plans/quality-roadmap.md](plans/quality-roadmap.md)
 

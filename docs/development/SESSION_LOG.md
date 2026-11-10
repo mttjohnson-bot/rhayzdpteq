@@ -1980,3 +1980,34 @@ Read both failing jobs' logs, check whether the open Dependabot PRs fix the same
 - Merged #237 after all nine checks passed. `main`'s push runs (Quality, Security, Deploy) all passed, and Security's `npm audit` is green again. Dispatching Audit Fix through the GitHub MCP tool failed with `403 Resource not accessible by integration`, so the workflow change waits for a manual run or Monday's schedule.
 - Dependabot closed #236 as up to date. It replaced #234 with #238 (`@playwright/test` 1.65.0, `eslint` 10.14.0, `typescript-eslint` 8.72.1, `vite` 8.3.6, `rollup-plugin-visualizer` 7.1.2). It rebuilt #232 with vitest 5.1.0. Both were green on all nine checks. They conflict in `package.json`, as a local merge showed, so #232 was merged and #238 needs a `@dependabot rebase` from the user.
 - **Gap: a wrong claim in #237.** Its changelog entry and PR body said vitest 5.1.0 and Playwright 1.65.0 were held back by Dependabot's 3-day cooldown. That was inferred, not checked. The registry shows they were published on 2026-11-02 and 2026-11-05, well outside the window, and Dependabot offered them within minutes of the merge. Only `vite` 8.3.7 and `typescript-eslint` 8.72.2 (2026-11-09) were inside it. The changelog entry is corrected. Lesson: check publish dates with `npm view <pkg> time` before citing the cooldown.
+
+### Rescoping the dependency checks (same session)
+> So from what all gather most or all of the fixes today related to things that would only impact development […] or would some of this have impacted the results of what is built and used by browsers […]? If a lot of these updates that seem to occur weekly relate to only impacting active development […] it seems it would be better to delay that until it is actually needed by some development driven work […]
+
+> yes, open a PR for those changes
+
+- **Answer.** Only `three` is a production dependency, so it was the one change today that reaches browsers. `vite` builds the bundle and can change its bytes, but not normally the game's behaviour. Everything else, `undici` included, is test or lint tooling. `npm audit --omit=dev` reported 0 vulnerabilities both on `main` from before #237 and on current `main`.
+- **Changes.**
+  - `security.yml` fails on `--omit=dev --audit-level=high`, plus a full-tree `--audit-level=critical`. The full report goes to the run summary.
+  - `audit-fix.yml` decides from `--omit=dev` audit reports.
+  - `dependabot.yml` runs monthly for npm and GitHub Actions.
+  - `CLAUDE.md`, `ARCHITECTURE.md` and `ROADMAP.md` were updated to match.
+- **Verified** against real lockfiles. Before #237: the old gate fails (exit 1) and both new gates pass. Current `main`: all pass. Running the new Audit Fix step logic on the pre-#237 lockfile gives `changed=false`.
+- **Trade-off, stated in the config.** Dependabot's schedule belongs to the update entry, not to a group, so `three` is monthly too. Advisories in shipped dependencies are still caught weekly by the scheduled Security run and Audit Fix. Dev-tooling majors will pile up between refreshes, so the first session after a quiet period should start with a dependency refresh.
+- **Not verified.** None of the changed workflows have run in CI with these changes yet, and Dependabot's first monthly run falls on 2026-12-01.
+- This is the proposal from the 2026-10-10 session (prod-only gating, monthly Dependabot). It was left waiting on a user decision until now. Auto-merge and a longer cooldown from that list were not done.
+
+### Refresh reminder for future sessions (same session)
+> Is there anything that needs to be added so that if/when new development occurs next, the agent will know it needs to go update and check all the dev and other dependencies for security fixes, and make sure those are fixed before things start running through CI?
+
+- **Gap.** The only reminder was one line in the Dependabot section of `CLAUDE.md`. An agent reads that section only when it is already working on Dependabot PRs, so feature work after a quiet period would never see it.
+- **Fix.** New `.claude/hooks/dependency-report.sh`, called at the end of the SessionStart hook. It prints to stdout, which is added to the agent's context. It runs `npm audit --json --package-lock-only` on the full tree and checks `git log` for the lockfile's last change. If there is any high or critical advisory, or the lockfile is more than 45 days old, it prints `DEPENDENCY REFRESH NEEDED` and points to the new "Dependency refresh before development" section in `CLAUDE.md`. The session startup checklist gained a step to read the report.
+- **Verified** on five cases, all exiting 0:
+  - current `main`: OK, 10 moderate
+  - pre-#237 lockfile: refresh needed, 1 high
+  - lockfile committed 60 days ago: refresh needed, stale
+  - unreadable lockfile: "run the audit yourself", not a refresh demand
+  - no lockfile: silent
+
+  The full hook with `CLAUDE_CODE_REMOTE=true` printed the report on stdout and took 2 seconds.
+- **Design note.** The reminder tells the agent to do the refresh only for development work. For a question or a docs change, the agent tells the user instead, so a report never derails an unrelated task.
