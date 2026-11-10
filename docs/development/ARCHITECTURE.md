@@ -269,8 +269,11 @@ Until 2026-11-10 the gate audited the whole tree at `high`. Every vulnerability 
 came from a *transitive* dev package (postcss, brace-expansion, nanoid, undici). On both
 occasions where it was checked (2026-10-10 and 2026-11-10), `npm audit --omit=dev` was clean,
 so nothing at risk could reach players. Dependabot
-version updates are monthly for the same reason. When development resumes after a quiet
-period, refresh the tooling as part of that work.
+version updates are monthly for the same reason. To stop the tooling drifting unnoticed,
+the web-session SessionStart hook runs `.claude/hooks/dependency-report.sh`. It asks for a
+refresh when the full-tree audit shows a high or critical advisory, or when the lockfile
+has not changed in 45 days. The procedure is "Dependency refresh before development" in
+`CLAUDE.md`.
 
 Dependabot version updates never open PRs for transitive packages, so those advisories
 accumulate silently until the gate goes red and blocks every open PR at once. The

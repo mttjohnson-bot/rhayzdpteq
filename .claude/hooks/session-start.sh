@@ -1,7 +1,8 @@
 #!/bin/bash
 # SessionStart hook for Claude Code on the web: install dependencies so the
-# quality gates (lint, format, tsc, build, unit tests) work immediately, and
-# point Playwright at the pre-installed Chromium so E2E tests can run.
+# quality gates (lint, format, tsc, build, unit tests) work immediately, point
+# Playwright at the pre-installed Chromium so E2E tests can run, and report
+# whether the dependencies need a refresh before development work.
 set -euo pipefail
 
 # Web sessions only; a local checkout manages its own environment.
@@ -32,3 +33,8 @@ if [ -n "${CLAUDE_ENV_FILE:-}" ] && [ -x /opt/pw-browsers/chromium ] \
   && ! grep -qxF "$line" "$CLAUDE_ENV_FILE" 2>/dev/null; then
   echo "$line" >> "$CLAUDE_ENV_FILE"
 fi
+
+# Tell the agent whether the dependencies need a refresh before any
+# development work. Printed to stdout, which is added to the session's
+# context. Best-effort: a failure here must never block the session.
+bash .claude/hooks/dependency-report.sh . || true

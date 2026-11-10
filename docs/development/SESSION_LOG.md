@@ -1996,3 +1996,18 @@ Read both failing jobs' logs, check whether the open Dependabot PRs fix the same
 - **Trade-off, stated in the config.** Dependabot's schedule belongs to the update entry, not to a group, so `three` is monthly too. Advisories in shipped dependencies are still caught weekly by the scheduled Security run and Audit Fix. Dev-tooling majors will pile up between refreshes, so the first session after a quiet period should start with a dependency refresh.
 - **Not verified.** None of the changed workflows have run in CI with these changes yet, and Dependabot's first monthly run falls on 2026-12-01.
 - This is the proposal from the 2026-10-10 session (prod-only gating, monthly Dependabot). It was left waiting on a user decision until now. Auto-merge and a longer cooldown from that list were not done.
+
+### Refresh reminder for future sessions (same session)
+> Is there anything that needs to be added so that if/when new development occurs next, the agent will know it needs to go update and check all the dev and other dependencies for security fixes, and make sure those are fixed before things start running through CI?
+
+- **Gap.** The only reminder was one line in the Dependabot section of `CLAUDE.md`. An agent reads that section only when it is already working on Dependabot PRs, so feature work after a quiet period would never see it.
+- **Fix.** New `.claude/hooks/dependency-report.sh`, called at the end of the SessionStart hook. It prints to stdout, which is added to the agent's context. It runs `npm audit --json --package-lock-only` on the full tree and checks `git log` for the lockfile's last change. If there is any high or critical advisory, or the lockfile is more than 45 days old, it prints `DEPENDENCY REFRESH NEEDED` and points to the new "Dependency refresh before development" section in `CLAUDE.md`. The session startup checklist gained a step to read the report.
+- **Verified** on five cases, all exiting 0:
+  - current `main`: OK, 10 moderate
+  - pre-#237 lockfile: refresh needed, 1 high
+  - lockfile committed 60 days ago: refresh needed, stale
+  - unreadable lockfile: "run the audit yourself", not a refresh demand
+  - no lockfile: silent
+
+  The full hook with `CLAUDE_CODE_REMOTE=true` printed the report on stdout and took 2 seconds.
+- **Design note.** The reminder tells the agent to do the refresh only for development work. For a question or a docs change, the agent tells the user instead, so a report never derails an unrelated task.
